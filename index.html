@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -156,6 +156,15 @@
     .plan-day { font-size: 1.7rem; padding-top: .9rem; }
   }
 
+  /* team */
+  .team { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1.2rem; }
+  .tmember { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.4rem; text-align: center; }
+  .tmember .avatar { width: 84px; height: 84px; border-radius: 50%; margin: 0 auto .9rem; object-fit: cover; border: 3px solid #fff; display: block; }
+  .tmember .avatar.placeholder { display: flex; align-items: center; justify-content: center; background: var(--eu); color: #fff; font-family: var(--head); font-weight: 800; font-size: 1.8rem; }
+  .tmember h3 { font-size: 1.4rem; font-weight: 700; }
+  .tmember .role { font-family: var(--head); font-weight: 700; color: var(--line); font-size: 1rem; margin: .1rem 0 .6rem; text-transform: uppercase; letter-spacing: .03em; }
+  .tmember p { margin: 0; color: var(--muted); font-size: .95rem; }
+
   /* about */
   .about-top { display: grid; grid-template-columns: 1.1fr 1fr; gap: 2.2rem; align-items: center; margin-bottom: 2.4rem; }
   @media (max-width: 820px) { .about-top { grid-template-columns: 1fr; } }
@@ -225,6 +234,7 @@
       <a href="#streamers">Streamers</a>
       <a class="hide-sm" href="#planner">Planner</a>
       <a class="hide-sm" href="#about">About</a>
+      <a class="hide-sm" href="#team">Team</a>
       <a class="hide-sm" href="#games">Games</a>
       <a class="hide-sm" href="#how">How it works</a>
       <a class="hide-sm" href="#rules">Rules</a>
@@ -299,6 +309,16 @@
       <div><h3>Independent players</h3><p>No VTC? No problem. Solo drivers are as welcome here as company members.</p></div>
       <div><h3>Streamers</h3><p>Go live during our convoys and share the road with a wider audience. Tell us your channel so we can shout it out. <a class="inline" href="#streamers">See how to get listed</a>.</p></div>
     </div>
+  </div>
+</section>
+
+<hr class="centreline">
+
+<section id="team">
+  <div class="wrap">
+    <h2 class="title">Leadership</h2>
+    <p class="sub">The people keeping GTC on the road.</p>
+    <div class="team" id="team"></div>
   </div>
 </section>
 
@@ -537,6 +557,9 @@ const CONFIG = {
   facebookUrl: "https://www.facebook.com/globaltruckerscommunity",
   // Add streamers here, one per line:
   // { name: "Channel name", platform: "YouTube", url: "https://youtube.com/@yourchannel", games: "ETS 2, ATS" }
+  team: [
+    { name: "Bryan Gaming", role: "Founder & Manager", bio: "Gaming tech enthusiast with a goal of spreading positive vibes through gaming.", photo: "" }
+  ],
   // Optional: paste a Google Form link here to use it instead of the built-in form.
   signupFormUrl: "",
   // Extra gallery photos. Upload them to an "images" folder in your GitHub repository, then add lines like:
@@ -555,10 +578,10 @@ const CONFIG = {
       { day: "Monday",    dow: 1, convoys: [["ETS2","Base Map"],["ETS2","Brazil Map"],["ETS2","Map DLC"]] },
       { day: "Tuesday",   dow: 2, convoys: [["ETS2","Cargo DLC"],["ETS2","EAA Map"],["ETS2","Base Map"]] },
       { day: "Wednesday", dow: 3, convoys: [["ATS","Base Map"],["ETS2","Base Map",true],["ETS2","Map DLC",true]] },
-      { day: "Thursday",  dow: 4, convoys: [["ETS2","Base Map"],["ETS2","Brazil Map"],["ETS2","Cargo DLC"]] },
+      { day: "Thursday",  dow: 4, convoys: [["ETS2","Brazil Map (Cargo DLC)"],["ETS2","Base Map"],["ETS2","Cargo DLC"]] },
       { day: "Friday",    dow: 5, convoys: [["ETS2","Map DLC"],["ETS2","Cargo DLC",true],["ETS2","Base Map"]] },
-      { day: "Saturday",  dow: 6, convoys: [["ETS2","Brazil Map"],["ETS2","Base Map"],["ETS2","EAA Map"]] },
-      { day: "Sunday",    dow: 0, convoys: [["ETS2","Base Map"],["ATS","Base Map"],["ETS2","Rota Map"]] }
+      { day: "Saturday",  dow: 6, convoys: [["ETS2","EAA Map (Cargo DLC)"],["ETS2","Base Map"],["ETS2","EAA Map (Cargo DLC)"]] },
+      { day: "Sunday",    dow: 0, convoys: [["ETS2","Base Map",true],["ETS2","Map DLC",true],["ATS","Base Map"]] }
     ]
   }
 };
@@ -662,6 +685,23 @@ const planEl = document.getElementById("plan");
     row.append(cell);
   });
   planEl.append(row);
+});
+
+/* team */
+const teamEl = document.getElementById("team");
+CONFIG.team.forEach(m => {
+  const card = el("div", "tmember");
+  if (m.photo) {
+    const img = el("img", "avatar");
+    img.src = m.photo; img.alt = m.name;
+    card.append(img);
+  } else {
+    const initials = m.name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
+    card.append(el("div", "avatar placeholder", initials));
+  }
+  card.append(el("h3", "", m.name), el("div", "role", m.role));
+  if (m.bio) card.append(el("p", "", m.bio));
+  teamEl.append(card);
 });
 
 /* streamers */
