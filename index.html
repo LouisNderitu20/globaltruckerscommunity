@@ -233,6 +233,16 @@
 
   footer { padding: 2rem 0 3rem; color: var(--muted); font-size: .95rem; }
   footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem; }
+
+.home-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:1.5rem}
+.home-card{display:block;padding:1.4rem;border:1px solid var(--line);border-radius:18px;background:var(--card);text-decoration:none;color:inherit;transition:transform .18s ease,box-shadow .18s ease}
+.home-card:hover{transform:translateY(-3px);box-shadow:0 10px 28px rgba(0,0,0,.08)}
+.home-card-icon{font-size:2rem;display:block;margin-bottom:.7rem}
+.home-card h3{margin:.2rem 0 .45rem}
+.home-card p{margin:0 0 1rem;color:var(--muted);line-height:1.6}
+.home-card-link{font-weight:700}
+@media(max-width:760px){.home-cards{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -248,15 +258,15 @@
   </g>
   <path d="M52 184H204" stroke="#f2c230" stroke-width="8" stroke-dasharray="20 12" fill="none"/></svg><span id="brandName">Global Truckers Community</span></a>
     <nav aria-label="Main">
-      <a href="#schedule">Convoys</a>
+      <a href="#convoys">Convoys</a>
       <a href="#gallery">Gallery</a>
       <a href="#streamers">Streamers</a>
-      <a class="hide-sm" href="#planner">Planner</a>
+      
       <a class="hide-sm" href="#about">About</a>
-      <a class="hide-sm" href="#team">Team</a>
-      <a class="hide-sm" href="#games">Games</a>
-      <a class="hide-sm" href="#how">How it works</a>
-      <a class="hide-sm" href="#rules">Rules</a>
+      
+      
+      
+      
       <a href="#signup">Sign up</a>
     </nav>
   </header>
@@ -292,6 +302,46 @@
 
 <hr class="centreline">
 
+
+
+
+<hr class="centreline">
+
+<section id="home-links">
+  <div class="wrap">
+    <h2 class="title">Explore GTC</h2>
+    <p class="sub">Everything you need to get involved, learn about the community, and join the next drive.</p>
+    <div class="home-cards">
+      <a class="home-card" href="#convoys"><span class="home-card-icon">🚛</span><h3>Convoys</h3><p>See upcoming drives and download the latest GTC convoy planner.</p><span class="home-card-link">View convoys →</span></a>
+      <a class="home-card" href="#about"><span class="home-card-icon">🌍</span><h3>About GTC</h3><p>Learn who we are, who can join, how we drive, and what GTC stands for.</p><span class="home-card-link">About the community →</span></a>
+      <a class="home-card" href="#signup"><span class="home-card-icon">📝</span><h3>Driver Sign-Up</h3><p>Ready to drive with us? Complete the simple driver sign-up and join the community.</p><span class="home-card-link">Sign up as a driver →</span></a>
+    </div>
+  </div>
+</section>
+
+<hr class="centreline">
+<section id="join">
+  <div class="wrap">
+    <div class="join">
+      <h2>Ready to roll?</h2>
+      <p>Convoy reminders and route changes go out in the WhatsApp group. Screenshots, event posts and photos live on our Facebook page.</p>
+      <div class="btns">
+        <a class="btn su" href="#signup">Sign up as a driver</a>
+        <a class="btn wa" id="waBtn2" href="#" target="_blank" rel="noopener"><span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M20.5 3.5A11.8 11.8 0 0 0 12.1 0C5.6 0 .3 5.3.3 11.8c0 2.1.6 4.1 1.6 5.9L.2 24l6.5-1.7a11.8 11.8 0 0 0 5.4 1.3h.1c6.5 0 11.8-5.3 11.8-11.8 0-3.1-1.2-6.1-3.5-8.3ZM12.1 21.6h-.1c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.9 1 1-3.8-.2-.4a9.8 9.8 0 0 1-1.5-5.2c0-5.4 4.4-9.8 9.9-9.8 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.3 2.9 7 0 5.4-4.4 9.8-9.8 9.8Zm5.4-7.3c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-1.5-.7-2.5-1.3-3.5-2.9-.3-.5.3-.5.8-1.7.1-.2.1-.4 0-.6-.1-.2-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.7s1.2 3.1 1.4 3.3c.2.2 2.4 3.7 5.9 5.2.8.3 1.4.5 1.9.7.8.2 1.5.2 2 .1.6-.1 1.8-.7 2.1-1.4.3-.7.3-1.3.2-1.4-.1-.2-.3-.3-.6-.4Z"/></svg></span><span>Join the WhatsApp group</span></a>
+        <a class="btn fb" id="fbBtn2" href="#" target="_blank" rel="noopener"><span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M13.7 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H7.5V13h2.8v8h3.4Z"/></svg></span><span>Follow on Facebook</span></a>
+      </div>
+    </div>
+  </div>
+</section></div><!-- /view-home -->
+
+<div id="view-convoys" hidden>
+  <div class="wrap">
+    <div class="s-hero">
+      <h1>GTC Convoys.</h1>
+      <p class="lead">Find the next GTC drive, check the schedule, and download the current convoy planner.</p>
+    </div>
+  </div>
+  <hr class="centreline">
 <section id="schedule">
   <div class="wrap">
     <h2 class="title">Upcoming convoys</h2>
@@ -320,6 +370,10 @@
 
 <hr class="centreline">
 
+
+</div>
+
+<div id="view-about" hidden>
 <section id="about">
   <div class="wrap">
     <h2 class="title">About GTC</h2>
@@ -409,21 +463,8 @@
 
 <hr class="centreline">
 
-<section id="join">
-  <div class="wrap">
-    <div class="join">
-      <h2>Ready to roll?</h2>
-      <p>Convoy reminders and route changes go out in the WhatsApp group. Screenshots, event posts and photos live on our Facebook page.</p>
-      <div class="btns">
-        <a class="btn su" href="#signup">Sign up as a driver</a>
-        <a class="btn wa" id="waBtn2" href="#" target="_blank" rel="noopener"><span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M20.5 3.5A11.8 11.8 0 0 0 12.1 0C5.6 0 .3 5.3.3 11.8c0 2.1.6 4.1 1.6 5.9L.2 24l6.5-1.7a11.8 11.8 0 0 0 5.4 1.3h.1c6.5 0 11.8-5.3 11.8-11.8 0-3.1-1.2-6.1-3.5-8.3ZM12.1 21.6h-.1c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.9 1 1-3.8-.2-.4a9.8 9.8 0 0 1-1.5-5.2c0-5.4 4.4-9.8 9.9-9.8 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.3 2.9 7 0 5.4-4.4 9.8-9.8 9.8Zm5.4-7.3c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-1.5-.7-2.5-1.3-3.5-2.9-.3-.5.3-.5.8-1.7.1-.2.1-.4 0-.6-.1-.2-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.7s1.2 3.1 1.4 3.3c.2.2 2.4 3.7 5.9 5.2.8.3 1.4.5 1.9.7.8.2 1.5.2 2 .1.6-.1 1.8-.7 2.1-1.4.3-.7.3-1.3.2-1.4-.1-.2-.3-.3-.6-.4Z"/></svg></span><span>Join the WhatsApp group</span></a>
-        <a class="btn fb" id="fbBtn2" href="#" target="_blank" rel="noopener"><span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M13.7 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H7.5V13h2.8v8h3.4Z"/></svg></span><span>Follow on Facebook</span></a>
-      </div>
-    </div>
-  </div>
-</section>
 
-</div><!-- /view-home -->
+</div>
 
 <div id="view-streamers" hidden>
   <div class="wrap">
@@ -792,8 +833,8 @@ document.getElementById("copyAgain").addEventListener("click", async () => {
   document.getElementById("copyStatus").textContent = ok ? "Copied to your clipboard." : "Select the text below and copy it.";
 });
 
-/* simple page switching: #streamers, #gallery and #signup are pages, anything else is home */
-const PAGES = { streamers: "view-streamers", gallery: "view-gallery", signup: "view-signup" };
+/* simple page switching: main sections use dedicated pages */
+const PAGES = { convoys: "view-convoys", about: "view-about", streamers: "view-streamers", gallery: "view-gallery", signup: "view-signup" };
 const vHome = document.getElementById("view-home");
 function route() {
   const key = location.hash.slice(1);
