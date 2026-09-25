@@ -71,6 +71,9 @@
   .btn.fb { background: #1b6fe0; color: #fff; }
   .btn:hover { filter: brightness(1.08); }
 
+  .social-icon { display:inline-flex; align-items:center; justify-content:center; width:1.2em; height:1.2em; flex:none; }
+  .social-icon svg { width:100%; height:100%; fill:currentColor; display:block; }
+
   /* gantry sign */
   .gantry { background: var(--eu); color: var(--sign-text); border: 4px solid #fff; border-radius: 12px; outline: 3px solid var(--eu); padding: 1.25rem 1.4rem 1.4rem; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
   .gantry h2 { font-size: 1.05rem; font-weight: 600; opacity: .85; letter-spacing: .04em; }
@@ -88,20 +91,29 @@
   section h2.title { font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 800; margin-bottom: .6rem; }
   .sub { color: var(--muted); max-width: 52ch; margin: 0 0 2rem; }
 
-  /* schedule */
-  .rows { display: grid; gap: .9rem; }
-  .row { display: grid; grid-template-columns: auto 1fr auto; gap: 1.1rem; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; }
-  @media (max-width: 640px) { .row { grid-template-columns: auto 1fr; } .row .time { grid-column: 1 / -1; text-align: left !important; } }
-  .badge { font-family: var(--head); font-weight: 800; font-size: 1.15rem; color: #fff; min-width: 4.4rem; text-align: center; padding: .35rem .5rem; border: 3px solid #fff; border-radius: 8px; outline: 2px solid transparent; }
+  /* compact convoy timetable */
+  #schedule { padding: 2.4rem 0; }
+  #schedule .sub { margin-bottom: 1rem; }
+  .rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
+  .row { display: grid; grid-template-columns: auto 1fr auto; gap: .7rem; align-items: center; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: .65rem .75rem; }
+  .badge { font-family: var(--head); font-weight: 800; font-size: .9rem; color: #fff; min-width: 3.5rem; text-align: center; padding: .25rem .4rem; border: 2px solid #fff; border-radius: 6px; outline: 2px solid transparent; }
   .badge.ets2 { background: var(--eu); }
   .badge.ats { background: var(--us); }
-  .route { font-family: var(--head); font-weight: 700; font-size: 1.55rem; line-height: 1.1; }
-  .meta { color: var(--muted); font-size: .97rem; }
-  .time { text-align: right; }
-  .time strong { display: block; font-weight: 600; }
-  .time small { color: var(--muted); }
-  .empty { background: var(--surface); border: 2px dashed var(--border); border-radius: 10px; padding: 1.5rem; color: var(--muted); }
-  .tznote { margin-top: 1rem; color: var(--muted); font-size: .95rem; }
+  .route { font-family: var(--head); font-weight: 700; font-size: 1.05rem; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta { color: var(--muted); font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .time { text-align: right; white-space: nowrap; }
+  .time strong { display: block; font-size: .82rem; font-weight: 700; }
+  .time small { color: var(--muted); font-size: .68rem; }
+  .empty { background: var(--surface); border: 2px dashed var(--border); border-radius: 10px; padding: 1rem; color: var(--muted); grid-column: 1 / -1; }
+  .tznote { margin-top: .65rem; color: var(--muted); font-size: .8rem; }
+  @media (max-width: 760px) {
+    .rows { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    #schedule { padding: 2rem 0; }
+    .row { grid-template-columns: auto 1fr; }
+    .row .time { grid-column: 1 / -1; text-align: left; border-top: 1px solid var(--border); padding-top: .35rem; }
+  }
 
   /* gallery */
   .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
@@ -155,6 +167,13 @@
     .plan-row { grid-template-columns: 1fr; }
     .plan-day { font-size: 1.7rem; padding-top: .9rem; }
   }
+
+  /* planner download */
+  .planner-download { display: flex; align-items: center; gap: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+  .planner-download-icon { width: 72px; height: 72px; flex: 0 0 72px; display: grid; place-items: center; border-radius: 12px; background: var(--eu); color: #fff; font-size: 2rem; }
+  .planner-download-content h3 { margin: 0 0 .35rem; font-family: var(--head); font-size: 1.5rem; }
+  .planner-download-content p { margin: 0 0 1rem; color: var(--muted); }
+  @media (max-width: 640px) { .planner-download { align-items: flex-start; flex-direction: column; } }
 
   /* team */
   .team { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1.2rem; }
@@ -251,8 +270,8 @@
         <h1>Haul together.</h1>
         <p class="lead">Global Truckers Community (GTC) brings ETS 2 and ATS drivers and streamers from around the world into one convoy.</p>
         <div class="btns">
-          <a class="btn wa" id="waBtn1" href="#" target="_blank" rel="noopener">Join the WhatsApp group</a>
-          <a class="btn fb" id="fbBtn1" href="#" target="_blank" rel="noopener">Follow on Facebook</a>
+          <a class="btn wa" id="waBtn1" href="#" target="_blank" rel="noopener"><span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M20.5 3.5A11.8 11.8 0 0 0 12.1 0C5.6 0 .3 5.3.3 11.8c0 2.1.6 4.1 1.6 5.9L.2 24l6.5-1.7a11.8 11.8 0 0 0 5.4 1.3h.1c6.5 0 11.8-5.3 11.8-11.8 0-3.1-1.2-6.1-3.5-8.3ZM12.1 21.6h-.1c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.9 1 1-3.8-.2-.4a9.8 9.8 0 0 1-1.5-5.2c0-5.4 4.4-9.8 9.9-9.8 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.3 2.9 7 0 5.4-4.4 9.8-9.8 9.8Zm5.4-7.3c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-1.5-.7-2.5-1.3-3.5-2.9-.3-.5.3-.5.8-1.7.1-.2.1-.4 0-.6-.1-.2-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.7s1.2 3.1 1.4 3.3c.2.2 2.4 3.7 5.9 5.2.8.3 1.4.5 1.9.7.8.2 1.5.2 2 .1.6-.1 1.8-.7 2.1-1.4.3-.7.3-1.3.2-1.4-.1-.2-.3-.3-.6-.4Z"/></svg></span><span>Join the WhatsApp group</span></a>
+          <a class="btn fb" id="fbBtn1" href="#" target="_blank" rel="noopener"><span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M13.7 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H7.5V13h2.8v8h3.4Z"/></svg></span><span>Follow on Facebook</span></a>
         </div>
       </div>
 
@@ -286,9 +305,16 @@
 
 <section id="planner">
   <div class="wrap">
-    <h2 class="title" id="plannerTitle">Weekly planner</h2>
-    <p class="sub">Three convoys every day. Your local time is shown first, with EAT beside it.</p>
-    <div class="plan" id="plan"></div>
+    <h2 class="title">GTC Convoy Planner</h2>
+    <p class="sub">Download the latest GTC convoy timetable as a one-page PDF. All times are shown in East Africa Time (EAT).</p>
+    <div class="planner-download">
+      <div class="planner-download-icon" aria-hidden="true">📅</div>
+      <div class="planner-download-content">
+        <h3>GTC Convoys Planner — September 2026</h3>
+        <p>One-page convoy timetable covering ETS 2 and ATS routes, including Base Map, Map DLC, Cargo DLC, Brazil, EAA and TruckersMP convoys.</p>
+        <a class="btn" href="GTC-Convoys-Planner.pdf" download>Download Convoy Planner PDF</a>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -390,8 +416,8 @@
       <p>Convoy reminders and route changes go out in the WhatsApp group. Screenshots, event posts and photos live on our Facebook page.</p>
       <div class="btns">
         <a class="btn su" href="#signup">Sign up as a driver</a>
-        <a class="btn wa" id="waBtn2" href="#" target="_blank" rel="noopener">Join the WhatsApp group</a>
-        <a class="btn fb" id="fbBtn2" href="#" target="_blank" rel="noopener">Follow on Facebook</a>
+        <a class="btn wa" id="waBtn2" href="#" target="_blank" rel="noopener"><span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M20.5 3.5A11.8 11.8 0 0 0 12.1 0C5.6 0 .3 5.3.3 11.8c0 2.1.6 4.1 1.6 5.9L.2 24l6.5-1.7a11.8 11.8 0 0 0 5.4 1.3h.1c6.5 0 11.8-5.3 11.8-11.8 0-3.1-1.2-6.1-3.5-8.3ZM12.1 21.6h-.1c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.9 1 1-3.8-.2-.4a9.8 9.8 0 0 1-1.5-5.2c0-5.4 4.4-9.8 9.9-9.8 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.3 2.9 7 0 5.4-4.4 9.8-9.8 9.8Zm5.4-7.3c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-1.5-.7-2.5-1.3-3.5-2.9-.3-.5.3-.5.8-1.7.1-.2.1-.4 0-.6-.1-.2-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.7s1.2 3.1 1.4 3.3c.2.2 2.4 3.7 5.9 5.2.8.3 1.4.5 1.9.7.8.2 1.5.2 2 .1.6-.1 1.8-.7 2.1-1.4.3-.7.3-1.3.2-1.4-.1-.2-.3-.3-.6-.4Z"/></svg></span><span>Join the WhatsApp group</span></a>
+        <a class="btn fb" id="fbBtn2" href="#" target="_blank" rel="noopener"><span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M13.7 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H7.5V13h2.8v8h3.4Z"/></svg></span><span>Follow on Facebook</span></a>
       </div>
     </div>
   </div>
@@ -443,8 +469,8 @@
         <h2>Want to be listed?</h2>
         <p>Send your channel link and the games you stream in the WhatsApp group, or message us on Facebook.</p>
         <div class="btns">
-          <a class="btn wa" id="waBtn4" href="#" target="_blank" rel="noopener">Join the WhatsApp group</a>
-          <a class="btn fb" id="fbBtn3" href="#" target="_blank" rel="noopener">Message us on Facebook</a>
+          <a class="btn wa" id="waBtn4" href="#" target="_blank" rel="noopener"><span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M20.5 3.5A11.8 11.8 0 0 0 12.1 0C5.6 0 .3 5.3.3 11.8c0 2.1.6 4.1 1.6 5.9L.2 24l6.5-1.7a11.8 11.8 0 0 0 5.4 1.3h.1c6.5 0 11.8-5.3 11.8-11.8 0-3.1-1.2-6.1-3.5-8.3ZM12.1 21.6h-.1c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.9 1 1-3.8-.2-.4a9.8 9.8 0 0 1-1.5-5.2c0-5.4 4.4-9.8 9.9-9.8 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.3 2.9 7 0 5.4-4.4 9.8-9.8 9.8Zm5.4-7.3c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-1.5-.7-2.5-1.3-3.5-2.9-.3-.5.3-.5.8-1.7.1-.2.1-.4 0-.6-.1-.2-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.7s1.2 3.1 1.4 3.3c.2.2 2.4 3.7 5.9 5.2.8.3 1.4.5 1.9.7.8.2 1.5.2 2 .1.6-.1 1.8-.7 2.1-1.4.3-.7.3-1.3.2-1.4-.1-.2-.3-.3-.6-.4Z"/></svg></span><span>Join the WhatsApp group</span></a>
+          <a class="btn fb" id="fbBtn3" href="#" target="_blank" rel="noopener"><span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M13.7 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H7.5V13h2.8v8h3.4Z"/></svg></span><span>Message us on Facebook</span></a>
         </div>
       </div>
     </div>
@@ -463,7 +489,7 @@
     <div class="wrap">
       <div class="gallery" id="gallery"></div>
       <p class="tznote">Got a great convoy screenshot? Post it on our Facebook page or send it to the WhatsApp group and we'll add the best ones.</p>
-      <div class="btns" style="margin-top:1rem"><a class="btn fb" id="fbBtn4" href="#" target="_blank" rel="noopener">More photos on Facebook</a></div>
+      <div class="btns" style="margin-top:1rem"><a class="btn fb" id="fbBtn4" href="#" target="_blank" rel="noopener"><span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M13.7 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H7.5V13h2.8v8h3.4Z"/></svg></span><span>More photos on Facebook</span></a></div>
     </div>
   </section>
 </div>
@@ -523,7 +549,7 @@
           <p class="hint" id="copyStatus"></p>
           <textarea id="signupText" readonly aria-label="Your sign-up message"></textarea>
           <div class="btns">
-            <a class="btn wa" id="waBtn5" href="#" target="_blank" rel="noopener">Open the WhatsApp group</a>
+            <a class="btn wa" id="waBtn5" href="#" target="_blank" rel="noopener"><span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M20.5 3.5A11.8 11.8 0 0 0 12.1 0C5.6 0 .3 5.3.3 11.8c0 2.1.6 4.1 1.6 5.9L.2 24l6.5-1.7a11.8 11.8 0 0 0 5.4 1.3h.1c6.5 0 11.8-5.3 11.8-11.8 0-3.1-1.2-6.1-3.5-8.3ZM12.1 21.6h-.1c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.9 1 1-3.8-.2-.4a9.8 9.8 0 0 1-1.5-5.2c0-5.4 4.4-9.8 9.9-9.8 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.3 2.9 7 0 5.4-4.4 9.8-9.8 9.8Zm5.4-7.3c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-1.5-.7-2.5-1.3-3.5-2.9-.3-.5.3-.5.8-1.7.1-.2.1-.4 0-.6-.1-.2-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.7s1.2 3.1 1.4 3.3c.2.2 2.4 3.7 5.9 5.2.8.3 1.4.5 1.9.7.8.2 1.5.2 2 .1.6-.1 1.8-.7 2.1-1.4.3-.7.3-1.3.2-1.4-.1-.2-.3-.3-.6-.4Z"/></svg></span><span>Open the WhatsApp group</span></a>
             <button type="button" class="btn su" id="copyAgain" style="font: inherit; font-weight: 600; cursor: pointer">Copy again</button>
           </div>
           <p class="hint">Paste the message into the group chat and send it. The team will see it there.</p>
@@ -598,7 +624,6 @@ document.title = CONFIG.name + " – ETS 2 & ATS Virtual Convoys";
 document.getElementById("brandName").textContent = CONFIG.name;
 ["waBtn1","waBtn2","waBtn3","waBtn4","waBtn5"].forEach(id => document.getElementById(id).href = CONFIG.whatsappUrl);
 ["fbBtn1","fbBtn2","fbBtn3","fbBtn4"].forEach(id => document.getElementById(id).href = CONFIG.facebookUrl);
-document.getElementById("plannerTitle").textContent = P.label + " planner";
 
 const fmtLocal = new Intl.DateTimeFormat(undefined, { weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit", timeZoneName:"short" });
 const fmtTime  = new Intl.DateTimeFormat(undefined, { hour:"2-digit", minute:"2-digit" });
@@ -663,30 +688,6 @@ if (!upcoming.length) {
   };
   tick(); setInterval(tick, 1000);
 }
-
-/* weekly planner grid (Monday first) */
-const planEl = document.getElementById("plan");
-[...P.week].sort((a, b) => ((a.dow + 6) % 7) - ((b.dow + 6) % 7)).forEach(day => {
-  const row = el("div", "plan-row");
-  row.append(el("div", "plan-day", day.day));
-  day.convoys.forEach((c, i) => {
-    const ref = all.find(x => x.dow === day.dow && x.slot === i);
-    const cell = el("div", "cell");
-    cell.append(badge(c[0], true));
-    const map = el("div", "map", c[1]);
-    if (c[2]) map.append(el("span", "chip", "TruckersMP"));
-    cell.append(map);
-    let when = String(P.slots[i]).padStart(2, "0") + ":00 EAT";
-    if (ref && !inEAT()) {
-      when = fmtTime.format(ref.date);
-      if (fmtDay.format(ref.date) !== fmtEATDay.format(ref.date)) when += " (" + fmtDay.format(ref.date) + ")";
-      when += " · " + fmtEAT.format(ref.date) + " EAT";
-    }
-    cell.append(el("div", "ctime", when));
-    row.append(cell);
-  });
-  planEl.append(row);
-});
 
 /* team */
 const teamEl = document.getElementById("team");
