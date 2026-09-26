@@ -115,6 +115,25 @@
     .row .time { grid-column: 1 / -1; text-align: left; border-top: 1px solid var(--border); padding-top: .35rem; }
   }
 
+
+  /* news & blogs */
+  .news-grid { display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 1rem; margin-top: 1.5rem; }
+  .news-card { display: flex; flex-direction: column; min-height: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .news-card.featured { grid-row: span 2; }
+  .news-image { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: var(--eu); }
+  .news-card.featured .news-image { aspect-ratio: 16 / 10; }
+  .news-content { padding: 1.15rem; display: flex; flex-direction: column; flex: 1; }
+  .news-tag { display: inline-flex; align-self: flex-start; font-family: var(--head); font-size: .8rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #1a1a1a; background: var(--line); border-radius: 99px; padding: .2rem .6rem; margin-bottom: .7rem; }
+  .news-card h3 { font-size: 1.55rem; font-weight: 800; margin-bottom: .45rem; }
+  .news-card.featured h3 { font-size: 2.1rem; }
+  .news-card p { color: var(--muted); margin: 0 0 1rem; }
+  .news-meta { color: var(--muted); font-size: .82rem; margin-top: auto; padding-top: .8rem; }
+  .news-link { margin-top: .8rem; font-weight: 700; text-decoration: none; }
+  .news-link:hover { text-decoration: underline; }
+  .news-empty { background: var(--surface); border: 2px dashed var(--border); border-radius: 12px; padding: 1.5rem; color: var(--muted); }
+  @media (max-width: 900px) { .news-grid { grid-template-columns: 1fr 1fr; } .news-card.featured { grid-row: auto; grid-column: 1 / -1; } }
+  @media (max-width: 620px) { .news-grid { grid-template-columns: 1fr; } }
+
   /* gallery */
   .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
   .gallery button { display: block; width: 100%; padding: 0; border: 3px solid #fff; border-radius: 10px; background: none; cursor: zoom-in; overflow: hidden; }
@@ -258,16 +277,10 @@
   </g>
   <path d="M52 184H204" stroke="#f2c230" stroke-width="8" stroke-dasharray="20 12" fill="none"/></svg><span id="brandName">Global Truckers Community</span></a>
     <nav aria-label="Main">
+      <a href="#home">Home</a>
       <a href="#convoys">Convoys</a>
-      <a href="#gallery">Gallery</a>
-      <a href="#streamers">Streamers</a>
-      
-      <a class="hide-sm" href="#about">About</a>
-      
-      
-      
-      
-      <a href="#signup">Sign up</a>
+      <a href="#about">About</a>
+      <a href="#signup">Join Now</a>
     </nav>
   </header>
 </div>
@@ -314,19 +327,29 @@
     <div class="home-cards">
       <a class="home-card" href="#convoys"><span class="home-card-icon">🚛</span><h3>Convoys</h3><p>See upcoming drives and download the latest GTC convoy planner.</p><span class="home-card-link">View convoys →</span></a>
       <a class="home-card" href="#about"><span class="home-card-icon">🌍</span><h3>About GTC</h3><p>Learn who we are, who can join, how we drive, and what GTC stands for.</p><span class="home-card-link">About the community →</span></a>
-      <a class="home-card" href="#signup"><span class="home-card-icon">📝</span><h3>Driver Sign-Up</h3><p>Ready to drive with us? Complete the simple driver sign-up and join the community.</p><span class="home-card-link">Sign up as a driver →</span></a>
+      <a class="home-card" href="#signup"><span class="home-card-icon">📝</span><h3>Join GTC</h3><p>Ready to drive with us? Complete the driver sign-up and become part of the community.</p><span class="home-card-link">Join now →</span></a>
     </div>
   </div>
 </section>
 
 <hr class="centreline">
+<section id="news">
+  <div class="wrap">
+    <h2 class="title">GTC News &amp; Blogs</h2>
+    <p class="sub">Stay updated with GTC announcements, convoy stories, community highlights, gaming tips and the latest from our virtual trucking community.</p>
+    <div class="news-grid" id="newsGrid"></div>
+  </div>
+</section>
+
+<hr class="centreline">
+
 <section id="join">
   <div class="wrap">
     <div class="join">
       <h2>Ready to roll?</h2>
       <p>Convoy reminders and route changes go out in the WhatsApp group. Screenshots, event posts and photos live on our Facebook page.</p>
       <div class="btns">
-        <a class="btn su" href="#signup">Sign up as a driver</a>
+        <a class="btn su" href="#signup">Join Now</a>
         <a class="btn wa" id="waBtn2" href="#" target="_blank" rel="noopener"><span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M20.5 3.5A11.8 11.8 0 0 0 12.1 0C5.6 0 .3 5.3.3 11.8c0 2.1.6 4.1 1.6 5.9L.2 24l6.5-1.7a11.8 11.8 0 0 0 5.4 1.3h.1c6.5 0 11.8-5.3 11.8-11.8 0-3.1-1.2-6.1-3.5-8.3ZM12.1 21.6h-.1c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.9 1 1-3.8-.2-.4a9.8 9.8 0 0 1-1.5-5.2c0-5.4 4.4-9.8 9.9-9.8 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.3 2.9 7 0 5.4-4.4 9.8-9.8 9.8Zm5.4-7.3c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-1.5-.7-2.5-1.3-3.5-2.9-.3-.5.3-.5.8-1.7.1-.2.1-.4 0-.6-.1-.2-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.7s1.2 3.1 1.4 3.3c.2.2 2.4 3.7 5.9 5.2.8.3 1.4.5 1.9.7.8.2 1.5.2 2 .1.6-.1 1.8-.7 2.1-1.4.3-.7.3-1.3.2-1.4-.1-.2-.3-.3-.6-.4Z"/></svg></span><span>Join the WhatsApp group</span></a>
         <a class="btn fb" id="fbBtn2" href="#" target="_blank" rel="noopener"><span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M13.7 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H7.5V13h2.8v8h3.4Z"/></svg></span><span>Follow on Facebook</span></a>
       </div>
@@ -630,13 +653,18 @@ const CONFIG = {
   ],
   // Optional: paste a Google Form link here to use it instead of the built-in form.
   signupFormUrl: "",
-  // Backend: your Vercel API address for saving sign-ups (see the gtc-backend project's README). Leave "" to disable.
-  signupApiUrl: "",
   // Extra gallery photos. Upload them to an "images" folder in your GitHub repository, then add lines like:
   // { src: "images/convoy-2.jpg", caption: "Saturday night convoy", alt: "Trucks parked at a rest area" }
   gallery: [],
   streamers: [
     { name: "Bryan Gaming", platform: "TikTok", url: "https://www.tiktok.com/@bryangaming__" }
+  ],
+  // GTC News & Blogs. These will later be managed from the backend/admin dashboard.
+  news: [
+    { type: "News", title: "Welcome to Global Truckers Community", excerpt: "GTC brings ETS 2 and ATS drivers, streamers, VTCs and independent players together for organized virtual trucking.", date: "September 2026", image: "", url: "#about", featured: true },
+    { type: "Convoy", title: "Join the next GTC convoy", excerpt: "Check the latest convoy schedule and get ready to haul together with drivers from around the world.", date: "September 2026", image: "", url: "#convoys" },
+    { type: "Community", title: "Meet the GTC community", excerpt: "Discover what GTC is about, how our convoys work and how you can become part of the community.", date: "September 2026", image: "", url: "#about" },
+    { type: "Blog", title: "Life on the virtual road", excerpt: "Stories, tips, highlights and ideas from the people who make every GTC convoy memorable.", date: "Coming soon", image: "", url: "#news" }
   ],
   planner: {
     label: "September 2026",
@@ -732,6 +760,43 @@ if (!upcoming.length) {
   tick(); setInterval(tick, 1000);
 }
 
+/* news & blogs */
+const newsEl = document.getElementById("newsGrid");
+function renderNews() {
+  if (!newsEl) return;
+  const posts = Array.isArray(CONFIG.news) ? CONFIG.news : [];
+  if (!posts.length) {
+    newsEl.innerHTML = '<div class="news-empty">GTC news and blog posts will appear here. Check back soon.</div>';
+    return;
+  }
+  posts.slice(0, 4).forEach(post => {
+    const card = el("article", "news-card" + (post.featured ? " featured" : ""));
+    if (post.image) {
+      const img = el("img", "news-image");
+      img.src = post.image; img.alt = post.title; img.loading = "lazy";
+      card.append(img);
+    } else {
+      const placeholder = el("div", "news-image");
+      placeholder.setAttribute("aria-hidden", "true");
+      placeholder.style.background = "linear-gradient(135deg, var(--eu), var(--us))";
+      card.append(placeholder);
+    }
+    const content = el("div", "news-content");
+    content.append(el("span", "news-tag", post.type || "GTC"));
+    content.append(el("h3", "", post.title));
+    content.append(el("p", "", post.excerpt || ""));
+    content.append(el("div", "news-meta", post.date || "GTC"));
+    if (post.url) {
+      const a = el("a", "news-link", "Read more →");
+      a.href = post.url;
+      content.append(a);
+    }
+    card.append(content);
+    newsEl.append(card);
+  });
+}
+renderNews();
+
 /* team */
 const teamEl = document.getElementById("team");
 CONFIG.team.forEach(m => {
@@ -818,44 +883,17 @@ async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
   try { const ta = document.getElementById("signupText"); ta.select(); return document.execCommand("copy"); } catch (e) { return false; }
 }
-async function saveSignupToBackend(fields) {
-  if (!CONFIG.signupApiUrl) return false;
-  try {
-    const res = await fetch(CONFIG.signupApiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(fields)
-    });
-    return res.ok;
-  } catch (e) {
-    return false;
-  }
-}
-
 form.addEventListener("submit", async e => {
   e.preventDefault();
   const err = document.getElementById("formErr");
   if (!document.getElementById("f-name").value.trim()) { err.textContent = "Enter your in-game name to continue."; document.getElementById("f-name").focus(); return; }
   err.textContent = "";
-  const v = id => document.getElementById(id).value.trim();
-  const games = [...form.querySelectorAll('input[name="game"]:checked')].map(c => c.value);
-  const fields = {
-    name: v("f-name"),
-    country: v("f-country"),
-    games: games.join(", "),
-    driverType: document.getElementById("f-type").value,
-    vtc: v("f-vtc"),
-    truckersMpId: v("f-tmp"),
-    stream: v("f-stream")
-  };
   const msg = buildMessage();
   document.getElementById("signupText").value = msg;
   form.hidden = true;
   document.getElementById("formDone").hidden = false;
-  const [copied, saved] = await Promise.all([copyText(msg), saveSignupToBackend(fields)]);
-  document.getElementById("copyStatus").textContent =
-    (copied ? "Copied to your clipboard." : "Select the text below and copy it.") +
-    (CONFIG.signupsDbUrl ? (saved ? " Your sign-up has also been saved to our records." : " (Couldn't reach our records right now, but your message is ready to send.)") : "");
+  const ok = await copyText(msg);
+  document.getElementById("copyStatus").textContent = ok ? "Copied to your clipboard." : "Select the text below and copy it.";
 });
 document.getElementById("copyAgain").addEventListener("click", async () => {
   const ok = await copyText(document.getElementById("signupText").value);
@@ -867,9 +905,11 @@ const PAGES = { convoys: "view-convoys", about: "view-about", streamers: "view-s
 const vHome = document.getElementById("view-home");
 function route() {
   const key = location.hash.slice(1);
+  const onHome = !key || key === "home" || key === "top";
   const onPage = Object.prototype.hasOwnProperty.call(PAGES, key);
-  vHome.hidden = onPage;
-  Object.keys(PAGES).forEach(k => { document.getElementById(PAGES[k]).hidden = k !== key; });
+  vHome.hidden = !onHome && onPage;
+  Object.keys(PAGES).forEach(k => { document.getElementById(PAGES[k]).hidden = !onPage || k !== key; });
+  if (onHome) { vHome.hidden = false; window.scrollTo(0, 0); return; }
   if (onPage) { window.scrollTo(0, 0); return; }
   const t = key ? document.getElementById(key) : null;
   if (t) t.scrollIntoView(); else window.scrollTo(0, 0);
