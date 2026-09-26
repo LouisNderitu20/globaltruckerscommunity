@@ -630,6 +630,8 @@ const CONFIG = {
   ],
   // Optional: paste a Google Form link here to use it instead of the built-in form.
   signupFormUrl: "",
+  // Backend: your Vercel API address for saving sign-ups (see the gtc-backend project's README). Leave "" to disable.
+  signupApiUrl: "",
   // Extra gallery photos. Upload them to an "images" folder in your GitHub repository, then add lines like:
   // { src: "images/convoy-2.jpg", caption: "Saturday night convoy", alt: "Trucks parked at a rest area" }
   gallery: [],
@@ -816,17 +818,44 @@ async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
   try { const ta = document.getElementById("signupText"); ta.select(); return document.execCommand("copy"); } catch (e) { return false; }
 }
+async function saveSignupToBackend(fields) {
+  if (!CONFIG.signupApiUrl) return false;
+  try {
+    const res = await fetch(CONFIG.signupApiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields)
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+}
+
 form.addEventListener("submit", async e => {
   e.preventDefault();
   const err = document.getElementById("formErr");
   if (!document.getElementById("f-name").value.trim()) { err.textContent = "Enter your in-game name to continue."; document.getElementById("f-name").focus(); return; }
   err.textContent = "";
+  const v = id => document.getElementById(id).value.trim();
+  const games = [...form.querySelectorAll('input[name="game"]:checked')].map(c => c.value);
+  const fields = {
+    name: v("f-name"),
+    country: v("f-country"),
+    games: games.join(", "),
+    driverType: document.getElementById("f-type").value,
+    vtc: v("f-vtc"),
+    truckersMpId: v("f-tmp"),
+    stream: v("f-stream")
+  };
   const msg = buildMessage();
   document.getElementById("signupText").value = msg;
   form.hidden = true;
   document.getElementById("formDone").hidden = false;
-  const ok = await copyText(msg);
-  document.getElementById("copyStatus").textContent = ok ? "Copied to your clipboard." : "Select the text below and copy it.";
+  const [copied, saved] = await Promise.all([copyText(msg), saveSignupToBackend(fields)]);
+  document.getElementById("copyStatus").textContent =
+    (copied ? "Copied to your clipboard." : "Select the text below and copy it.") +
+    (CONFIG.signupsDbUrl ? (saved ? " Your sign-up has also been saved to our records." : " (Couldn't reach our records right now, but your message is ready to send.)") : "");
 });
 document.getElementById("copyAgain").addEventListener("click", async () => {
   const ok = await copyText(document.getElementById("signupText").value);
