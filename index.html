@@ -713,7 +713,30 @@ async function loadContent() {
   }
 }
 
+function applySiteTheme(t) {
+  if (!t) return;
+  const root = document.documentElement;
+  if (t.mode === "light" || t.mode === "dark") root.setAttribute("data-theme", t.mode);
+  const map = { bg:"--bg", panel:"--surface", text:"--text", muted:"--muted", line:"--line", accent:"--eu", accent2:"--us" };
+  const css = [];
+  for (const k in map) if (t[k]) css.push(map[k] + ":" + t[k] + " !important");
+  const fonts = [t.headingFont, t.bodyFont].filter(f => f && f !== "system-ui");
+  if (fonts.length) {
+    const l = document.createElement("link"); l.rel = "stylesheet";
+    l.href = "https://fonts.googleapis.com/css2?" + [...new Set(fonts)].map(f => "family=" + f.replace(/ /g, "+") + ":wght@400;600;700;800").join("&") + "&display=swap";
+    document.head.appendChild(l);
+  }
+  if (t.headingFont) css.push('--head:"' + t.headingFont + '", "Arial Narrow", Arial, sans-serif !important');
+  if (t.bodyFont) css.push('--body:"' + t.bodyFont + '", system-ui, Arial, sans-serif !important');
+  const st = document.createElement("style");
+  st.textContent = ":root, :root[data-theme]{" + css.join(";") + "}";
+  document.head.appendChild(st);
+  if (t.hero) { const img = document.querySelector("figure.photo img"); if (img) img.src = t.hero; }
+  if (t.logo) { const ic = document.querySelector('link[rel="icon"]'); if (ic) ic.href = t.logo; }
+}
+
 function renderSite(CONFIG) {
+applySiteTheme(CONFIG.theme);
 const P = CONFIG.planner;
 
 document.title = CONFIG.name + " – ETS 2 & ATS Virtual Convoys";
