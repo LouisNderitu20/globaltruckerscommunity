@@ -79,6 +79,14 @@ pre{background:var(--panel2);border:1px solid var(--border);border-radius:var(--
 .gal figure{margin:0}
 .gal img{width:100%;height:90px;object-fit:cover;border-radius:6px;border:1px solid var(--border)}
 [hidden]{display:none!important}
+.toasts{position:fixed;right:1rem;bottom:1rem;display:flex;flex-direction:column;gap:.5rem;z-index:50}
+.toast{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--accent2);border-radius:8px;padding:.6rem .9rem;font-size:.85rem;box-shadow:0 6px 20px rgba(0,0,0,.35);max-width:320px}
+.toast.err{border-left-color:var(--danger)}
+.pill{display:inline-block;padding:.15rem .55rem;border-radius:999px;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-right:.4rem}
+.pill.draft{background:var(--line);color:#1d1d1d}.pill.live{background:var(--accent2);color:#fff}
+.modalbg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:60}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:1.3rem;max-width:400px;width:92%}
+.modal p{margin:.5rem 0 1rem}.modal .item-actions{margin:0}
 </style>
 </head>
 <body>
@@ -99,6 +107,8 @@ pre{background:var(--panel2);border:1px solid var(--border);border-radius:var(--
     </div>
     <div class="headtools">
       <button id="modeBtn" title="Switch light / dark">Dark / light</button>
+      <button id="discardBtn" class="danger" disabled>Discard changes</button>
+      <button id="publishBtn" class="primary" disabled>Publish</button>
       <button id="logoutBtn">Sign out</button>
     </div>
   </header>
@@ -120,6 +130,7 @@ pre{background:var(--panel2);border:1px solid var(--border);border-radius:var(--
   </div>
 </div>
 
+<div class="toasts" id="toasts"></div>
 <script>
 /* ---------- content backend (your existing site database) ---------- */
 const SUPABASE_URL = "https://atmoshbogjqifmnurdni.supabase.co";
@@ -196,6 +207,7 @@ document.getElementById("loginBtn").addEventListener("click", async ()=>{
   boot();
 });
 document.getElementById("logoutBtn").addEventListener("click", async ()=>{
+  if(dirty&&!await confirmBox("Sign out?","You have unpublished changes. They stay saved on this device.","Sign out"))return;
   await sb.auth.signOut();
   document.getElementById("app").hidden=true;
   document.getElementById("gate").hidden=false;
@@ -207,6 +219,8 @@ document.getElementById("modeBtn").addEventListener("click", ()=>{
   applyTheme(); renderDesign(); save();
 });
 
+sb.auth.getSession().then(({data:d})=>{if(d.session)boot();});
+document.getElementById("loginPass").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("loginBtn").click();});
 async function boot(){
   document.getElementById("gate").hidden=true;
   document.getElementById("app").hidden=false;
@@ -221,28 +235,42 @@ async function loadData(){
   ["news","team","streamers","gallery"].forEach(k=>{ if(!Array.isArray(data[k])) data[k]=[]; });
   if(!data.planner) data.planner={label:"",month:"",eatOffset:3,slots:[],week:[]};
   theme(); applyTheme();
-  document.getElementById("connNote").textContent="Connected — editing the live site.";
-  renderAll(); status("Loaded.");
+  document.getElementById("connNote").textContent="Connected — edits are drafts until you publish.";
+  liveJSON=JSON.stringify(data); renderAll(); await restoreDraftIfAny();
 }
 
-function save(){
-  clearTimeout(saveTimer);
-  saveTimer=setTimeout(doSave,250);
-}
+/* ---------- drafts, publishing & confirmations ---------- */
+const DRAFT_KEY="gtc_draft_v1";
+let dirty=false, liveJSON="";
+function toast(msg,isErr){const t=el("div","toast"+(isErr?" err":""),msg);document.getElementById("toasts").append(t);setTimeout(()=>t.remove(),isErr?6000:3000);}
+function confirmBox(title,msg,okText,danger){return new Promise(res=>{const bg=el("div","modalbg"),m=el("div","modal");m.append(el("h3","",title),el("p","muted",msg));const a=el("div","item-actions"),c=el("button","","Cancel"),o=el("button",danger?"danger":"primary",okText);a.append(c,o);m.append(a);bg.append(m);document.body.append(bg);const done=v=>{bg.remove();res(v);};c.onclick=()=>done(false);o.onclick=()=>done(true);bg.onclick=e=>{if(e.target===bg)done(false);};});}
+function setDirty(v){dirty=v;document.getElementById("publishBtn").disabled=!v;document.getElementById("discardBtn").disabled=!v;
+  const s=document.getElementById("saveStatus");s.innerHTML="";s.style.color="";
+  s.append(el("span","pill "+(v?"draft":"live"),v?"Draft":"Live"),document.createTextNode(v?"Unpublished changes — saved on this device. Click Publish to go live.":"Everything is published."));}
+function save(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{try{localStorage.setItem(DRAFT_KEY,JSON.stringify({at:Date.now(),data}));}catch(e){}setDirty(JSON.stringify(data)!==liveJSON);},250);}
 async function doSave(){
-  if(saving){save();return;}
-  saving=true; status("Saving…");
+  if(saving)return; saving=true; status("Publishing…");
   const {error}=await sb.from("site_content").update({data,updated_at:new Date().toISOString()}).eq("id",1);
   saving=false;
-  if(error) status("Couldn't save: "+error.message,true);
-  else status("Saved — live on the site now.");
+  if(error){status("Couldn't publish: "+error.message,true);toast("Publish failed: "+error.message,true);return;}
+  liveJSON=JSON.stringify(data); localStorage.removeItem(DRAFT_KEY); setDirty(false); toast("Published — your site is updated.");
+}
+document.getElementById("publishBtn").addEventListener("click",async()=>{if(await confirmBox("Publish changes?","Your edits will go live on the site for everyone.","Publish"))doSave();});
+document.getElementById("discardBtn").addEventListener("click",async()=>{if(!await confirmBox("Discard changes?","All unpublished edits will be lost and the dashboard will go back to what's live.","Discard",true))return;
+  localStorage.removeItem(DRAFT_KEY);data=JSON.parse(liveJSON);theme();applyTheme();renderAll();setDirty(false);toast("Changes discarded.");});
+window.addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue="";}});
+async function restoreDraftIfAny(){
+  let d=null;try{d=JSON.parse(localStorage.getItem(DRAFT_KEY)||"null");}catch(e){}
+  if(!d||JSON.stringify(d.data)===liveJSON){setDirty(false);return;}
+  if(await confirmBox("Unpublished draft found","You have edits from "+new Date(d.at).toLocaleString()+" that weren't published. Continue with them?","Keep draft")){
+    data=d.data;theme();applyTheme();renderAll();setDirty(true);}else{localStorage.removeItem(DRAFT_KEY);setDirty(false);}
 }
 
 /* ---------- image uploads ---------- */
 async function uploadImage(file,onProgress){
   if(!file) return null;
-  if(!file.type.startsWith("image/")) throw new Error("That file isn't an image.");
-  if(file.size>10*1024*1024) throw new Error("Image is over 10MB — please use a smaller one.");
+  if(!["image/jpeg","image/png","image/webp","image/gif"].includes(file.type)) throw new Error("Please use a JPG, PNG, WebP or GIF image.");
+  if(file.size>5*1024*1024) throw new Error("Image is over 5MB — please use a smaller one.");
   const safe=file.name.toLowerCase().replace(/[^a-z0-9.\-_]+/g,"-");
   const path=new Date().getFullYear()+"/"+Date.now()+"-"+safe;
   if(onProgress) onProgress("Uploading…");
