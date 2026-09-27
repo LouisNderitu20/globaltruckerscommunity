@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GTC Content Desk</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --asphalt:#1d242a; --panel:#27313a; --panel2:#2f3a44; --text:#eef1f3; --muted:#9aa7b1;
+  --line:#f2c230; --eu:#0a4da2; --us:#0e6b45; --danger:#c94b4b; --border:rgba(255,255,255,.14);
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){ --asphalt:#e9ebee; --panel:#fff; --panel2:#f2f4f6; --text:#161c21; --muted:#5a6670; --border:rgba(0,0,0,.14);} }
+:root[data-theme="light"]{ --asphalt:#e9ebee; --panel:#fff; --panel2:#f2f4f6; --text:#161c21; --muted:#5a6670; --border:rgba(0,0,0,.14); }
+*{box-sizing:border-box}
+body{margin:0;min-height:100%;background:var(--asphalt);color:var(--text);font:15px/1.5 -apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+h1,h2,h3{margin:0;font-weight:800}
+.shell{max-width:1080px;margin:0 auto;padding:1.25rem 1.25rem 4rem}
+header{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.5rem 0 1.1rem;border-bottom:6px dashed var(--line);margin-bottom:1.4rem}
+.brand{display:flex;align-items:center;gap:.7rem}
+.brand .mark{width:34px;height:34px;border-radius:8px;background:var(--eu);border:2px solid #fff;outline:2px solid var(--eu);flex:none}
+.brand h1{font-size:1.25rem}
+.brand p{margin:.1rem 0 0;color:var(--muted);font-size:.82rem}
+.tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.3rem}
+.tab{border:1px solid var(--border);background:var(--panel);color:var(--text);padding:.5rem .9rem;border-radius:7px;font-weight:700;font-size:.85rem;cursor:pointer}
+.tab.active{background:var(--eu);border-color:var(--eu);color:#fff}
+section.pane{display:none} section.pane.active{display:block}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:1rem 1.1rem;margin-bottom:.8rem}
+.card h3{font-size:1rem;margin-bottom:.15rem}
+.muted{color:var(--muted)}
+.field{margin-bottom:.6rem}
+.field label{display:block;font-size:.74rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:.25rem}
+.field input[type=text],.field input[type=email],.field input[type=password],.field input[type=number],.field textarea{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.5rem .6rem;font:inherit}
+.field textarea{min-height:4.2em;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6rem}
+.check{display:flex;align-items:center;gap:.5rem}
+.check input{width:auto}
+.check label{margin:0;text-transform:none;letter-spacing:0;font-size:.85rem;font-weight:600;color:var(--text)}
+.item-actions{display:flex;justify-content:flex-end;gap:.5rem;margin-top:.4rem}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text);padding:.45rem .8rem;font-weight:700;font-size:.82rem}
+button.primary{background:var(--eu);border-color:var(--eu);color:#fff}
+button.add{background:var(--us);border-color:var(--us);color:#fff;margin-bottom:1rem}
+button.danger{background:transparent;border-color:var(--danger);color:var(--danger)}
+button:hover{filter:brightness(1.08)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.empty{border:2px dashed var(--border);border-radius:10px;padding:1.4rem;color:var(--muted);text-align:center}
+pre{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:1rem;overflow:auto;font-size:.78rem;max-height:60vh}
+.savebar{position:sticky;bottom:0;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:.6rem .9rem;display:flex;justify-content:space-between;align-items:center;gap:.6rem;font-size:.82rem;color:var(--muted)}
+.gate{max-width:360px;margin:4rem auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.6rem}
+.gate h2{margin-bottom:.3rem}
+.err{color:var(--danger);font-size:.85rem;min-height:1.2em;margin-top:.4rem}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div id="gate" class="gate">
+  <h2>GTC Content Desk</h2>
+  <p class="muted">Sign in with the admin account to edit the site.</p>
+  <div class="field"><label>Email</label><input type="email" id="loginEmail"></div>
+  <div class="field"><label>Password</label><input type="password" id="loginPass"></div>
+  <button class="primary" id="loginBtn" style="width:100%">Sign in</button>
+  <div class="err" id="loginErr"></div>
+</div>
+
+<div class="shell" id="app" hidden>
+  <header>
+    <div class="brand">
+      <div class="mark"></div>
+      <div><h1>GTC Content Desk</h1><p id="connNote" class="muted">Connecting…</p></div>
+    </div>
+    <button id="logoutBtn">Sign out</button>
+  </header>
+  <div class="tabs" id="tabs"></div>
+  <section class="pane" data-pane="links"><div id="paneLinks"></div></section>
+  <section class="pane" data-pane="news"><div id="paneNews"></div></section>
+  <section class="pane" data-pane="team"><div id="paneTeam"></div></section>
+  <section class="pane" data-pane="streamers"><div id="paneStreamers"></div></section>
+  <section class="pane" data-pane="gallery"><div id="paneGallery"></div></section>
+  <section class="pane" data-pane="planner"><div id="panePlanner"></div></section>
+  <section class="pane" data-pane="backup"><div id="paneBackup"></div></section>
+  <div class="savebar"><span id="saveStatus">—</span></div>
+</div>
+
+<script>
+/* ---------- fill these in after running supabase-setup.sql ---------- */
+const SUPABASE_URL = "https://atmoshbogjqifmnurdni.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_4eh56UPX1w50-hyFmDVcJA_Gjz5uflE";
+/* ---------------------------------------------------------------- */
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let data = null;      // the live content object
+let saving = false;
+
+function status(msg, isErr){ const s=document.getElementById("saveStatus"); s.textContent=msg; s.style.color = isErr ? "var(--danger)" : ""; }
+function el(tag,cls,text){ const e=document.createElement(tag); if(cls)e.className=cls; if(text!==undefined)e.textContent=text; return e; }
+function field(labelText, input){ const f=el("div","field"); f.append(el("label","",labelText), input); return f; }
+function textInput(val,ph){ const i=document.createElement("input"); i.type="text"; i.value=val||""; if(ph)i.placeholder=ph; return i; }
+function textArea(val,ph){ const t=document.createElement("textarea"); t.value=val||""; if(ph)t.placeholder=ph; return t; }
+
+/* ---------- auth gate ---------- */
+document.getElementById("loginBtn").addEventListener("click", async ()=>{
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPass").value;
+  const errEl = document.getElementById("loginErr");
+  errEl.textContent = "";
+  if (SUPABASE_URL.indexOf("YOUR_")===0){ errEl.textContent = "Fill in SUPABASE_URL / SUPABASE_ANON_KEY in this file first."; return; }
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error){ errEl.textContent = error.message; return; }
+  boot();
+});
+document.getElementById("logoutBtn").addEventListener("click", async ()=>{
+  await sb.auth.signOut();
+  document.getElementById("app").hidden = true;
+  document.getElementById("gate").hidden = false;
+});
+
+async function boot(){
+  document.getElementById("gate").hidden = true;
+  document.getElementById("app").hidden = false;
+  await loadData();
+}
+
+async function loadData(){
+  status("Loading content…");
+  const { data: row, error } = await sb.from("site_content").select("data").eq("id", 1).single();
+  if (error){ status("Couldn't load content: " + error.message, true); return; }
+  data = row.data;
+  document.getElementById("connNote").textContent = "Connected — editing the live site.";
+  renderAll();
+  status("Loaded.");
+}
+
+async function save(){
+  if (saving) return;
+  saving = true; status("Saving…");
+  const { error } = await sb.from("site_content").update({ data, updated_at: new Date().toISOString() }).eq("id", 1);
+  saving = false;
+  if (error) status("Couldn't save: " + error.message, true);
+  else status("Saved — live on the site now.");
+}
+
+/* ---------- tabs ---------- */
+const TABS = [["links","Links & site"],["news","News & blog"],["team","Team"],["streamers","Streamers"],["gallery","Gallery"],["planner","Convoy planner"],["backup","Backup"]];
+const tabsEl = document.getElementById("tabs");
+TABS.forEach(([key,label],i)=>{
+  const b = el("button","tab"+(i===0?" active":""),label); b.dataset.key = key;
+  b.addEventListener("click", ()=> showPane(key));
+  tabsEl.append(b);
+});
+function showPane(key){
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active", b.dataset.key===key));
+  document.querySelectorAll(".pane").forEach(p=>p.classList.toggle("active", p.dataset.pane===key));
+  if (key==="backup") renderBackup();
+}
+document.querySelector('.pane[data-pane="links"]').classList.add("active");
+
+/* ---------- Links & site ---------- */
+function renderLinks(){
+  const p = document.getElementById("paneLinks"); p.innerHTML = "";
+  const c = el("div","card"); c.append(el("h3","Site name & links"));
+  [["name","Community name"],["whatsappUrl","WhatsApp group link"],["facebookUrl","Facebook page link"],["signupFormUrl","Google Form link (optional)"]]
+  .forEach(([key,label])=>{
+    const input = textInput(data[key]);
+    input.addEventListener("change", ()=>{ data[key]=input.value; save(); });
+    c.append(field(label,input));
+  });
+  p.append(c);
+}
+
+/* ---------- generic list editor ---------- */
+function listEditor(container, collectionKey, fieldsDef, addLabel, emptyText, titleFn){
+  container.innerHTML = "";
+  const addBtn = el("button","add","+ "+addLabel);
+  addBtn.addEventListener("click", ()=>{
+    const blank = {}; fieldsDef.forEach(f=> blank[f.key] = f.type==="checkbox" ? false : "");
+    data[collectionKey].push(blank); save(); renderList();
+  });
+  container.append(addBtn);
+  const listWrap = el("div"); container.append(listWrap);
+  function renderList(){
+    listWrap.innerHTML = "";
+    const items = data[collectionKey];
+    if (!items.length){ listWrap.append(el("div","empty",emptyText)); return; }
+    items.forEach((item,idx)=>{
+      const card = el("div","card");
+      const heading = el("h3","",titleFn(item)); card.append(heading);
+      const grid = el("div","row2");
+      fieldsDef.forEach(f=>{
+        if (f.type==="checkbox"){
+          const wrap = el("div","field check");
+          const cb = document.createElement("input"); cb.type="checkbox"; cb.checked=!!item[f.key];
+          const id = collectionKey+idx+f.key; cb.id=id;
+          const lab = document.createElement("label"); lab.htmlFor=id; lab.textContent=f.label;
+          cb.addEventListener("change", ()=>{ item[f.key]=cb.checked; save(); });
+          wrap.append(cb,lab); grid.append(wrap); return;
+        }
+        const input = f.type==="textarea" ? textArea(item[f.key], f.placeholder) : textInput(item[f.key], f.placeholder);
+        input.addEventListener("change", ()=>{ item[f.key]=input.value; save(); heading.textContent = titleFn(item); });
+        const wrap = field(f.label, input);
+        if (f.wide) wrap.style.gridColumn = "1 / -1";
+        grid.append(wrap);
+      });
+      card.append(grid);
+      const actions = el("div","item-actions");
+      const del = el("button","danger","Remove");
+      del.addEventListener("click", ()=>{ items.splice(idx,1); save(); renderList(); });
+      actions.append(del); card.append(actions);
+      listWrap.append(card);
+    });
+  }
+  renderList();
+}
+function renderNews(){
+  const p = document.getElementById("paneNews"); p.innerHTML=""; const wrap = el("div"); p.append(wrap);
+  listEditor(wrap, "news", [
+    {key:"type", label:"Type (News, Convoy, Blog…)"}, {key:"title", label:"Title"},
+    {key:"excerpt", label:"Excerpt", type:"textarea", wide:true}, {key:"date", label:"Date label"},
+    {key:"image", label:"Image URL (optional)"}, {key:"url", label:"Link"}, {key:"featured", label:"Featured", type:"checkbox"}
+  ], "Add post", "No news posts yet.", i=>i.title||"Untitled post");
+}
+function renderTeam(){
+  const p = document.getElementById("paneTeam"); p.innerHTML=""; const wrap = el("div"); p.append(wrap);
+  listEditor(wrap, "team", [
+    {key:"name", label:"Name"}, {key:"role", label:"Role"},
+    {key:"bio", label:"Bio", type:"textarea", wide:true}, {key:"photo", label:"Photo URL (optional)"}
+  ], "Add team member", "No team members yet.", i=>i.name||"Unnamed");
+}
+function renderStreamers(){
+  const p = document.getElementById("paneStreamers"); p.innerHTML=""; const wrap = el("div"); p.append(wrap);
+  listEditor(wrap, "streamers", [
+    {key:"name", label:"Channel name"}, {key:"platform", label:"Platform"},
+    {key:"url", label:"Channel URL"}, {key:"games", label:"Games (optional)"}
+  ], "Add streamer", "No streamers listed yet.", i=>i.name||"Unnamed channel");
+}
+function renderGallery(){
+  const p = document.getElementById("paneGallery"); p.innerHTML=""; const wrap = el("div"); p.append(wrap);
+  listEditor(wrap, "gallery", [
+    {key:"src", label:"Image path (e.g. images/convoy-2.jpg)"}, {key:"caption", label:"Caption"}, {key:"alt", label:"Alt text"}
+  ], "Add photo", "No extra gallery photos yet.", i=>i.caption||i.src||"Photo");
+}
+
+/* ---------- planner ---------- */
+function renderPlanner(){
+  const p = document.getElementById("panePlanner"); p.innerHTML = "";
+  const P = data.planner;
+  const top = el("div","card"); top.append(el("h3","Month settings"));
+  const grid = el("div","row3");
+  const label = textInput(P.label), month = textInput(P.month,"YYYY-MM");
+  const off = textInput(String(P.eatOffset)), slots = textInput(P.slots.join(","),"18,20,22");
+  label.addEventListener("change",()=>{P.label=label.value; save();});
+  month.addEventListener("change",()=>{P.month=month.value; save();});
+  off.addEventListener("change",()=>{P.eatOffset=Number(off.value)||0; save();});
+  slots.addEventListener("change",()=>{P.slots=slots.value.split(",").map(s=>Number(s.trim())).filter(n=>!isNaN(n)); save();});
+  grid.append(field("Label shown to visitors",label), field("Planner month",month), field("EAT UTC offset",off));
+  top.append(grid, field("Convoy start hours in EAT (comma-separated)", slots));
+  p.append(top);
+  const p2 = el("div","card");
+  p2.append(el("h3","Weekly schedule"), el("p","muted","Each day's convoys as [Game, Map name, TruckersMP?]."));
+  P.week.forEach(day=>{
+    const wrap = el("div"); wrap.style.marginBottom=".7rem";
+    wrap.append(el("label","",day.day));
+    const ta = textArea(JSON.stringify(day.convoys));
+    ta.style.minHeight = "3em";
+    ta.addEventListener("change", ()=>{
+      try { day.convoys = JSON.parse(ta.value); ta.style.borderColor=""; save(); }
+      catch(e){ ta.style.borderColor="var(--danger)"; }
+    });
+    wrap.append(ta); p2.append(wrap);
+  });
+  p.append(p2);
+}
+
+/* ---------- backup ---------- */
+function renderBackup(){
+  const p = document.getElementById("paneBackup"); p.innerHTML = "";
+  p.append(el("p","muted","A snapshot of everything currently live, in case you want to save a copy."));
+  const bar = el("div"); const copyBtn = el("button","primary","Copy JSON"); bar.append(copyBtn); p.append(bar);
+  const pre = document.createElement("pre"); const text = JSON.stringify(data, null, 2); pre.textContent = text; p.append(pre);
+  copyBtn.addEventListener("click", async ()=>{
+    try { await navigator.clipboard.writeText(text); copyBtn.textContent="Copied!"; }
+    catch(e){ copyBtn.textContent="Select the text below"; }
+    setTimeout(()=>copyBtn.textContent="Copy JSON",1800);
+  });
+}
+
+function renderAll(){ renderLinks(); renderNews(); renderTeam(); renderStreamers(); renderGallery(); renderPlanner(); }
+
+/* resume session if already signed in */
+(async ()=>{
+  const { data: sess } = await sb.auth.getSession();
+  if (sess && sess.session) boot();
+})();
+</script>
+</body>
+</html>
