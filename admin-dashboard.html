@@ -340,7 +340,7 @@ document.querySelector('.pane[data-pane="links"]').classList.add("active");
 function renderLinks(){
   const p=document.getElementById("paneLinks"); p.innerHTML="";
   const c=el("div","card"); c.append(el("h3","Site name & links"));
-  [["name","Community name"],["whatsappUrl","WhatsApp group link"],["facebookUrl","Facebook page link"],["signupFormUrl","Google Form link (optional)"]]
+  [["name","Community name"],["whatsappUrl","WhatsApp group link"],["facebookUrl","Facebook page link"],["telegramUrl","Telegram channel link (optional)"],["signupFormUrl","Google Form link (optional)"]]
   .forEach(([key,label])=>{
     const input=textInput(data[key]);
     input.addEventListener("change",()=>{ data[key]=input.value; applyTheme(); save(); });
@@ -493,7 +493,8 @@ function renderTeam(){
   const p=document.getElementById("paneTeam"); p.innerHTML=""; const wrap=el("div"); p.append(wrap);
   listEditor(wrap,"team",[
     {key:"name",label:"Name"},{key:"role",label:"Role"},
-    {key:"bio",label:"Bio",type:"textarea",wide:true},{key:"photo",label:"Photo",type:"image"}
+    {key:"bio",label:"Bio",type:"textarea",wide:true},{key:"photo",label:"Photo",type:"image"},
+    {key:"socials",label:"Social handles — one per line, e.g. Discord: https://discord.gg/xxx",type:"textarea",wide:true,placeholder:"Discord: https://discord.gg/xxx\nTwitch: https://twitch.tv/xxx"}
   ],"Add team member","No team members yet.",i=>i.name||"Unnamed");
 }
 function renderStreamers(){
