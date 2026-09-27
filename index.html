@@ -18,6 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --bg: #1d242a;
@@ -641,8 +642,11 @@
 </footer>
 
 <script>
-/* ---------- EDIT THESE ---------- */
-const CONFIG = {
+/* ---------- FALLBACK CONTENT ----------
+   Used only if the Supabase database below can't be reached (not
+   configured yet, or offline). Once Supabase is set up, edit content
+   from the admin dashboard instead of here. */
+const DEFAULT_CONFIG = {
   name: "Global Truckers Community",
   whatsappUrl: "https://chat.whatsapp.com/DA0RGVlaPJM2hsbi7tGH1m?s=cl&p=a&mlu=4&ilr=4",
   facebookUrl: "https://www.facebook.com/globaltruckerscommunity",
@@ -683,12 +687,33 @@ const CONFIG = {
     ]
   }
 };
-/* -------------------------------- */
+/* -------------------------------------- */
 
 const GAMES = {
   ETS2: { short: "ETS 2", full: "Euro Truck Simulator 2", cls: "ets2" },
   ATS:  { short: "ATS",   full: "American Truck Simulator", cls: "ats" }
 };
+
+/* ---------- Supabase connection ----------
+   Fill these in after you create your Supabase project and run
+   supabase-setup.sql. Until then, the site renders DEFAULT_CONFIG above. */
+const SUPABASE_URL = "https://atmoshbogjqifmnurdni.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_4eh56UPX1w50-hyFmDVcJA_Gjz5uflE";
+
+async function loadContent() {
+  try {
+    if (!SUPABASE_URL.startsWith("http")) throw new Error("Supabase not configured yet");
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data, error } = await sb.from("site_content").select("data").eq("id", 1).single();
+    if (error || !data || !data.data) throw error || new Error("No content row found");
+    renderSite(data.data);
+  } catch (e) {
+    console.warn("GTC: using built-in default content —", e.message || e);
+    renderSite(DEFAULT_CONFIG);
+  }
+}
+
+function renderSite(CONFIG) {
 const P = CONFIG.planner;
 
 document.title = CONFIG.name + " – ETS 2 & ATS Virtual Convoys";
@@ -916,6 +941,10 @@ function route() {
 }
 addEventListener("hashchange", route);
 route();
+
+} // end renderSite()
+
+loadContent();
 
 try {
   document.getElementById("tzNote").textContent = "Your time zone: " + Intl.DateTimeFormat().resolvedOptions().timeZone;
