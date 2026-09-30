@@ -117,6 +117,7 @@ pre{background:var(--panel2);border:1px solid var(--border);border-radius:var(--
     <nav class="side" id="tabs"></nav>
     <div>
       <section class="pane" data-pane="links"><div id="paneLinks"></div></section>
+      <section class="pane" data-pane="pages"><div id="panePages"></div></section>
       <section class="pane" data-pane="design"><div id="paneDesign"></div></section>
       <section class="pane" data-pane="news"><div id="paneNews"></div></section>
       <section class="pane" data-pane="team"><div id="paneTeam"></div></section>
@@ -322,7 +323,7 @@ function imageField(labelText,getVal,setVal){
 }
 
 /* ---------- tabs ---------- */
-const TABS=[["links","Site & links"],["design","Appearance"],["news","News & blog"],["team","Team"],["streamers","Streamers"],["gallery","Gallery"],["media","Image library"],["planner","Convoy planner"],["backup","Backup"]];
+const TABS=[["links","Site & links"],["pages","Pages & sections"],["design","Appearance"],["news","News & blog"],["team","Team"],["streamers","Streamers"],["gallery","Gallery"],["media","Image library"],["planner","Convoy planner"],["backup","Backup"]];
 const tabsEl=document.getElementById("tabs");
 TABS.forEach(([key,label],i)=>{
   const b=el("button","tab"+(i===0?" active":""),label); b.dataset.key=key;
@@ -335,6 +336,93 @@ function showPane(key){
   if(key==="media") renderMedia();
 }
 document.querySelector('.pane[data-pane="links"]').classList.add("active");
+
+
+/* ---------- Pages & sections ---------- */
+const DEFAULT_SITE = {"pages": [{"id": "home", "slug": "home", "title": "Home", "nav": true, "header": {}, "sections": [{"id": "s8", "type": "builtin", "key": "hero", "title": "Haul together.", "sub": "Global Truckers Community (GTC) brings ETS 2 and ATS drivers and streamers from around the world into one convoy."}, {"id": "s1", "type": "cards", "style": "home", "title": "Explore GTC", "sub": "Everything you need to get involved, learn about the community, and join the next drive.", "items": [{"icon": "🚛", "title": "Convoys", "text": "See upcoming drives and download the latest GTC convoy planner.", "url": "#convoys", "linkLabel": "View convoys →"}, {"icon": "🌍", "title": "About GTC", "text": "Learn who we are, who can join, how we drive, and what GTC stands for.", "url": "#about", "linkLabel": "About the community →"}, {"icon": "📝", "title": "Join GTC", "text": "Ready to drive with us? Complete the driver sign-up and become part of the community.", "url": "#signup", "linkLabel": "Join now →"}]}, {"id": "s9", "type": "builtin", "key": "news", "title": "", "sub": ""}, {"id": "s10", "type": "cta", "title": "Ready to roll?", "text": "Convoy reminders and route changes go out in the WhatsApp group. Screenshots, event posts and photos live on our Facebook page.", "buttons": [{"label": "Join Now", "kind": "link", "url": "#signup"}, {"label": "Join the WhatsApp group", "kind": "whatsapp", "url": ""}, {"label": "Follow on Facebook", "kind": "facebook", "url": ""}, {"label": "Join our Telegram channel", "kind": "telegram", "url": ""}]}], "navLabel": "Home"}, {"id": "convoys", "slug": "convoys", "title": "Convoys", "nav": true, "header": {"title": "GTC Convoys.", "lead": "Find the next GTC drive, check the schedule, and download the current convoy planner."}, "sections": [{"id": "s11", "type": "builtin", "key": "schedule", "title": "", "sub": ""}, {"id": "s12", "type": "builtin", "key": "planner", "title": "", "sub": ""}], "navLabel": "Convoys"}, {"id": "about", "slug": "about", "title": "About", "nav": true, "header": {}, "sections": [{"id": "s2", "type": "text", "title": "About GTC", "sub": "Global Truckers Community (GTC) is a community of virtual ETS 2/ATS truckers and streamers, from various VTCs & independent players around the world.", "body": "One community for truckers and streamers, whichever VTC you drive for.", "image": "@img:about"}, {"id": "s3", "type": "cards", "style": "who", "title": "", "sub": "", "items": [{"title": "VTC drivers", "text": "Drivers from many different virtual trucking companies. Come as you are and drive with people outside your own VTC."}, {"title": "Independent players", "text": "No VTC? No problem. Solo drivers are as welcome here as company members."}, {"title": "Streamers", "text": "Go live during our convoys and share the road with a wider audience. Tell us your channel so we can shout it out. See how to get listed ."}]}, {"id": "s13", "type": "builtin", "key": "team", "title": "", "sub": ""}, {"id": "s4", "type": "cards", "style": "sign", "title": "Two games, one convoy", "sub": "Pick the map you like. Many of us drive both games.", "items": [{"tone": "eu", "title": "Euro Truck Simulator 2", "text": "Most of our convoys run here. We rotate through the maps so every kind of driver gets a turn.", "bullets": "Base Map, Map DLC and Cargo DLC convoys\nSpecial maps: Brazil, EAA and Rota\nSelected convoys run on TruckersMP", "image": "@img:eu"}, {"tone": "us", "title": "American Truck Simulator", "text": "ATS convoys run on the base map. Check the planner for the days and times.", "bullets": "", "image": "@img:us"}]}, {"id": "s5", "type": "cards", "style": "steps", "title": "How a convoy runs", "sub": "First time? This is the whole process.", "items": [{"title": "Check the schedule", "text": "The game, map and start time are on this page and in the WhatsApp group."}, {"title": "Get in the lobby", "text": "Join the convoy server 15 minutes early. The host shares the meeting point."}, {"title": "Line up", "text": "Park in the order the host gives. Lights on, voice chat on."}, {"title": "Drive the route", "text": "Keep your gap, obey the limit and call out if you need to drop."}, {"title": "Park up and share", "text": "Post your screenshots on the Facebook page after we finish."}]}, {"id": "s6", "type": "cards", "style": "rules", "title": "Convoy rules", "sub": "Simple rules so everyone enjoys the drive.", "items": [{"title": "Respect the limit", "text": "Stay at the convoy speed and keep a safe gap to the truck ahead."}, {"title": "No ramming or blocking", "text": "Accidents happen. Deliberate crashes and road blocking get you removed."}, {"title": "Listen to the host", "text": "The convoy lead sets the order, pace and rest stops."}, {"title": "Drop out politely", "text": "Need to leave? Say so in chat, move to the shoulder and rejoin when you can."}, {"title": "Be kind", "text": "Every VTC and independent driver is welcome. Keep chat friendly and free of abuse."}]}], "navLabel": "About"}, {"id": "streamers", "slug": "streamers", "title": "Streamers", "nav": false, "header": {"title": "Go live with the convoy.", "lead": "GTC welcomes streamers from every VTC and from the independent scene. Bring your audience along for the drive.", "btn": {"label": "Send us your channel", "kind": "whatsapp", "url": ""}}, "sections": [{"id": "s14", "type": "builtin", "key": "roster", "title": "", "sub": ""}, {"id": "s7", "type": "cards", "style": "rules", "title": "Streaming a GTC convoy", "sub": "A few simple guidelines so viewers, hosts and drivers all have a good time.", "items": [{"title": "Tell the host", "text": "Let the convoy host know you're going live before the convoy starts."}, {"title": "Name the convoy", "text": "Put GTC and the map in your stream title so viewers can find you."}, {"title": "Follow the rules on camera", "text": "The convoy rules apply to streamers too, including how you talk in chat and voice."}, {"title": "Share your link", "text": "Send us your channel so we can list it on this page."}]}, {"id": "s15", "type": "cta", "title": "Want to be listed?", "text": "Send your channel link and the games you stream in the WhatsApp group, or message us on Facebook.", "buttons": [{"label": "Join the WhatsApp group", "kind": "whatsapp", "url": ""}, {"label": "Message us on Facebook", "kind": "facebook", "url": ""}, {"label": "Join our Telegram channel", "kind": "telegram", "url": ""}]}]}, {"id": "gallery", "slug": "gallery", "title": "Gallery", "nav": false, "header": {"title": "Convoy gallery.", "lead": "Screenshots from GTC convoys. Tap a photo to see it larger."}, "sections": [{"id": "s16", "type": "builtin", "key": "gallery", "title": "", "sub": ""}]}, {"id": "signup", "slug": "signup", "title": "Join Now", "nav": true, "header": {"title": "Sign up as a driver.", "lead": "Tell us a little about how you drive so the team knows who's joining the convoys."}, "sections": [{"id": "s17", "type": "builtin", "key": "form", "title": "", "sub": ""}], "navLabel": "Join Now"}]};
+const uid=()=>Math.random().toString(36).slice(2,9);
+const BUILTIN={hero:{l:"Home hero & countdown",t:1},news:{l:"News & blog feed",t:1,tab:"news"},schedule:{l:"Upcoming convoys list",t:1,tab:"planner"},planner:{l:"Convoy planner download",t:1,tab:"planner"},team:{l:"Team members",t:1,tab:"team"},roster:{l:"Streamer roster",t:1,tab:"streamers"},gallery:{l:"Photo gallery",tab:"gallery"},form:{l:"Driver sign-up form"}};
+const TYPES={text:"Text / image",cards:"Cards / list",cta:"Call-to-action banner",html:"Custom HTML (advanced)"};
+const CARD_STYLES=[["home","Link cards (with icon)"],["who","Simple columns"],["rules","Rule boxes"],["steps","Numbered steps"],["sign","Game panels (bullets + image)"]];
+const KINDS=[["link","Custom link"],["whatsapp","WhatsApp group"],["facebook","Facebook page"],["telegram","Telegram channel"]];
+let openPg=null, openSec={};
+function fld(label,obj,key,area,wide){const i=area?textArea(obj[key]):textInput(obj[key]);i.addEventListener("change",()=>{obj[key]=i.value;save();});const f=field(label,i);if(wide)f.style.gridColumn="1 / -1";return f;}
+function sel(label,opts,obj,key,ch){const s=selectInput(opts,obj[key]);s.addEventListener("change",()=>{obj[key]=s.value;save();if(ch)ch();});return field(label,s);}
+function acts(arr,i,ch,extra,what){const a=el("div","item-actions"),u=el("button","tiny","↑"),d=el("button","tiny","↓"),x=el("button","tiny danger","Remove");
+  u.disabled=i===0;d.disabled=i===arr.length-1;
+  u.onclick=()=>{[arr[i-1],arr[i]]=[arr[i],arr[i-1]];ch();};d.onclick=()=>{[arr[i+1],arr[i]]=[arr[i],arr[i+1]];ch();};
+  x.onclick=async()=>{if(await confirmBox("Remove "+(what||"item")+"?","It disappears from the site once you publish.","Remove",true)){arr.splice(i,1);ch();}};
+  a.append(...(extra||[]),u,d,x);return a;}
+function usedBuiltins(S){const u=new Set();S.pages.forEach(p=>p.sections.forEach(s=>{if(s.type==="builtin")u.add(s.key);}));return u;}
+function itemsEditor(s,ch){const w=el("div");w.append(el("label","","Items"));(s.items||(s.items=[])).forEach((it,i)=>{
+  const c=el("div","card");c.style.background="var(--panel2)";const g=el("div","row2"),st=s.style;
+  if(st==="home")g.append(fld("Icon (emoji)",it,"icon"));
+  if(st==="sign")g.append(sel("Colour",[["eu","Blue"],["us","Green"]],it,"tone"));
+  g.append(fld("Title",it,"title"),fld("Text",it,"text",1,1));
+  if(st==="home")g.append(fld("Link (e.g. #about)",it,"url"),fld("Link label",it,"linkLabel"));
+  if(st==="sign"){g.append(fld("Bullet points — one per line",it,"bullets",1,1));g.append(imageField("Image",()=>it.image,v=>it.image=v));}
+  c.append(g,acts(s.items,i,ch,0,"item"));w.append(c);});
+  const b=el("button","tiny","+ Add item");b.onclick=()=>{s.items.push({title:"",text:""});ch();};w.append(b);return w;}
+function buttonsEditor(s,ch){const w=el("div");w.append(el("label","","Buttons"));(s.buttons||(s.buttons=[])).forEach((b,i)=>{
+  const c=el("div","card");c.style.background="var(--panel2)";const g=el("div","row3");
+  g.append(fld("Label",b,"label"),sel("Goes to",KINDS,b,"kind",ch));if((b.kind||"link")==="link")g.append(fld("Link",b,"url"));
+  c.append(g,acts(s.buttons,i,ch,0,"button"));w.append(c);});
+  const b=el("button","tiny","+ Add button");b.onclick=()=>{s.buttons.push({label:"Button",kind:"link",url:""});ch();};w.append(b);return w;}
+function sectionBody(S,pg,s,ch){const b=el("div"),g=el("div","row2");
+  if(s.type==="builtin"){const B=BUILTIN[s.key]||{};
+    if(B.t){g.append(fld(s.key==="hero"?"Headline":"Heading",s,"title"),fld(s.key==="hero"?"Intro text":"Sub-heading",s,"sub",1,1));b.append(g,el("p","muted","Leave blank to keep the site's original wording."));}
+    else b.append(el("p","muted","This block has no editable text of its own."));
+    if(B.tab){const t=el("button","tiny","Edit its content in the “"+TABS.find(x=>x[0]===B.tab)[1]+"” tab →");t.onclick=()=>showPane(B.tab);b.append(t);}
+  }else if(s.type==="text"){g.append(fld("Heading",s,"title"),fld("Sub-heading",s,"sub"),fld("Text — blank line starts a new paragraph",s,"body",1,1));b.append(g,imageField("Image (optional)",()=>s.image,v=>s.image=v));
+    if((s.image||"").startsWith("@img:"))b.append(el("p","muted","Currently showing the site's original built-in photo. Upload to replace it."));
+  }else if(s.type==="cards"){g.append(fld("Heading",s,"title"),fld("Sub-heading",s,"sub"),sel("Layout",CARD_STYLES,s,"style",ch));b.append(g,itemsEditor(s,ch));
+  }else if(s.type==="cta"){g.append(fld("Heading",s,"title"),fld("Text",s,"text",1,1));b.append(g,buttonsEditor(s,ch));
+  }else if(s.type==="html"){b.append(fld("HTML",s,"html",1));b.lastChild.querySelector("textarea").style.minHeight="10em";}
+  return b;}
+function sectionCard(S,pg,s,i,ch){const c=el("div","card"),B=BUILTIN[s.key];
+  const name=s.type==="builtin"?(B?B.l:s.key):(s.title||TYPES[s.type]||s.type);
+  const top=el("div","orderitem");top.style.marginBottom=".3rem";
+  const l=el("span","");l.append(el("span","pill "+(s.enabled===false?"draft":"live"),s.type==="builtin"?"built-in":s.type),document.createTextNode(name));
+  const tog=el("button","tiny",openSec[s.id]?"Close":"Edit");tog.onclick=()=>{openSec[s.id]=!openSec[s.id];renderPages();};
+  top.append(l,tog);c.append(top);
+  if(openSec[s.id]){const vis=el("div","field check"),cb=document.createElement("input");cb.type="checkbox";cb.checked=s.enabled!==false;cb.id="v"+s.id;
+    cb.onchange=()=>{s.enabled=cb.checked;save();renderPages();};const lb=document.createElement("label");lb.htmlFor=cb.id;lb.textContent="Show this section on the site";vis.append(cb,lb);
+    c.append(vis,sectionBody(S,pg,s,ch));}
+  const mv=selectInput([["","Move to page…"],...S.pages.filter(p=>p!==pg).map(p=>[p.id,p.title||p.slug])],"");
+  mv.onchange=()=>{if(!mv.value)return;const t=S.pages.find(p=>p.id===mv.value);pg.sections.splice(i,1);t.sections.push(s);openPg=t.id;ch();};
+  c.append(acts(pg.sections,i,ch,[mv],"section"));return c;}
+function pageCard(S,pg,i,ch){const c=el("div","card"),open=openPg===pg.id,home=pg.slug==="home";
+  const top=el("div","orderitem");const l=el("span","");l.append(el("span","pill live",pg.nav===false?"hidden from menu":"in menu"),document.createTextNode(pg.title+"  ·  #"+pg.slug));
+  const tog=el("button","tiny",open?"Close":"Edit page");tog.onclick=()=>{openPg=open?null:pg.id;renderPages();};top.append(l,tog);c.append(top);
+  if(open){pg.header||(pg.header={});const g=el("div","row2");
+    g.append(fld("Page name",pg,"title"));
+    const sl=textInput(pg.slug);sl.disabled=home;sl.onchange=()=>{let v=sl.value.toLowerCase().replace(/[^a-z0-9-]+/g,"-").replace(/^-+|-+$/g,"");
+      if(!v||v==="top"||v==="home"||S.pages.some(p=>p!==pg&&p.slug===v))v=pg.slug;pg.slug=v;save();renderPages();};g.append(field("Web address (#…)",sl));
+    const nv=el("div","field check"),cb=document.createElement("input");cb.type="checkbox";cb.checked=pg.nav!==false;cb.id="n"+pg.id;cb.onchange=()=>{pg.nav=cb.checked;save();renderPages();};
+    const lb=document.createElement("label");lb.htmlFor=cb.id;lb.textContent="Show in the top menu";nv.append(cb,lb);g.append(nv,fld("Menu label (optional)",pg,"navLabel"));
+    c.append(g);const hc=el("div","card");hc.style.background="var(--panel2)";hc.append(el("h3","","Page banner"),el("p","muted","Big headline at the top of the page. Leave the headline empty for no banner."));
+    const hg=el("div","row2");hg.append(fld("Headline",pg.header,"title"),fld("Intro line",pg.header,"lead",1,1));hc.append(hg);
+    const bb=pg.header.btn;const tb=el("button","tiny",bb?"Remove banner button":"+ Add banner button");tb.onclick=()=>{if(bb)delete pg.header.btn;else pg.header.btn={label:"Join us",kind:"whatsapp",url:""};ch();};hc.append(tb);
+    if(bb){const r=el("div","row3");r.append(fld("Label",bb,"label"),sel("Goes to",KINDS,bb,"kind",ch));if(bb.kind==="link")r.append(fld("Link",bb,"url"));hc.append(r);}
+    c.append(hc,el("h3","","Sections on this page"));
+    if(!pg.sections.length)c.append(el("div","empty","No sections yet — add one below."));
+    pg.sections.forEach((s,j)=>c.append(sectionCard(S,pg,s,j,ch)));
+    const free=Object.keys(BUILTIN).filter(k=>!usedBuiltins(S).has(k));
+    const ops=[...Object.entries(TYPES).map(([k,v])=>["new:"+k,"New: "+v]),...free.map(k=>["old:"+k,"Restore built-in: "+BUILTIN[k].l])];
+    const as=selectInput(ops,ops[0][0]),ab=el("button","add","+ Add section");ab.style.margin="0 0 0 .5rem";
+    ab.onclick=()=>{const[m,k]=as.value.split(":"),id=uid();let s;
+      if(m==="old")s={id,type:"builtin",key:k,title:"",sub:""};
+      else s={text:{id,type:"text",title:"New section",sub:"",body:"",image:""},cards:{id,type:"cards",style:"rules",title:"New section",sub:"",items:[{title:"",text:""}]},cta:{id,type:"cta",title:"New banner",text:"",buttons:[{label:"Join Now",kind:"link",url:"#signup"}]},html:{id,type:"html",html:"<p>Your content</p>"}}[k];
+      pg.sections.push(s);openSec[s.id]=true;ch();};
+    const ar=el("div");ar.style.display="flex";ar.append(as,ab);c.append(ar);}
+  const a=acts(S.pages,i,ch,0,"page");if(home)a.lastChild.remove();c.append(a);return c;}
+function renderPages(){const p=document.getElementById("panePages");p.innerHTML="";
+  if(!data.site){const c=el("div","card");c.append(el("h3","","Pages & sections"),el("p","muted","Your site is using its built-in layout. Load every default page and section into the editor to add, edit, hide and rearrange them. Nothing changes on the live site until you publish."));
+    const b=el("button","primary","Start customising");b.onclick=()=>{data.site=JSON.parse(JSON.stringify(DEFAULT_SITE));save();renderPages();};c.append(b);p.append(c);return;}
+  const S=data.site,ch=()=>{save();renderPages();};
+  const add=el("button","add","+ Add page");add.onclick=()=>{const id=uid();S.pages.push({id,slug:"page-"+id.slice(0,4),title:"New page",nav:true,header:{title:"New page",lead:""},sections:[]});openPg=id;ch();};p.append(add);
+  S.pages.forEach((pg,i)=>p.append(pageCard(S,pg,i,ch)));
+  const r=el("button","danger","Reset pages to the site's built-in layout");r.onclick=async()=>{if(await confirmBox("Reset pages?","All your page and section edits are removed and the site goes back to its original layout once published.","Reset",true)){delete data.site;save();renderPages();}};p.append(r);}
 
 /* ---------- Site & links ---------- */
 function renderLinks(){
@@ -405,20 +493,8 @@ function renderDesign(){
   g2.append(field("Spacing",den),field("Dashboard menu position",nav));
   typ.append(g2); p.append(typ);
 
-  const ord=el("div","card");
-  ord.append(el("h3","Page section order"),el("p","muted","The order the public site shows its sections in."));
-  const list=el("div","orderlist");
-  t.sections.forEach((key,i)=>{
-    const item=el("orderitem"===""?"div":"div","orderitem");
-    item.append(el("span","",SECTION_LABELS[key]||key));
-    const acts=el("div"); acts.style.display="flex"; acts.style.gap=".3rem";
-    const up=el("button","tiny","↑"), down=el("button","tiny","↓");
-    up.disabled=i===0; down.disabled=i===t.sections.length-1;
-    up.addEventListener("click",()=>{[t.sections[i-1],t.sections[i]]=[t.sections[i],t.sections[i-1]];renderDesign();save();});
-    down.addEventListener("click",()=>{[t.sections[i+1],t.sections[i]]=[t.sections[i],t.sections[i+1]];renderDesign();save();});
-    acts.append(up,down); item.append(acts); list.append(item);
-  });
-  ord.append(list); p.append(ord);
+  const ord=el("div","card"); ord.append(el("h3","","Page & section order"),el("p","muted","Adding, editing and rearranging pages and sections now lives in the “Pages & sections” tab."));
+  const go=el("button","tiny","Open Pages & sections →"); go.addEventListener("click",()=>showPane("pages")); ord.append(go); p.append(ord);
 
   const prev=el("div","card"); prev.append(el("h3","Preview"));
   const box=el("div","previewbox");
@@ -600,7 +676,7 @@ function renderBackup(){
   });
 }
 
-function renderAll(){ renderLinks(); renderDesign(); renderNews(); renderTeam(); renderStreamers(); renderGallery(); renderPlanner(); }
+function renderAll(){ renderLinks(); renderPages(); renderDesign(); renderNews(); renderTeam(); renderStreamers(); renderGallery(); renderPlanner(); }
 
 /* resume session if already signed in */
 (async()=>{ const {data:sess}=await sb.auth.getSession(); if(sess&&sess.session) boot(); })();

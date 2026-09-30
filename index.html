@@ -306,7 +306,7 @@
 </div>
 
 <div id="view-home">
-<div class="wrap">
+<div class="wrap" data-block="hero">
   <main id="top">
     <div class="hero">
       <div>
@@ -354,7 +354,7 @@
 </section>
 
 <hr class="centreline">
-<section id="news">
+<section id="news" data-block="news">
   <div class="wrap">
     <h2 class="title">GTC News &amp; Blogs</h2>
     <p class="sub">Stay updated with GTC announcements, convoy stories, community highlights, gaming tips and the latest from our virtual trucking community.</p>
@@ -387,7 +387,7 @@
     </div>
   </div>
   <hr class="centreline">
-<section id="schedule">
+<section id="schedule" data-block="schedule">
   <div class="wrap">
     <h2 class="title">Upcoming convoys</h2>
     <p class="sub">Our planner runs on East Africa Time (EAT). Times below are shown in your own time zone.</p>
@@ -398,7 +398,7 @@
 
 <hr class="centreline">
 
-<section id="planner">
+<section id="planner" data-block="planner">
   <div class="wrap">
     <h2 class="title">GTC Convoy Planner</h2>
     <p class="sub">Download the latest GTC convoy timetable as a one-page PDF. All times are shown in East Africa Time (EAT).</p>
@@ -440,7 +440,7 @@
 
 <hr class="centreline">
 
-<section id="team">
+<section id="leadership" data-block="team">
   <div class="wrap">
     <h2 class="title">Leadership</h2>
     <p class="sub">The people keeping GTC on the road.</p>
@@ -524,7 +524,7 @@
 
   <hr class="centreline">
 
-  <section id="roster">
+  <section id="roster" data-block="roster">
     <div class="wrap">
       <h2 class="title">Our streamers</h2>
       <p class="sub">Watch GTC drivers live and support their channels.</p>
@@ -572,7 +572,7 @@
     </div>
   </div>
   <hr class="centreline">
-  <section>
+  <section data-block="gallery">
     <div class="wrap">
       <div class="gallery" id="gallery"></div>
       <p class="tznote">Got a great convoy screenshot? Post it on our Facebook page or send it to the WhatsApp group and we'll add the best ones.</p>
@@ -589,7 +589,7 @@
     </div>
   </div>
   <hr class="centreline">
-  <section>
+  <section data-block="form">
     <div class="wrap">
       <div id="formArea">
         <form class="form" id="signupForm" novalidate>
@@ -993,19 +993,68 @@ document.getElementById("copyAgain").addEventListener("click", async () => {
   document.getElementById("copyStatus").textContent = ok ? "Copied to your clipboard." : "Select the text below and copy it.";
 });
 
-/* simple page switching: main sections use dedicated pages */
-const PAGES = { convoys: "view-convoys", about: "view-about", streamers: "view-streamers", gallery: "view-gallery", signup: "view-signup" };
-const vHome = document.getElementById("view-home");
+/* ---------- editable pages & sections (managed from the admin dashboard) ---------- */
+let PAGES = { home:"view-home", convoys:"view-convoys", about:"view-about", streamers:"view-streamers", gallery:"view-gallery", signup:"view-signup" };
+function buildSite(S) {
+  const q = s => document.querySelector(s);
+  const icons = {}; [["whatsapp","waBtn1"],["facebook","fbBtn1"],["telegram","tgBtn1"]].forEach(([k,id]) => { const i = q("#"+id+" .social-icon"); if (i) icons[k] = i.outerHTML; });
+  const imgs = { about:q("#about figure.photo img"), eu:q("#games .sign.eu img"), us:q("#games .sign.us img") };
+  const pic = v => v && v.startsWith("@img:") ? ((imgs[v.slice(5)]||{}).src || "") : (v || "");
+  const B = {}; document.querySelectorAll("[data-block]").forEach(n => B[n.dataset.block] = n);
+  const urlOf = { whatsapp:CONFIG.whatsappUrl, facebook:CONFIG.facebookUrl, telegram:CONFIG.telegramUrl };
+  const btn = b => { const k = b.kind || "link", u = k === "link" ? b.url : urlOf[k]; if (!u) return null;
+    const a = el("a", "btn " + ({whatsapp:"wa",facebook:"fb",telegram:"tg"}[k] || "su")); a.href = u;
+    if (k !== "link" || /^https?:/.test(u)) { a.target = "_blank"; a.rel = "noopener"; }
+    if (icons[k]) a.insertAdjacentHTML("beforeend", icons[k]); a.append(el("span", "", b.label || "Link")); return a; };
+  const sec = (...kids) => { const s = el("section"), w = el("div", "wrap"); kids.forEach(k => k && w.append(k)); s.append(w); return s; };
+  const head = s => [s.title && el("h2","title",s.title), s.sub && el("p","sub",s.sub)];
+  const C = {
+    home: i => { const a = el("a","home-card"); a.href = i.url || "#"; a.append(el("span","home-card-icon",i.icon||""), el("h3","",i.title), el("p","",i.text)); if (i.linkLabel) a.append(el("span","home-card-link",i.linkLabel)); return a; },
+    who: i => { const d = el("div"); d.append(el("h3","",i.title), el("p","",i.text)); return d; },
+    rules: i => { const d = el("div","rule"); d.append(el("h3","",i.title), el("p","",i.text)); return d; },
+    steps: i => { const l = el("li"), d = el("div"); d.append(el("b","",i.title), el("span","",i.text)); l.append(d); return l; },
+    sign: i => { const d = el("div","sign " + (i.tone === "us" ? "us" : "eu")); d.append(el("h3","",i.title), el("p","",i.text));
+      const b = (i.bullets||"").split("\n").map(x => x.trim()).filter(Boolean);
+      if (b.length) { const u = el("ul"); b.forEach(x => u.append(el("li","",x))); d.append(u); }
+      const im = pic(i.image); if (im) { const a = el("div","art-slot"), g = el("img","game-art"); g.src = im; g.alt = i.title || ""; a.append(g); d.append(a); } return d; }
+  };
+  const CONT = { home:["div","home-cards"], who:["div","who"], rules:["div","rules"], steps:["ol","steps"], sign:["div","split"] };
+  const R = {
+    text: s => { const n = sec(...head(s)), w = n.firstChild, ps = (s.body||"").split(/\n\s*\n/).filter(x => x.trim()), im = pic(s.image);
+      if (im) { const top = el("div","about-top"), f = el("figure","photo"), i = el("img"); i.src = im; i.alt = s.title || ""; f.append(i); top.append(f); if (ps.length) top.append(el("p","about-lead",ps.shift())); w.append(top); }
+      ps.forEach(p => w.append(el("p","",p))); return n; },
+    cards: s => { const n = sec(...head(s)), st = C[s.style] ? s.style : "rules", c = el(CONT[st][0], CONT[st][1]);
+      (s.items||[]).forEach(i => c.append(C[st](i))); n.firstChild.append(c); return n; },
+    cta: s => { const n = sec(), j = el("div","join"), bs = el("div","btns"); j.append(el("h2","",s.title), el("p","",s.text));
+      (s.buttons||[]).forEach(b => { const a = btn(b); if (a) bs.append(a); }); j.append(bs); n.firstChild.append(j); return n; },
+    html: s => { const n = sec(); n.firstChild.innerHTML = s.html || ""; return n; },
+    builtin: s => { const b = B[s.key]; if (!b) return null;
+      const t = b.querySelector("h1,h2.title"), p = b.querySelector(".lead,p.sub");
+      if (s.title && t) t.textContent = s.title; if (s.sub && p) p.textContent = s.sub; return b; }
+  };
+  const host = el("div"); host.id = "site-pages"; q("#view-home").before(host);
+  const nav = q("header.top nav"); nav.innerHTML = ""; const map = {};
+  S.pages.forEach(pg => {
+    const slug = pg.slug || pg.id, v = el("div"), H = pg.header || {};
+    v.id = "pg-" + slug; v.hidden = true; map[slug] = v.id;
+    if (H.title) { const w = el("div","wrap"), hh = el("div","s-hero"); hh.append(el("h1","",H.title)); if (H.lead) hh.append(el("p","lead",H.lead));
+      if (H.btn && H.btn.label) { const a = btn(H.btn); if (a) { const bs = el("div","btns"); bs.append(a); hh.append(bs); } } w.append(hh); v.append(w); }
+    (pg.sections||[]).forEach(s => { if (s.enabled === false) return; const n = (R[s.type] || (() => null))(s); if (!n) return;
+      if (v.children.length) v.append(el("hr","centreline")); v.append(n); });
+    host.append(v);
+    if (pg.nav !== false) { const a = el("a","",pg.navLabel || pg.title || slug); a.href = "#" + slug; nav.append(a); }
+  });
+  ["home","convoys","about","streamers","gallery","signup"].forEach(k => { const e = document.getElementById("view-" + k); if (e) e.remove(); });
+  return map;
+}
+if (CONFIG.site && Array.isArray(CONFIG.site.pages) && CONFIG.site.pages.length) {
+  try { PAGES = buildSite(CONFIG.site); } catch (e) { console.warn("GTC: custom layout failed —", e); }
+}
 function route() {
-  const key = location.hash.slice(1);
-  const onHome = !key || key === "home" || key === "top";
-  const onPage = Object.prototype.hasOwnProperty.call(PAGES, key);
-  vHome.hidden = !onHome && onPage;
-  Object.keys(PAGES).forEach(k => { document.getElementById(PAGES[k]).hidden = !onPage || k !== key; });
-  if (onHome) { vHome.hidden = false; window.scrollTo(0, 0); return; }
-  if (onPage) { window.scrollTo(0, 0); return; }
-  const t = key ? document.getElementById(key) : null;
-  if (t) t.scrollIntoView(); else window.scrollTo(0, 0);
+  let key = location.hash.slice(1); if (!key || key === "top") key = "home";
+  if (!PAGES[key] && key === "home") key = Object.keys(PAGES)[0];
+  if (PAGES[key]) { Object.keys(PAGES).forEach(k => { const e = document.getElementById(PAGES[k]); if (e) e.hidden = k !== key; }); window.scrollTo(0, 0); return; }
+  const t = document.getElementById(key); if (t) t.scrollIntoView(); else window.scrollTo(0, 0);
 }
 function markActiveNav() {
   const key = onHomeKey();
@@ -1013,7 +1062,7 @@ function markActiveNav() {
     a.classList.toggle("active", a.getAttribute("href") === "#" + key);
   });
 }
-function onHomeKey() { const k = location.hash.slice(1); return (!k || k === "top") ? "home" : k; }
+function onHomeKey() { const k = location.hash.slice(1); return (!k || k === "top") ? (PAGES.home ? "home" : Object.keys(PAGES)[0]) : k; }
 addEventListener("hashchange", markActiveNav);
 markActiveNav();
 addEventListener("hashchange", route);
