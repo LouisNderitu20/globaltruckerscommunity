@@ -379,7 +379,7 @@ const TYPES={text:"Text / image",cards:"Cards / list",cta:"Call-to-action banner
 const CARD_STYLES=[["home","Link cards (with icon)"],["who","Simple columns"],["rules","Rule boxes"],["steps","Numbered steps"],["sign","Game panels (bullets + image)"]];
 const KINDS=[["link","Custom link"],["whatsapp","WhatsApp group"],["facebook","Facebook page"],["telegram","Telegram channel"]];
 let openPg=null, openSec={};
-function fld(label,obj,key,area,wide){const i=area?textArea(obj[key]):textInput(obj[key]);i.addEventListener("change",()=>{obj[key]=i.value;save();});const f=field(label,i);if(wide)f.style.gridColumn="1 / -1";return f;}
+function fld(label,obj,key,area,wide){const i=area?textArea(obj[key]):textInput(obj[key]);i.addEventListener("input",()=>{obj[key]=i.value;save();});i.addEventListener("change",()=>{obj[key]=i.value;save();});const f=field(label,i);if(wide)f.style.gridColumn="1 / -1";return f;}
 function sel(label,opts,obj,key,ch){const s=selectInput(opts,obj[key]);s.addEventListener("change",()=>{obj[key]=s.value;save();if(ch)ch();});return field(label,s);}
 function acts(arr,i,ch,extra,what){const a=el("div","item-actions"),u=el("button","tiny","↑"),d=el("button","tiny","↓"),x=el("button","tiny danger","Remove");
   u.disabled=i===0;d.disabled=i===arr.length-1;
@@ -490,7 +490,7 @@ async function lxEdit(pg,s){
   function b2(){holder.innerHTML="";holder.append(sectionBody(S,pg,s,ch));}b2();
   const rm=el("button","danger tiny","Remove gadget");
   rm.onclick=async()=>{if(await confirmBox("Remove "+sName(s)+"?","It disappears from the site once you publish.","Remove",true)){pg.sections.splice(pg.sections.indexOf(s),1);window.lxOpenBg&&window.lxOpenBg.remove();lxChanged();}};
-  b.append(vis,holder,el("div","item-actions")).lastChild.append(rm);
+  const ra=el("div","item-actions");ra.append(rm);b.append(vis,holder,ra);
   await lxModal(sName(s),b);renderPages();
 }
 async function lxPageSettings(pg){
