@@ -482,16 +482,29 @@ function lxModal(title,body,okText){return new Promise(res=>{
   const done=()=>{bg.remove();res();};ok.onclick=done;bg.onclick=e=>{if(e.target===bg)done();};});}
 
 async function lxEdit(pg,s){
-  const S=data.site,b=el("div");b.style.marginTop=".7rem";
+  const S=data.site,snap=JSON.stringify(s),b=el("div");b.style.marginTop=".7rem";
   const vis=el("div","field check"),cb=document.createElement("input");cb.type="checkbox";cb.checked=s.enabled!==false;cb.id="lxv"+s.id;
   cb.onchange=()=>{s.enabled=cb.checked;save();};
   const lb=document.createElement("label");lb.htmlFor=cb.id;lb.textContent="Show on the site";vis.append(cb,lb);
-  const ch=()=>{save();b2();};const holder=el("div");
-  function b2(){holder.innerHTML="";holder.append(sectionBody(S,pg,s,ch));}b2();
-  const rm=el("button","danger tiny","Remove gadget");
-  rm.onclick=async()=>{if(await confirmBox("Remove "+sName(s)+"?","It disappears from the site once you publish.","Remove",true)){pg.sections.splice(pg.sections.indexOf(s),1);window.lxOpenBg&&window.lxOpenBg.remove();lxChanged();}};
-  const ra=el("div","item-actions");ra.append(rm);b.append(vis,holder,ra);
-  await lxModal(sName(s),b);renderPages();
+  const holder=el("div"),ch=()=>{save();draw();};
+  function draw(){holder.innerHTML="";holder.append(sectionBody(S,pg,s,ch));
+    /* Custom HTML: roomy code box, Tab inserts spaces instead of leaving the field */
+    const ta=holder.querySelector("textarea");
+    if(s.type==="html"&&ta){ta.spellcheck=false;ta.style.minHeight="16em";ta.style.tabSize="2";
+      ta.addEventListener("keydown",e=>{if(e.key==="Tab"&&!e.shiftKey){e.preventDefault();const i=ta.selectionStart;ta.setRangeText("  ",i,ta.selectionEnd,"end");ta.dispatchEvent(new Event("input"));}});}}
+  draw();
+  const rm=el("button","danger tiny","Remove gadget"),ra=el("div","item-actions");ra.append(rm);b.append(vis,holder,ra);
+  const bg=el("div","modalbg"),m=el("div","modal");m.style.maxWidth="680px";m.style.maxHeight="88vh";m.style.overflow="auto";
+  const ac=el("div","item-actions"),cn=el("button","","Cancel"),sv=el("button","primary","Save");ac.append(cn,sv);
+  m.append(el("h3","",sName(s)),b,ac);bg.append(m);document.body.append(bg);
+  const ta0=holder.querySelector("textarea");if(ta0)ta0.focus();
+  const close=()=>{document.removeEventListener("keydown",esc);bg.remove();renderPages();};
+  const cancel=()=>{Object.keys(s).forEach(k=>delete s[k]);Object.assign(s,JSON.parse(snap));save();close();};
+  const esc=e=>{if(e.key==="Escape"&&document.body.lastElementChild===bg)cancel();};
+  document.addEventListener("keydown",esc);
+  sv.onclick=()=>{save();toast("Gadget saved to your draft. Click Publish to go live.");close();};
+  cn.onclick=cancel;
+  rm.onclick=async()=>{if(await confirmBox("Remove "+sName(s)+"?","It disappears from the site once you publish.","Remove",true)){pg.sections.splice(pg.sections.indexOf(s),1);save();close();}};
 }
 async function lxPageSettings(pg){
   const S=data.site,home=pg.slug==="home",b=el("div");pg.header||(pg.header={});
@@ -524,6 +537,7 @@ function lxGadget(pg,s){
   const t=el("div","lx-t");t.append(el("b","",sName(s)),el("small","",sKind(s)));
   const ed=el("button","lx-edit");ed.title="Edit gadget";ed.setAttribute("aria-label","Edit "+sName(s));ed.append(svgEl(ICON.pencil));ed.onclick=()=>lxEdit(pg,s);
   g.append(svgEl(ICON.grip),eye,t,ed);
+  g.addEventListener("click",e=>{if(lxPreview||e.target.closest("button"))return;lxEdit(pg,s);});
   g.addEventListener("dragstart",e=>{lxDrag=s.id;e.dataTransfer.effectAllowed="move";e.dataTransfer.setData("text/plain",s.id);setTimeout(()=>g.classList.add("dragging"),0);});
   g.addEventListener("dragend",()=>{lxDrag=null;g.classList.remove("dragging");document.querySelectorAll(".lx-drop-line").forEach(n=>n.remove());document.querySelectorAll(".lx-zone.over").forEach(n=>n.classList.remove("over"));});
   return g;
