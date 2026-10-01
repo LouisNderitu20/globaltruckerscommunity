@@ -178,6 +178,13 @@
   header.top, header.top nav { flex-wrap: wrap; }
 
   /* streamers page */
+  /* layout regions: sidebar (30%) + main (70%) */
+  .pg-cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 7fr); gap: 2rem; align-items: start; }
+  .pg-cols section { padding: 2rem 0; }
+  .pg-cols .wrap { width: 100%; margin: 0; }
+  .pg-cols .centreline { border-top-width: 3px; }
+  .pg-side .home-cards, .pg-side .who, .pg-side .rules, .pg-side .split { grid-template-columns: 1fr; }
+  @media (max-width: 860px) { .pg-cols { grid-template-columns: 1fr; } .pg-side { order: 2; } }
   .s-hero { padding: 2.5rem 0 4rem; max-width: 720px; }
   .s-hero h1 { font-size: clamp(3rem, 8vw, 5.4rem); font-weight: 800; }
   .s-hero p.lead { font-size: 1.25rem; color: var(--muted); margin: 1.25rem 0 1.75rem; max-width: 40ch; }
@@ -1039,8 +1046,25 @@ function buildSite(S) {
     v.id = "pg-" + slug; v.hidden = true; map[slug] = v.id;
     if (H.title) { const w = el("div","wrap"), hh = el("div","s-hero"); hh.append(el("h1","",H.title)); if (H.lead) hh.append(el("p","lead",H.lead));
       if (H.btn && H.btn.label) { const a = btn(H.btn); if (a) { const bs = el("div","btns"); bs.append(a); hh.append(bs); } } w.append(hh); v.append(w); }
-    (pg.sections||[]).forEach(s => { if (s.enabled === false) return; const n = (R[s.type] || (() => null))(s); if (!n) return;
-      if (v.children.length) v.append(el("hr","centreline")); v.append(n); });
+    /* Layout regions (set by the admin layout editor). Pages with no `region` on any section render exactly as before. */
+    const secs = (pg.sections||[]).filter(s => s.enabled !== false);
+    const put = (c, s) => { const n = (R[s.type] || (() => null))(s); if (!n) return; if (c.children.length) c.append(el("hr","centreline")); c.append(n); };
+    if (!secs.some(s => s.region)) secs.forEach(s => put(v, s));
+    else {
+      const rg = s => s.region || (s.type === "builtin" && s.key === "hero" ? "header" : "body");
+      const by = r => secs.filter(s => rg(s) === r);
+      const tb = el("div"); by("topbar").forEach(s => put(tb, s));
+      if (tb.children.length) { if (v.children.length) tb.append(el("hr","centreline")); v.prepend(tb); }
+      by("header").forEach(s => put(v, s));
+      const side = el("aside","pg-side"), main = el("div","pg-main"), hasSide = by("sbTop").length + by("sbBottom").length > 0;
+      const body = [...by("body"), ...by("pagelist")];
+      if (hasSide) {
+        [...by("sbTop"), ...by("sbBottom")].forEach(s => put(side, s)); body.forEach(s => put(main, s));
+        const cols = el("div","wrap pg-cols"); cols.append(side, main);
+        if (v.children.length) v.append(el("hr","centreline")); v.append(cols);
+      } else body.forEach(s => put(v, s));
+      by("footer").forEach(s => put(v, s));
+    }
     host.append(v);
     if (pg.nav !== false) { const a = el("a","",pg.navLabel || pg.title || slug); a.href = "#" + slug; nav.append(a); }
   });
