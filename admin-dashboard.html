@@ -87,6 +87,39 @@ pre{background:var(--panel2);border:1px solid var(--border);border-radius:var(--
 .modalbg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:60}
 .modal{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:1.3rem;max-width:400px;width:92%}
 .modal p{margin:.5rem 0 1rem}.modal .item-actions{margin:0}
+
+/* ---------- Blogger-style layout editor ---------- */
+.lx-pages{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
+.lx-pages .tab.active{background:var(--accent)}
+.lx-grid{display:grid;grid-template-columns:30% 1fr;gap:.9rem;align-items:start;padding-bottom:5rem}
+.lx-col{display:flex;flex-direction:column;gap:.9rem;min-width:0}
+.lx-region{border:1px solid var(--border);border-radius:var(--radius);background:var(--panel);padding:.55rem}
+.lx-region>h4{margin:0 0 .5rem .15rem;font:700 .8rem var(--font-body);color:var(--muted)}
+.lx-zone{display:flex;flex-direction:column;gap:.4rem;min-height:2.6rem;border-radius:calc(var(--radius) - 3px);padding:.1rem;position:relative}
+.lx-zone.over{background:color-mix(in srgb,var(--accent) 14%,transparent);outline:2px dashed var(--accent);outline-offset:2px}
+.lx-add{width:100%;border:2px dashed var(--border);background:transparent;color:var(--muted);padding:.5rem;font-weight:600}
+.lx-add:hover{border-color:var(--accent);color:var(--text);filter:none}
+.lx-gadget{display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;gap:.55rem;background:var(--panel2);border:1px solid var(--border);border-radius:calc(var(--radius) - 3px);padding:.5rem .55rem;cursor:grab}
+.lx-gadget.dragging{opacity:.35}
+.lx-gadget.off .lx-t{opacity:.55}
+.lx-gadget.off .lx-eye{color:var(--muted)}
+.lx-grip{width:10px;height:18px;color:var(--muted);flex:none}
+.lx-eye,.lx-edit{background:none;border:0;padding:.3rem;color:var(--text);display:grid;place-items:center;border-radius:6px}
+.lx-eye svg,.lx-edit svg,.lx-bar svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.lx-edit:hover,.lx-eye:hover{background:var(--panel);filter:none}
+.lx-t{min-width:0}.lx-t b{display:block;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lx-t small{display:block;color:var(--muted);font-size:.75rem}
+.lx-gadget.pinned{cursor:default;border-style:dashed}
+.lx-drop-line{height:3px;border-radius:2px;background:var(--line);margin:-.2rem 0}
+.lx-bar{position:fixed;left:50%;bottom:max(1rem,env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;gap:.35rem;padding:.4rem;background:var(--panel);border:1px solid var(--border);border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.45);z-index:40}
+.lx-bar button{display:flex;align-items:center;gap:.4rem;border-radius:999px;padding:.55rem 1rem}
+.lx-bar .primary{background:var(--accent2);border-color:var(--accent2)}
+.lx-preview .lx-grip,.lx-preview .lx-add,.lx-preview .lx-edit,.lx-preview .lx-eye,.lx-preview .lx-region>h4{display:none}
+.lx-preview .lx-gadget{grid-template-columns:1fr;cursor:default}
+.lx-preview .lx-gadget.off{display:none}
+.lx-preview .lx-zone{pointer-events:none;min-height:0}
+.lx-preview .lx-region{border-style:dashed}
+@media (max-width:760px){.lx-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -416,13 +449,134 @@ function pageCard(S,pg,i,ch){const c=el("div","card"),open=openPg===pg.id,home=p
       pg.sections.push(s);openSec[s.id]=true;ch();};
     const ar=el("div");ar.style.display="flex";ar.append(as,ab);c.append(ar);}
   const a=acts(S.pages,i,ch,0,"page");if(home)a.lastChild.remove();c.append(a);return c;}
-function renderPages(){const p=document.getElementById("panePages");p.innerHTML="";
-  if(!data.site){const c=el("div","card");c.append(el("h3","","Pages & sections"),el("p","muted","Your site is using its built-in layout. Load every default page and section into the editor to add, edit, hide and rearrange them. Nothing changes on the live site until you publish."));
+
+/* ---------- Pages & sections: Blogger-style layout editor ---------- */
+const REGIONS={
+  sbTop:["Sidebar top","side"],sbBottom:["Sidebar bottom","side"],
+  topbar:["Top bar / search","main"],header:["Header","main"],
+  body:["Body","main"],pagelist:["Page list","main"],footer:["Footer","wide"]
+};
+/* flat order written to pg.sections, so the live site keeps working even before it reads `region` */
+const REGION_ORDER=["topbar","header","body","pagelist","sbTop","sbBottom","footer"];
+const ICON={
+  grip:'<svg class="lx-grip" viewBox="0 0 10 18" fill="currentColor"><circle cx="2" cy="3" r="1.4"/><circle cx="8" cy="3" r="1.4"/><circle cx="2" cy="9" r="1.4"/><circle cx="8" cy="9" r="1.4"/><circle cx="2" cy="15" r="1.4"/><circle cx="8" cy="15" r="1.4"/></svg>',
+  eye:'<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  eyeOff:'<svg viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 6.1A10 10 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.6 6.6A16.600 16.600 0 0 0 2 12s3.600 7 10 7a9.700 9.700 0 0 0 4.200-.9"/></svg>',
+  pencil:'<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.500 3.500a2.100 2.100 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  x:'<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+  save:'<svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>'
+};
+let lxPage=null,lxSnap=null,lxPreview=false,lxDrag=null;
+const svgEl=(html)=>{const t=document.createElement("template");t.innerHTML=html.trim();return t.content.firstChild;};
+function sRegion(pg,s){return s.region&&REGIONS[s.region]?s.region:(s.type==="builtin"&&s.key==="hero"?"header":"body");}
+function sName(s){const B=BUILTIN[s.key];return s.type==="builtin"?(B?B.l:s.key):(s.title||TYPES[s.type]||s.type);}
+function sKind(s){return s.type==="builtin"?"Built-in gadget":(TYPES[s.type]||s.type)+" gadget";}
+function lxFlatten(pg,map){pg.sections=REGION_ORDER.flatMap(r=>map[r]);}
+function lxMap(pg){const m={};Object.keys(REGIONS).forEach(r=>m[r]=[]);pg.sections.forEach(s=>{s.region=sRegion(pg,s);m[s.region].push(s);});return m;}
+function lxChanged(){save();renderPages();}
+
+function lxModal(title,body,okText){return new Promise(res=>{
+  const bg=el("div","modalbg"),m=el("div","modal");m.style.maxWidth="640px";m.style.maxHeight="86vh";m.style.overflow="auto";
+  const a=el("div","item-actions"),ok=el("button","primary",okText||"Done");a.append(ok);
+  m.append(el("h3","",title),body,a);bg.append(m);document.body.append(bg);window.lxOpenBg=bg;
+  const done=()=>{bg.remove();res();};ok.onclick=done;bg.onclick=e=>{if(e.target===bg)done();};});}
+
+async function lxEdit(pg,s){
+  const S=data.site,b=el("div");b.style.marginTop=".7rem";
+  const vis=el("div","field check"),cb=document.createElement("input");cb.type="checkbox";cb.checked=s.enabled!==false;cb.id="lxv"+s.id;
+  cb.onchange=()=>{s.enabled=cb.checked;save();};
+  const lb=document.createElement("label");lb.htmlFor=cb.id;lb.textContent="Show on the site";vis.append(cb,lb);
+  const ch=()=>{save();b2();};const holder=el("div");
+  function b2(){holder.innerHTML="";holder.append(sectionBody(S,pg,s,ch));}b2();
+  const rm=el("button","danger tiny","Remove gadget");
+  rm.onclick=async()=>{if(await confirmBox("Remove "+sName(s)+"?","It disappears from the site once you publish.","Remove",true)){pg.sections.splice(pg.sections.indexOf(s),1);window.lxOpenBg&&window.lxOpenBg.remove();lxChanged();}};
+  b.append(vis,holder,el("div","item-actions")).lastChild.append(rm);
+  await lxModal(sName(s),b);renderPages();
+}
+async function lxPageSettings(pg){
+  const S=data.site,home=pg.slug==="home",b=el("div");pg.header||(pg.header={});
+  const g=el("div","row2");g.append(fld("Page name",pg,"title"));
+  const sl=textInput(pg.slug);sl.disabled=home;
+  sl.onchange=()=>{let v=sl.value.toLowerCase().replace(/[^a-z0-9-]+/g,"-").replace(/^-+|-+$/g,"");if(!v||v==="top"||v==="home"||S.pages.some(p=>p!==pg&&p.slug===v))v=pg.slug;pg.slug=v;sl.value=v;save();};
+  g.append(field("Web address (#…)",sl));
+  const nv=el("div","field check"),cb=document.createElement("input");cb.type="checkbox";cb.checked=pg.nav!==false;cb.id="lxn"+pg.id;cb.onchange=()=>{pg.nav=cb.checked;save();};
+  const lb=document.createElement("label");lb.htmlFor=cb.id;lb.textContent="Show in the top menu";nv.append(cb,lb);
+  g.append(nv,fld("Menu label (optional)",pg,"navLabel"),fld("Banner headline",pg.header,"title"),fld("Banner intro line",pg.header,"lead",1,1));
+  b.append(g);
+  if(!home){const rm=el("button","danger tiny","Delete this page");rm.onclick=async()=>{if(await confirmBox("Delete page “"+pg.title+"”?","Its gadgets go with it once you publish.","Delete",true)){S.pages.splice(S.pages.indexOf(pg),1);lxPage=S.pages[0].id;window.lxOpenBg&&window.lxOpenBg.remove();lxChanged();}};b.append(rm);}
+  await lxModal("Page settings",b);renderPages();
+}
+async function lxAddGadget(pg,region){
+  const used=usedBuiltins(data.site),ops=[...Object.entries(TYPES).map(([k,v])=>["new:"+k,v]),...Object.keys(BUILTIN).filter(k=>!used.has(k)).map(k=>["old:"+k,BUILTIN[k].l+" (built-in)"])];
+  const w=el("div","orderlist");w.style.marginTop=".7rem";let pick=null;
+  const bg=el("div","modalbg"),m=el("div","modal");m.append(el("h3","","Add a gadget"),el("p","muted","Choose what to place in “"+REGIONS[region][0]+"”."));
+  ops.forEach(([v,l])=>{const b=el("button","",l);b.style.textAlign="left";b.onclick=()=>{pick=v;bg.remove();go();};w.append(b);});
+  m.append(w);bg.append(m);bg.onclick=e=>{if(e.target===bg)bg.remove();};document.body.append(bg);
+  function go(){const[mode,k]=pick.split(":"),id=uid();let s;
+    if(mode==="old")s={id,type:"builtin",key:k,title:"",sub:""};
+    else s={text:{id,type:"text",title:"New text gadget",sub:"",body:"",image:""},cards:{id,type:"cards",style:"rules",title:"New cards gadget",sub:"",items:[{title:"",text:""}]},cta:{id,type:"cta",title:"New banner",text:"",buttons:[{label:"Join Now",kind:"link",url:"#signup"}]},html:{id,type:"html",html:"<p>Your content</p>"}}[k];
+    s.region=region;const map=lxMap(pg);map[region].unshift(s);lxFlatten(pg,map);save();lxEdit(pg,s);}
+}
+function lxGadget(pg,s){
+  const g=el("div","lx-gadget"+(s.enabled===false?" off":""));g.draggable=!lxPreview;g.dataset.id=s.id;
+  const eye=el("button","lx-eye");eye.title=s.enabled===false?"Hidden — click to show":"Visible — click to hide";eye.append(svgEl(s.enabled===false?ICON.eyeOff:ICON.eye));
+  eye.onclick=e=>{e.stopPropagation();s.enabled=s.enabled===false;lxChanged();};
+  const t=el("div","lx-t");t.append(el("b","",sName(s)),el("small","",sKind(s)));
+  const ed=el("button","lx-edit");ed.title="Edit gadget";ed.setAttribute("aria-label","Edit "+sName(s));ed.append(svgEl(ICON.pencil));ed.onclick=()=>lxEdit(pg,s);
+  g.append(svgEl(ICON.grip),eye,t,ed);
+  g.addEventListener("dragstart",e=>{lxDrag=s.id;e.dataTransfer.effectAllowed="move";e.dataTransfer.setData("text/plain",s.id);setTimeout(()=>g.classList.add("dragging"),0);});
+  g.addEventListener("dragend",()=>{lxDrag=null;g.classList.remove("dragging");document.querySelectorAll(".lx-drop-line").forEach(n=>n.remove());document.querySelectorAll(".lx-zone.over").forEach(n=>n.classList.remove("over"));});
+  return g;
+}
+function lxIndexAt(zone,y){const kids=[...zone.querySelectorAll(":scope>.lx-gadget:not(.dragging)")];
+  for(let i=0;i<kids.length;i++){const r=kids[i].getBoundingClientRect();if(y<r.top+r.height/2)return i;}return kids.length;}
+function lxZone(pg,region,map){
+  const reg=el("div","lx-region"),zone=el("div","lx-zone");zone.dataset.region=region;
+  reg.append(el("h4","",REGIONS[region][0]));
+  const add=el("button","lx-add","+ Add a gadget");add.onclick=()=>lxAddGadget(pg,region);
+  zone.append(add);
+  if(region==="header"){const pin=el("div","lx-gadget pinned");const t=el("div","lx-t");t.append(el("b","",pg.header&&pg.header.title||"Page banner"),el("small","","Page banner · set in page settings"));const ed=el("button","lx-edit");ed.append(svgEl(ICON.pencil));ed.title="Edit banner";ed.onclick=()=>lxPageSettings(pg);pin.append(svgEl(ICON.grip),svgEl(ICON.eye),t,ed);zone.append(pin);}
+  map[region].forEach(s=>zone.append(lxGadget(pg,s)));
+  zone.addEventListener("dragover",e=>{if(!lxDrag)return;e.preventDefault();e.dataTransfer.dropEffect="move";zone.classList.add("over");
+    zone.querySelectorAll(".lx-drop-line").forEach(n=>n.remove());
+    const kids=[...zone.querySelectorAll(":scope>.lx-gadget:not(.dragging)")],i=lxIndexAt(zone,e.clientY),line=el("div","lx-drop-line");
+    kids[i]?zone.insertBefore(line,kids[i]):zone.append(line);});
+  zone.addEventListener("dragleave",e=>{if(!zone.contains(e.relatedTarget)){zone.classList.remove("over");zone.querySelectorAll(".lx-drop-line").forEach(n=>n.remove());}});
+  zone.addEventListener("drop",e=>{e.preventDefault();if(!lxDrag)return;
+    const m=lxMap(pg),id=lxDrag;let s=null;
+    Object.values(m).forEach(a=>{const i=a.findIndex(x=>x.id===id);if(i>-1)s=a.splice(i,1)[0];});
+    if(!s)return;const i=Math.min(lxIndexAt(zone,e.clientY),m[region].length);
+    s.region=region;m[region].splice(i,0,s);lxFlatten(pg,m);lxChanged();});
+  reg.append(zone);return reg;
+}
+function renderPages(){
+  const p=document.getElementById("panePages");p.innerHTML="";
+  if(!data.site){const c=el("div","card");c.append(el("h3","","Pages & sections"),el("p","muted","Your site is using its built-in layout. Load every default page and section into the layout editor to arrange, edit and hide them. Nothing changes on the live site until you publish."));
     const b=el("button","primary","Start customising");b.onclick=()=>{data.site=JSON.parse(JSON.stringify(DEFAULT_SITE));save();renderPages();};c.append(b);p.append(c);return;}
-  const S=data.site,ch=()=>{save();renderPages();};
-  const add=el("button","add","+ Add page");add.onclick=()=>{const id=uid();S.pages.push({id,slug:"page-"+id.slice(0,4),title:"New page",nav:true,header:{title:"New page",lead:""},sections:[]});openPg=id;ch();};p.append(add);
-  S.pages.forEach((pg,i)=>p.append(pageCard(S,pg,i,ch)));
-  const r=el("button","danger","Reset pages to the site's built-in layout");r.onclick=async()=>{if(await confirmBox("Reset pages?","All your page and section edits are removed and the site goes back to its original layout once published.","Reset",true)){delete data.site;save();renderPages();}};p.append(r);}
+  const S=data.site;if(!lxSnap)lxSnap=JSON.stringify(S);
+  if(!S.pages.some(x=>x.id===lxPage))lxPage=S.pages[0].id;
+  const pg=S.pages.find(x=>x.id===lxPage),map=lxMap(pg);
+  const bar=el("div","lx-pages");
+  S.pages.forEach(x=>{const b=el("button","tab"+(x===pg?" active":""),x.title||x.slug);b.onclick=()=>{lxPage=x.id;renderPages();};bar.append(b);});
+  const np=el("button","tiny","+ Add page");np.onclick=()=>{const id=uid();S.pages.push({id,slug:"page-"+id.slice(0,4),title:"New page",nav:true,header:{title:"New page",lead:""},sections:[]});lxPage=id;lxChanged();};
+  const ps=el("button","tiny","Page settings");ps.onclick=()=>lxPageSettings(pg);
+  bar.append(np,ps);p.append(bar);
+  const grid=el("div","lx-grid"+(lxPreview?" lx-preview":""));
+  const side=el("div","lx-col"),main=el("div","lx-col");
+  side.append(lxZone(pg,"sbTop",map),lxZone(pg,"sbBottom",map));
+  ["topbar","header","body","pagelist"].forEach(r=>main.append(lxZone(pg,r,map)));
+  grid.append(side,main);
+  const foot=lxZone(pg,"footer",map);foot.style.gridColumn="1 / -1";grid.append(foot);
+  p.append(grid);
+  const tb=el("div","lx-bar");tb.setAttribute("role","toolbar");
+  const mk=(cls,icon,label,fn)=>{const b=el("button",cls);b.append(svgEl(icon),document.createTextNode(label));b.onclick=fn;return b;};
+  tb.append(
+    mk("",ICON.x,"Cancel",async()=>{if(lxSnap===JSON.stringify(S)){toast("No layout changes to cancel.");return;}
+      if(await confirmBox("Cancel layout changes?","The layout goes back to how it was when you opened this tab.","Cancel changes",true)){data.site=JSON.parse(lxSnap);save();renderPages();}}),
+    mk(lxPreview?"primary":"",ICON.eye,lxPreview?"Edit":"Preview",()=>{lxPreview=!lxPreview;renderPages();}),
+    mk("primary",ICON.save,"Save",async()=>{lxSnap=JSON.stringify(data.site);save();document.getElementById("publishBtn").click();}));
+  p.append(tb);
+}
 
 /* ---------- Site & links ---------- */
 function renderLinks(){
