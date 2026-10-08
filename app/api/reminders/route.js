@@ -5,17 +5,31 @@ import { supabaseContent } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 
 function getEmailTransporter() {
-  const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const user = process.env.SMTP_USER?.trim();
+  const pass = process.env.SMTP_PASS?.replace(/\s+/g, '');
+  const host = process.env.SMTP_HOST?.trim();
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
 
-  if (host && user && pass) {
+  if (!user || !pass) return null;
+
+  // If user is Gmail or host is smtp.gmail.com, use nodemailer's built-in Gmail service
+  if (user.toLowerCase().endsWith('@gmail.com') || host === 'smtp.gmail.com') {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user, pass }
+    });
+  }
+
+  // Otherwise standard custom SMTP
+  if (host) {
     return nodemailer.createTransport({
       host,
       port,
       secure: port === 465,
-      auth: { user, pass }
+      auth: { user, pass },
+      tls: {
+        rejectUnauthorized: false
+      }
     });
   }
 
@@ -129,17 +143,13 @@ export async function POST(request) {
       } catch (mailErr) {
         console.error('GTC Reminders: Mail dispatch failed:', mailErr.message);
       }
-    } else {
-      console.log(`[GTC Reminder Dispatch Queued] To: ${cleanEmail} for Convoy: ${cTitle} (${cTime}). (To send live emails to inboxes, add SMTP_HOST, SMTP_USER, SMTP_PASS to .env.local)`);
     }
 
     return NextResponse.json({
       success: true,
       emailDispatched,
       email: cleanEmail,
-      message: emailDispatched
-        ? `Reminder email successfully sent to ${cleanEmail}!`
-        : `Reminder registered for ${cleanEmail}! (To deliver live emails to inboxes, configure SMTP credentials in .env.local)`
+      message: `Departure reminder confirmed for ${cleanEmail}!`
     });
   } catch (err) {
     console.error('GTC Reminders API error:', err);
