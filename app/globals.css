@@ -230,11 +230,18 @@ body {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 14px;
-  padding: 24px;
+  padding: 16px;
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
   color: #17181c;
+  word-break: break-word;
+}
+
+@media (min-width: 576px) {
+  .driver-license-card {
+    padding: 24px;
+  }
 }
 
 .license-hologram-strip {
@@ -267,7 +274,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 12px;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 576px) {
+  .modal-backdrop-custom {
+    padding: 24px;
+  }
 }
 
 .modal-content-custom {
@@ -277,7 +292,11 @@ body {
   max-width: 680px;
   width: 100%;
   max-height: 90vh;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.16);
   color: #17181c;
 }

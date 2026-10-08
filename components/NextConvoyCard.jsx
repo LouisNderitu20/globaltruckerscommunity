@@ -25,7 +25,7 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
   const hasReminder = reminders.includes(convoy.id);
   const attendees = getConvoyAttendees ? getConvoyAttendees(convoy.id) : [];
   const isAttending = isDriverAttending ? isDriverAttending(convoy.id) : false;
-  const totalConfirmedCount = Math.max(convoy.slotsBooked || 42, (convoy.slotsBooked || 42) + (isAttending ? 1 : 0));
+  const totalConfirmedCount = attendees.length;
 
   const filteredAttendees = attendees.filter((a) => {
     const q = searchAttendee.toLowerCase().trim();
@@ -50,7 +50,7 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
   return (
     <section id="next-convoy" className="py-4">
       <div className="container">
-        
+
         <div className="text-center mb-4">
           <span className="badge badge-gold text-uppercase fw-bold px-3 py-2 mb-2">
             <i className="bi bi-calendar-check-fill me-1"></i> Official Timetable Run
@@ -64,7 +64,7 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
         </div>
 
         <div className="card glass shadow-lg overflow-hidden">
-          
+
           <div className="card-header bg-light py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
             <div className="d-flex flex-wrap align-items-center gap-2">
               <span className="badge badge-gold text-uppercase px-3 py-2 fw-bold">
@@ -108,7 +108,7 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
 
           <div className="card-body p-4 p-lg-5">
             <div className="row g-4 g-lg-5">
-              
+
               <div className="col-12 col-lg-7">
                 <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
                   <h3 className="h4 fw-bold text-dark mb-0">
@@ -193,7 +193,7 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
                 </div>
 
                 <div className="row g-3 mb-4">
-                  
+
                   <div className="col-12 col-sm-6">
                     <div className="p-3 rounded-3 bg-white border h-100 shadow-sm" style={{ borderColor: '#e2e8f0' }}>
                       <div className="d-flex align-items-center gap-2 small text-secondary fw-bold text-uppercase mb-2">
@@ -300,7 +300,7 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
               </div>
 
               <div className="col-12 col-lg-5 d-flex flex-column gap-4">
-                
+
                 <div className="card p-3 position-relative shadow-sm" style={{ borderColor: '#e2e8f0' }}>
                   <div className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
                     <span className="fw-bold text-dark small">
@@ -429,7 +429,7 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
                 </div>
                 <div className="bg-white border rounded-2 px-3 py-2 shadow-sm text-center">
                   <div className="small text-muted text-uppercase" style={{ fontSize: '0.68rem' }}>Radio Channel</div>
-                  <strong className="fs-5 text-danger">CB CH 19</strong>
+                  <strong className="fs-5 text-danger">CB: CH 19</strong>
                 </div>
               </div>
 
@@ -484,7 +484,9 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
               {filteredAttendees.length === 0 ? (
                 <div className="text-center py-4 text-secondary">
                   <i className="bi bi-truck fs-1 text-muted d-block mb-2"></i>
-                  <p className="small mb-2">No confirmed drivers matching search.</p>
+                  <p className="small mb-2">
+                    {searchAttendee ? 'No confirmed drivers matching search.' : 'No drivers have confirmed attendance for this convoy run yet. Be the first to confirm your staging slot!'}
+                  </p>
                 </div>
               ) : (
                 <div className="d-flex flex-column gap-2">
@@ -538,10 +540,10 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
                                 fontSize: '0.65rem',
                                 backgroundColor: rKey === 'admin' ? '#ef4444' :
                                   rKey === 'staff' ? '#a855f7' :
-                                  rKey === 'dev_modder' ? '#0284c7' :
-                                  rKey === 'convoy_lead' ? '#f59e0b' :
-                                  rKey === 'dispatcher' ? '#0ea5e9' :
-                                  rKey === 'streamer' ? '#ec4899' : '#10b981',
+                                    rKey === 'dev_modder' ? '#0284c7' :
+                                      rKey === 'convoy_lead' ? '#f59e0b' :
+                                        rKey === 'dispatcher' ? '#0ea5e9' :
+                                          rKey === 'streamer' ? '#ec4899' : '#10b981',
                                 color: rKey === 'convoy_lead' ? '#0f172a' : '#ffffff'
                               }}
                             >

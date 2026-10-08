@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth, ROLE_INFO, ROLES } from '@/lib/authContext';
+import { GTC_COUNTRIES } from '@/lib/defaultConfig';
 import PhotoCustomizerModal from './PhotoCustomizerModal';
 
 export default function DriverAccountModal({ isOpen, onClose, initialTab = 'profile' }) {
@@ -201,9 +202,9 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
 
   return (
     <div className="modal-backdrop-custom" onClick={onClose}>
-      <div className="modal-content-custom" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content-custom mx-auto" onClick={(e) => e.stopPropagation()}>
         
-        <div className="p-4 border-bottom d-flex justify-content-between align-items-center" style={{ borderColor: '#e2e8f0' }}>
+        <div className="p-3 p-sm-4 border-bottom d-flex justify-content-between align-items-center" style={{ borderColor: '#e2e8f0' }}>
           <div className="d-flex align-items-center gap-3">
             {user?.avatar ? (
               <img
@@ -244,7 +245,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
           ></button>
         </div>
 
-        <div className="d-flex border-bottom bg-light px-3 flex-wrap" style={{ borderColor: '#e2e8f0' }}>
+        <div className="d-flex border-bottom bg-light px-2 px-sm-3 flex-nowrap overflow-x-auto text-nowrap" style={{ borderColor: '#e2e8f0' }}>
           {user ? (
             <>
               <button
@@ -318,7 +319,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
           )}
         </div>
 
-        <div className="p-4">
+        <div className="p-3 p-sm-4">
           
           {!user && activeTab === 'login' && (
             <div>
@@ -516,12 +517,15 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                 <div className="row g-3 mb-4">
                   <div className="col-12 col-md-6">
                     <label className="form-label small text-secondary fw-bold">Country</label>
-                    <input
-                      type="text"
-                      className="form-control"
+                    <select
+                      className="form-select"
                       value={registerForm.country}
                       onChange={(e) => setRegisterForm({ ...registerForm, country: e.target.value })}
-                    />
+                    >
+                      {GTC_COUNTRIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="col-12 col-md-6">
                     <label className="form-label small text-secondary fw-bold">Truck Preference</label>
@@ -585,7 +589,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                 </div>
 
                 <div className="row g-3 align-items-center mb-3">
-                  <div className="col-4 col-sm-3 text-center">
+                  <div className="col-12 col-sm-4 col-md-3 text-center mb-2 mb-sm-0">
                     <div
                       className="rounded-2 border overflow-hidden mx-auto shadow-sm position-relative d-flex align-items-center justify-content-center"
                       style={{ width: '84px', height: '84px', backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
@@ -620,7 +624,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                     </div>
                   </div>
 
-                  <div className="col-8 col-sm-9">
+                  <div className="col-12 col-sm-8 col-md-9 text-center text-sm-start">
                     <div className="row g-2">
                       <div className="col-6">
                         <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>CALLSIGN</span>
@@ -753,13 +757,15 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                   </div>
                   <div className="col-12 col-md-6">
                     <label className="form-label small text-secondary fw-bold">Country / Nationality</label>
-                    <input
-                      type="text"
-                      className="form-control"
+                    <select
+                      className="form-select"
                       value={profileForm.country}
                       onChange={(e) => setProfileForm({ ...profileForm, country: e.target.value })}
-                      placeholder="e.g. Kenya, United Kingdom, USA"
-                    />
+                    >
+                      {GTC_COUNTRIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -1022,7 +1028,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
               </div>
 
               <div className="row g-3 mb-3">
-                <div className="col-6">
+                <div className="col-12 col-sm-6">
                   <label className="form-label small text-secondary fw-bold">Kilometers Logged</label>
                   <div className="input-group">
                     <span className="input-group-text"><i className="bi bi-speedometer2"></i></span>
@@ -1036,7 +1042,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                   </div>
                 </div>
 
-                <div className="col-6">
+                <div className="col-12 col-sm-6">
                   <label className="form-label small text-secondary fw-bold">Simulator</label>
                   <div className="input-group">
                     <span className="input-group-text"><i className="bi bi-controller"></i></span>

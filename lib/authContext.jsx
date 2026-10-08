@@ -94,16 +94,7 @@ const DEFAULT_DEMO_USER = {
   avatar: '/apple-touch-icon.png'
 };
 
-const DEFAULT_CONVOY_ATTENDEES = {
-  default: [
-    { id: 'GTC-1001', name: 'Bryan Gaming', roles: ['admin', 'convoy_lead', 'streamer'], role: 'admin', vtc: 'GTC Management', truck: 'Scania S730 V8', country: 'Kenya', avatar: '/apple-touch-icon.png' },
-    { id: 'GTC-1021', name: 'Krusherz_21', roles: ['admin', 'dev_modder'], role: 'admin', vtc: 'GTC Management & Tech', truck: 'Scania 770S V8', country: 'Kenya', avatar: 'https://bissmepkqhackzaezvax.supabase.co/storage/v1/object/sign/site-images/2026/1790592206178-discord-mod-role.png?token=eyJraWQiOiJiYTc3OWJlMC1jYTg2LTRjZTUtOThkMC05MTAwMDhmNTg3ZjQiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJzaXRlLWltYWdlcy8yMDI2LzE3OTA1OTIyMDYxNzgtZGlzY29yZC1tb2Qtcm9sZS5wbmciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzkwNTkyMjA5LCJleHAiOjIxMDU5NTIyMDl9.UBBOvVCdZICrFQRSkwMY-x7bOgeDnIFgxSDeEIDQ1Sot013OEvh_AtwPlabNUmzgDcLpGp3x0qxbKYeTilbaMA' },
-    { id: 'GTC-1002', name: 'Alex_Trans', roles: ['dispatcher'], role: 'dispatcher', vtc: 'Euro Haulers', truck: 'Volvo FH16 750', country: 'United Kingdom' },
-    { id: 'GTC-1003', name: 'Klaus_Trucker', roles: ['staff', 'dev_modder'], role: 'staff', vtc: 'Nordic Express', truck: 'MAN TGX Individual', country: 'Germany' },
-    { id: 'GTC-1004', name: 'HighwayKing_99', roles: ['convoy_lead'], role: 'convoy_lead', vtc: 'Outlaw Logistics', truck: 'Peterbilt 389', country: 'United States' },
-    { id: 'GTC-1005', name: 'VikingDriver', roles: ['driver'], role: 'driver', vtc: 'Scania Masters', truck: 'Scania R580', country: 'Sweden' }
-  ]
-};
+const DEFAULT_CONVOY_ATTENDEES = {};
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -122,17 +113,38 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    try {
-      const storedAttendees = localStorage.getItem('gtc_convoy_attendance');
-      if (storedAttendees) {
-        setConvoyAttendees(JSON.parse(storedAttendees));
-      } else {
-        setConvoyAttendees(DEFAULT_CONVOY_ATTENDEES);
-        localStorage.setItem('gtc_convoy_attendance', JSON.stringify(DEFAULT_CONVOY_ATTENDEES));
+    // 1. Fetch live confirmed attendees from database
+    async function loadAttendanceFromServer() {
+      try {
+        const res = await fetch('/api/attendance', { cache: 'no-store' });
+        const json = await res.json();
+        if (json?.success && json?.data && typeof json.data === 'object') {
+          setConvoyAttendees(json.data);
+          try {
+            localStorage.setItem('gtc_convoy_attendance', JSON.stringify(json.data));
+          } catch (e) {}
+          return;
+        }
+      } catch (e) {}
+
+      // Fallback to local storage if offline
+      try {
+        const storedAttendees = localStorage.getItem('gtc_convoy_attendance');
+        if (storedAttendees) {
+          const parsed = JSON.parse(storedAttendees);
+          if (parsed.default && Array.isArray(parsed.default)) {
+            delete parsed.default;
+          }
+          setConvoyAttendees(parsed);
+        } else {
+          setConvoyAttendees({});
+        }
+      } catch (e) {
+        setConvoyAttendees({});
       }
-    } catch (e) {
-      setConvoyAttendees(DEFAULT_CONVOY_ATTENDEES);
     }
+
+    loadAttendanceFromServer();
 
     try {
       const seedDrivers = [
@@ -722,10 +734,11 @@ export function AuthProvider({ children }) {
   };
 
   const getConvoyAttendees = (convoyId) => {
+    if (!convoyId) return [];
     if (convoyAttendees[convoyId] && Array.isArray(convoyAttendees[convoyId])) {
       return convoyAttendees[convoyId];
     }
-    return convoyAttendees.default || DEFAULT_CONVOY_ATTENDEES.default || [];
+    return [];
   };
 
   const isDriverAttending = (convoyId, driverId = null) => {
@@ -735,7 +748,7 @@ export function AuthProvider({ children }) {
     return attendees.some((a) => a.id === targetId || a.name?.toLowerCase() === user?.name?.toLowerCase());
   };
 
-  const confirmAttendance = (convoyId, customDriver = null) => {
+  const confirmAttendance = async (convoyId, customDriver = null) => {
     const attendeeDriver = customDriver || user;
     if (!attendeeDriver) {
       showToast('Please sign in with your Driver License to confirm attendance.', 'warning');
@@ -743,7 +756,7 @@ export function AuthProvider({ children }) {
     }
 
     const currentList = getConvoyAttendees(convoyId);
-    if (currentList.some((a) => a.id === attendeeDriver.id)) {
+    if (currentList.some((a) => a.id === attendeeDriver.id || a.name?.toLowerCase() === attendeeDriver.name?.toLowerCase())) {
       showToast('You are already confirmed for this convoy!', 'info');
       return { success: true, already: true };
     }
@@ -770,6 +783,15 @@ export function AuthProvider({ children }) {
       localStorage.setItem('gtc_convoy_attendance', JSON.stringify(nextAttendees));
     } catch (e) {}
 
+    // Persist to shared backend database
+    try {
+      await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ convoyId, driver: attendeeRecord })
+      });
+    } catch (e) {}
+
     addNotification({
       title: 'Convoy Attendance Confirmed',
       message: `Your staging slot is confirmed for Convoy (${convoyId}). Meetup on radio channel CB 19.`,
@@ -781,12 +803,15 @@ export function AuthProvider({ children }) {
     return { success: true };
   };
 
-  const cancelAttendance = (convoyId, driverId = null) => {
+  const cancelAttendance = async (convoyId, driverId = null) => {
     const targetId = driverId || user?.id;
-    if (!targetId) return { success: false };
+    const targetName = user?.name;
+    if (!targetId && !targetName) return { success: false };
 
     const currentList = getConvoyAttendees(convoyId);
-    const filtered = currentList.filter((a) => a.id !== targetId && a.name?.toLowerCase() !== user?.name?.toLowerCase());
+    const filtered = currentList.filter(
+      (a) => a.id !== targetId && (!targetName || a.name?.toLowerCase() !== targetName.toLowerCase())
+    );
 
     const nextAttendees = {
       ...convoyAttendees,
@@ -796,6 +821,15 @@ export function AuthProvider({ children }) {
     setConvoyAttendees(nextAttendees);
     try {
       localStorage.setItem('gtc_convoy_attendance', JSON.stringify(nextAttendees));
+    } catch (e) {}
+
+    // Persist cancellation to shared backend database
+    try {
+      await fetch('/api/attendance', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ convoyId, driverId: targetId, driverName: targetName })
+      });
     } catch (e) {}
 
     showToast('Convoy attendance reservation removed.', 'info');

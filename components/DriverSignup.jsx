@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/authContext';
+import { GTC_COUNTRIES } from '@/lib/defaultConfig';
 import PhotoCustomizerModal from './PhotoCustomizerModal';
 
 export default function DriverSignup({ onSignupSuccess }) {
@@ -38,22 +39,7 @@ export default function DriverSignup({ onSignupSuccess }) {
     { label: 'Freight Master', url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=256&q=80' }
   ];
 
-  const countries = [
-    'Kenya',
-    'United Kingdom',
-    'Germany',
-    'United States',
-    'Sweden',
-    'Netherlands',
-    'France',
-    'Poland',
-    'Australia',
-    'Brazil',
-    'Canada',
-    'South Africa',
-    'Italy',
-    'Turkey'
-  ];
+  const countries = GTC_COUNTRIES;
 
   const handleGameToggle = (game) => {
     const current = [...formData.games];
@@ -164,79 +150,88 @@ export default function DriverSignup({ onSignupSuccess }) {
                 </div>
 
                 <div className="mb-4 p-3 rounded-3 bg-light border" style={{ borderColor: '#e2e8f0' }}>
-                  <div className="d-flex justify-content-between align-items-center mb-2">
+                  <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                     <label className="form-label small fw-bold mb-0 text-dark">
                       <i className="bi bi-camera-fill me-1" style={{ color: '#0284c7' }}></i> Driver Photo / License Portrait (Optional)
                     </label>
-                    <div className="d-flex align-items-center gap-2">
-                      {formData.avatar && (
+                    {formData.avatar && (
+                      <div className="d-flex align-items-center gap-2 flex-wrap">
                         <button
                           type="button"
                           onClick={() => {
                             setCustomizerSource(formData.avatar);
                             setIsCustomizerOpen(true);
                           }}
-                          className="btn btn-sm btn-outline-primary py-0 px-2 fw-bold"
+                          className="btn btn-sm btn-outline-primary py-1 px-2 fw-bold"
                           style={{ fontSize: '0.75rem' }}
                         >
                           <i className="bi bi-crop me-1"></i> Resize / Crop
                         </button>
-                      )}
-                      {formData.avatar && (
                         <button
                           type="button"
                           onClick={handleRemovePhoto}
-                          className="btn btn-link text-danger p-0 text-decoration-none small"
+                          className="btn btn-sm btn-outline-danger py-1 px-2 text-decoration-none fw-bold"
+                          style={{ fontSize: '0.75rem' }}
                         >
                           <i className="bi bi-trash-fill me-1"></i> Remove
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                   <p className="text-secondary small mb-3">
                     Upload your picture to customize and resize it on your official GTC Digital Driver License.
                   </p>
 
-                  <div className="d-flex align-items-center gap-3 mb-3">
-                    <div
-                      className="rounded-3 overflow-hidden border d-flex align-items-center justify-content-center bg-white shadow-sm flex-shrink-0"
-                      style={{ width: '70px', height: '70px', borderColor: '#e2e8f0' }}
-                    >
-                      {formData.avatar ? (
-                        <img src={formData.avatar} alt="Driver preview" className="w-100 h-100 object-fit-cover" />
-                      ) : (
-                        <i className="bi bi-person-circle fs-1 text-secondary"></i>
+                  <div className="d-flex flex-column flex-sm-row align-items-center align-items-sm-start gap-3 mb-3">
+                    <div className="d-flex flex-column align-items-center flex-shrink-0">
+                      <div
+                        className="rounded-3 overflow-hidden border d-flex align-items-center justify-content-center bg-white shadow-sm"
+                        style={{ width: '76px', height: '76px', borderColor: '#e2e8f0' }}
+                      >
+                        {formData.avatar ? (
+                          <img src={formData.avatar} alt="Driver preview" className="w-100 h-100 object-fit-cover" />
+                        ) : (
+                          <i className="bi bi-person-circle fs-1 text-secondary"></i>
+                        )}
+                      </div>
+                      {formData.avatar && (
+                        <span className="badge bg-success-subtle text-success border border-success-subtle mt-1" style={{ fontSize: '0.62rem' }}>
+                          <i className="bi bi-check-circle-fill me-1"></i> Photo Set
+                        </span>
                       )}
                     </div>
 
-                    <div className="flex-grow-1">
-                      <div className="btn-group btn-group-sm w-100 mb-2">
+                    <div className="w-100 flex-grow-1">
+                      <div className="d-flex gap-1 w-100 mb-2 p-1 bg-white border rounded-2 shadow-sm" style={{ borderColor: '#e2e8f0' }}>
                         <button
                           type="button"
                           onClick={() => setPhotoMode('upload')}
-                          className={`btn ${photoMode === 'upload' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                          className={`btn btn-sm flex-fill fw-bold py-1 px-2 text-nowrap ${photoMode === 'upload' ? 'btn-primary' : 'btn-light text-secondary'}`}
+                          style={{ fontSize: '0.78rem' }}
                         >
-                          <i className="bi bi-upload me-1"></i> Upload File
+                          <i className="bi bi-upload me-1"></i> Upload
                         </button>
                         <button
                           type="button"
                           onClick={() => setPhotoMode('url')}
-                          className={`btn ${photoMode === 'url' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                          className={`btn btn-sm flex-fill fw-bold py-1 px-2 text-nowrap ${photoMode === 'url' ? 'btn-primary' : 'btn-light text-secondary'}`}
+                          style={{ fontSize: '0.78rem' }}
                         >
-                          <i className="bi bi-link-45deg me-1"></i> Image URL
+                          <i className="bi bi-link-45deg me-1"></i> URL
                         </button>
                         <button
                           type="button"
                           onClick={() => setPhotoMode('presets')}
-                          className={`btn ${photoMode === 'presets' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                          className={`btn btn-sm flex-fill fw-bold py-1 px-2 text-nowrap ${photoMode === 'presets' ? 'btn-primary' : 'btn-light text-secondary'}`}
+                          style={{ fontSize: '0.78rem' }}
                         >
-                          <i className="bi bi-grid-fill me-1"></i> Quick Presets
+                          <i className="bi bi-grid-fill me-1"></i> Presets
                         </button>
                       </div>
 
                       {photoMode === 'upload' && (
                         <div>
-                          <label className="btn btn-outline-warning btn-sm w-100 fw-bold">
+                          <label className="btn btn-outline-warning btn-sm w-100 fw-bold py-2 shadow-sm">
                             <i className="bi bi-folder-plus me-1"></i> Choose Photo from Device
                             <input
                               type="file"
@@ -245,42 +240,48 @@ export default function DriverSignup({ onSignupSuccess }) {
                               onChange={handleFileUpload}
                             />
                           </label>
-                          <div className="text-secondary mt-1" style={{ fontSize: '0.72rem' }}>
-                            Supports PNG, JPG, WebP up to 5MB.
+                          <div className="text-secondary mt-1 text-center text-sm-start" style={{ fontSize: '0.72rem' }}>
+                            <i className="bi bi-info-circle me-1"></i> PNG, JPG, or WebP up to 5MB.
                           </div>
                         </div>
                       )}
 
                       {photoMode === 'url' && (
-                        <div className="input-group input-group-sm">
-                          <input
-                            type="url"
-                            placeholder="https://example.com/my-photo.jpg"
-                            className="form-control"
-                            value={urlInput}
-                            onChange={(e) => setUrlInput(e.target.value)}
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={handleApplyUrl}
-                          >
-                            Apply
-                          </button>
+                        <div>
+                          <div className="input-group input-group-sm">
+                            <input
+                              type="url"
+                              placeholder="https://.../photo.jpg"
+                              className="form-control"
+                              value={urlInput}
+                              onChange={(e) => setUrlInput(e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-primary fw-bold px-3"
+                              onClick={handleApplyUrl}
+                            >
+                              Apply
+                            </button>
+                          </div>
+                          <div className="text-secondary mt-1 text-center text-sm-start" style={{ fontSize: '0.72rem' }}>
+                            Paste direct image URL from Discord, Steam, or image host.
+                          </div>
                         </div>
                       )}
 
                       {photoMode === 'presets' && (
-                        <div className="d-flex flex-wrap gap-2">
+                        <div className="d-grid gap-1" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))' }}>
                           {PRESET_AVATARS.map((p) => (
                             <button
                               key={p.label}
                               type="button"
                               onClick={() => setFormData((prev) => ({ ...prev, avatar: p.url }))}
-                              className={`btn btn-sm py-1 px-2 ${formData.avatar === p.url ? 'btn-warning' : 'btn-outline-secondary'}`}
-                              style={{ fontSize: '0.75rem' }}
+                              className={`btn btn-sm py-1 px-2 text-truncate ${formData.avatar === p.url ? 'btn-warning fw-bold' : 'btn-outline-secondary'}`}
+                              style={{ fontSize: '0.74rem' }}
+                              title={p.label}
                             >
-                              {p.label}
+                              <i className="bi bi-person-fill me-1"></i> {p.label}
                             </button>
                           ))}
                         </div>
@@ -546,7 +547,7 @@ export default function DriverSignup({ onSignupSuccess }) {
               </div>
 
               <div className="row g-3 align-items-center mb-3">
-                <div className="col-4 col-sm-3 text-center">
+                <div className="col-12 col-sm-4 text-center mb-2 mb-sm-0">
                   <div
                     className="rounded-2 bg-light border d-flex align-items-center justify-content-center overflow-hidden mx-auto shadow-sm"
                     style={{ width: '84px', height: '84px', borderColor: '#e2e8f0' }}
@@ -568,7 +569,7 @@ export default function DriverSignup({ onSignupSuccess }) {
                   )}
                 </div>
 
-                <div className="col-8 col-sm-9">
+                <div className="col-12 col-sm-8 text-center text-sm-start">
                   <div className="h5 fw-extrabold text-dark mb-0">{formData.name || 'YOUR CALLSIGN'}</div>
                   <div className="small fw-bold" style={{ color: '#0284c7' }}>VTC: {formData.vtc || 'Independent Solo'}</div>
 

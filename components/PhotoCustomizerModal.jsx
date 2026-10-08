@@ -90,7 +90,7 @@ export default function PhotoCustomizerModal({ isOpen, imageSrc, onClose, onSave
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: '580px', width: '100%', borderColor: '#e2e8f0' }}
       >
-        <div className="p-4 border-bottom d-flex justify-content-between align-items-center" style={{ borderColor: '#e2e8f0' }}>
+        <div className="p-3 p-md-4 border-bottom d-flex justify-content-between align-items-center" style={{ borderColor: '#e2e8f0' }}>
           <div>
             <h4 className="h5 fw-bold text-dark mb-0">
               <i className="bi bi-crop text-warning me-2"></i> Customize &amp; Resize Photo
@@ -107,9 +107,9 @@ export default function PhotoCustomizerModal({ isOpen, imageSrc, onClose, onSave
           ></button>
         </div>
 
-        <div className="p-4">
+        <div className="p-3 p-md-4">
           
-          <div className="d-flex flex-wrap justify-content-center align-items-center gap-4 mb-4 p-3 rounded-3 bg-light border" style={{ borderColor: '#e2e8f0' }}>
+          <div className="d-flex flex-wrap justify-content-center align-items-center gap-3 gap-md-4 mb-4 p-3 rounded-3 bg-light border" style={{ borderColor: '#e2e8f0' }}>
             
             <div className="text-center">
               <div
@@ -258,7 +258,7 @@ export default function PhotoCustomizerModal({ isOpen, imageSrc, onClose, onSave
             </div>
           </div>
 
-          <div className="d-flex justify-content-end gap-2 pt-3 border-top" style={{ borderColor: '#e2e8f0' }}>
+          <div className="d-flex flex-wrap justify-content-end gap-2 pt-3 border-top" style={{ borderColor: '#e2e8f0' }}>
             <button
               type="button"
               className="btn btn-outline-secondary btn-sm"
