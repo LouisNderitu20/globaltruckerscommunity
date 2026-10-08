@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { supabaseContent } from '@/lib/supabase';
-import { DEFAULT_CONFIG } from '@/lib/defaultConfig';
+import { DEFAULT_CONFIG, isValidGtcCountry, isValidGtcTruck, isValidStreamerUrl, normalizeStreamerUrl } from '@/lib/defaultConfig';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { id, name, email, country, games, type, vtc, tmp, steamId, truckBrand, stream, avatar } = body;
+    const { id, name, email, country, games, type, vtc, tmp, steamId, truckBrand, stream, avatar, role, isStreamer, streamerPlatform } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json(
@@ -16,18 +16,37 @@ export async function POST(request) {
       );
     }
 
+    const validatedCountry = isValidGtcCountry(country) ? country.trim() : 'Kenya';
+    const validatedTruck = isValidGtcTruck(truckBrand) ? truckBrand.trim() : 'Scania S730 V8';
+
+    let validatedStreamUrl = null;
+    let finalRole = role || 'driver';
+    const isClaimingStreamer = Boolean(isStreamer) || finalRole === 'streamer';
+
+    if (isClaimingStreamer) {
+      if (stream && isValidStreamerUrl(stream, streamerPlatform)) {
+        validatedStreamUrl = normalizeStreamerUrl(stream);
+        finalRole = 'streamer';
+      } else {
+        // Disallow unverified streamer claims
+        finalRole = 'driver';
+        validatedStreamUrl = null;
+      }
+    }
+
     const newSignup = {
       id: id || ('GTC-' + Math.floor(1000 + Math.random() * 9000)),
       name: name.trim(),
       email: email?.trim() || null,
-      country: country?.trim() || null,
+      country: validatedCountry,
       games: games || ['ETS 2'],
       driver_type: type || 'Independent driver',
+      role: finalRole,
       vtc: vtc?.trim() || null,
       truckers_mp_id: tmp?.trim() || null,
       steam_id: steamId?.trim() || null,
-      truck_brand: truckBrand || 'Scania',
-      stream_url: stream?.trim() || null,
+      truck_brand: validatedTruck,
+      stream_url: validatedStreamUrl,
       avatar: avatar || null,
       submitted_at: new Date().toISOString(),
     };
@@ -131,20 +150,40 @@ export async function PUT(request) {
       return NextResponse.json({ success: false, error: 'Driver ID is required for update' }, { status: 400 });
     }
 
+    const validatedCountry = country ? (isValidGtcCountry(country) ? country.trim() : 'Kenya') : null;
+    const validatedTruck = truckBrand ? (isValidGtcTruck(truckBrand) ? truckBrand.trim() : 'Scania S730 V8') : null;
+
+    let validatedStreamUrl = stream?.trim() || null;
+    let finalRoles = Array.isArray(roles) ? [...roles] : (role ? [role] : ['driver']);
+    let finalRole = role || finalRoles[0] || 'driver';
+
+    const hasStreamerRole = finalRole === 'streamer' || finalRoles.includes('streamer') || Boolean(body.isStreamer);
+    if (hasStreamerRole) {
+      if (validatedStreamUrl && isValidStreamerUrl(validatedStreamUrl, body.streamerPlatform || '')) {
+        validatedStreamUrl = normalizeStreamerUrl(validatedStreamUrl);
+      } else {
+        // Disallow unverified streamer role
+        finalRoles = finalRoles.filter((r) => r !== 'streamer');
+        if (finalRoles.length === 0) finalRoles = ['driver'];
+        finalRole = finalRoles[0] || 'driver';
+        validatedStreamUrl = null;
+      }
+    }
+
     const updatedData = {
       id,
       name: name?.trim(),
       email: email?.trim() || null,
-      country: country?.trim() || null,
+      country: validatedCountry,
       games: games || ['ETS 2'],
       driver_type: type || 'Independent driver',
-      role: role || 'driver',
-      roles: Array.isArray(roles) ? roles : (role ? [role] : ['driver']),
+      role: finalRole,
+      roles: finalRoles,
       vtc: vtc?.trim() || null,
       truckers_mp_id: tmp?.trim() || null,
       steam_id: steamId?.trim() || null,
-      truck_brand: truckBrand || 'Scania',
-      stream_url: stream?.trim() || null,
+      truck_brand: validatedTruck,
+      stream_url: validatedStreamUrl,
       avatar: avatar || null,
       bio: bio?.trim() || null,
       updated_at: new Date().toISOString()

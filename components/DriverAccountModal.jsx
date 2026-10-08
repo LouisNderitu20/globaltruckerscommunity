@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth, ROLE_INFO, ROLES } from '@/lib/authContext';
-import { GTC_COUNTRIES } from '@/lib/defaultConfig';
+import { GTC_COUNTRIES, GTC_TRUCKS, isValidStreamerUrl } from '@/lib/defaultConfig';
 import PhotoCustomizerModal from './PhotoCustomizerModal';
 
 export default function DriverAccountModal({ isOpen, onClose, initialTab = 'profile' }) {
@@ -40,6 +40,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
     devSpecialty: user?.devSpecialty || ''
   });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState('');
 
   React.useEffect(() => {
     if (user) {
@@ -96,11 +97,25 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
+    setProfileError('');
+
+    if (profileForm.isStreamer) {
+      if (!profileForm.streamerUrl?.trim() || !isValidStreamerUrl(profileForm.streamerUrl, profileForm.streamerPlatform)) {
+        setProfileError(`A valid link to your ${profileForm.streamerPlatform} account or channel (e.g. https://www.tiktok.com/@yourchannel or https://www.youtube.com/@channel) is required to confirm streamer status.`);
+        return;
+      }
+    }
+
     setIsSavingProfile(true);
     try {
-      await updateUserProfile(profileForm);
-      setActiveTab('profile');
+      const res = await updateUserProfile(profileForm);
+      if (res?.success) {
+        setActiveTab('profile');
+      } else if (res?.error) {
+        setProfileError(res.error);
+      }
     } catch (err) {
+      setProfileError('Failed to save profile. Please try again.');
     } finally {
       setIsSavingProfile(false);
     }
@@ -160,6 +175,13 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
     if (registerForm.password !== registerForm.confirmPassword) {
       setRegisterError('Passwords do not match');
       return;
+    }
+
+    if (registerForm.isStreamer) {
+      if (!registerForm.streamerUrl?.trim() || !isValidStreamerUrl(registerForm.streamerUrl, registerForm.streamerPlatform)) {
+        setRegisterError(`A valid link to your ${registerForm.streamerPlatform} account or channel (e.g. https://www.tiktok.com/@yourchannel or https://www.youtube.com/@channel) is required to verify streamer status.`);
+        return;
+      }
     }
 
     setIsRegistering(true);
@@ -501,14 +523,18 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                         </select>
                       </div>
                       <div className="col-12 col-sm-8">
-                        <label className="form-label small text-secondary fw-bold mb-1">Channel URL or Handle</label>
+                        <label className="form-label small text-secondary fw-bold mb-1">Channel / Profile Link *</label>
                         <input
                           type="text"
+                          required={registerForm.isStreamer}
                           className="form-control form-control-sm"
-                          placeholder="e.g. https://www.tiktok.com/@bryangaming__"
+                          placeholder="e.g. https://www.tiktok.com/@bryangaming"
                           value={registerForm.streamerUrl}
                           onChange={(e) => setRegisterForm({ ...registerForm, streamerUrl: e.target.value })}
                         />
+                        <span className="text-muted d-block mt-1" style={{ fontSize: '0.7rem' }}>
+                          <i className="bi bi-shield-check text-success me-1"></i> Required: active streaming link (e.g. https://www.tiktok.com/@yourchannel or https://www.youtube.com/@channel)
+                        </span>
                       </div>
                     </div>
                   )}
@@ -529,12 +555,15 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                   </div>
                   <div className="col-12 col-md-6">
                     <label className="form-label small text-secondary fw-bold">Truck Preference</label>
-                    <input
-                      type="text"
-                      className="form-control"
+                    <select
+                      className="form-select"
                       value={registerForm.truck}
                       onChange={(e) => setRegisterForm({ ...registerForm, truck: e.target.value })}
-                    />
+                    >
+                      {GTC_TRUCKS.map((trk) => (
+                        <option key={trk} value={trk}>{trk}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -743,6 +772,13 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                 </button>
               </div>
 
+              {profileError && (
+                <div className="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                  <i className="bi bi-exclamation-triangle-fill"></i>
+                  <span>{profileError}</span>
+                </div>
+              )}
+
               <form onSubmit={handleProfileSubmit}>
                 <div className="row g-3 mb-3">
                   <div className="col-12 col-md-6">
@@ -782,26 +818,15 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                   </div>
                   <div className="col-12 col-md-6">
                     <label className="form-label small text-secondary fw-bold">Truck Rig / Model</label>
-                    <input
-                      type="text"
-                      className="form-control"
+                    <select
+                      className="form-select"
                       value={profileForm.truck}
                       onChange={(e) => setProfileForm({ ...profileForm, truck: e.target.value })}
-                      placeholder="e.g. Scania S730 V8"
-                    />
-                    <div className="d-flex flex-wrap gap-1 mt-1">
-                      {['Scania S730 V8', 'Volvo FH16 750', 'Peterbilt 389', 'MAN TGX', 'DAF XG+'].map((rig) => (
-                        <button
-                          key={rig}
-                          type="button"
-                          className="btn btn-sm btn-light border py-0 px-1 text-secondary"
-                          style={{ fontSize: '0.68rem' }}
-                          onClick={() => setProfileForm({ ...profileForm, truck: rig })}
-                        >
-                          {rig}
-                        </button>
+                    >
+                      {GTC_TRUCKS.map((trk) => (
+                        <option key={trk} value={trk}>{trk}</option>
                       ))}
-                    </div>
+                    </select>
                   </div>
                 </div>
 
@@ -899,13 +924,18 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                         </select>
                       </div>
                       <div className="col-12 col-sm-8">
+                        <label className="form-label small text-secondary fw-bold mb-1">Channel / Profile Link *</label>
                         <input
                           type="text"
+                          required={profileForm.isStreamer}
                           className="form-control form-control-sm"
-                          placeholder="Channel link, e.g. https://www.tiktok.com/@bryangaming__"
+                          placeholder="e.g. https://www.tiktok.com/@bryangaming"
                           value={profileForm.streamerUrl}
                           onChange={(e) => setProfileForm({ ...profileForm, streamerUrl: e.target.value })}
                         />
+                        <span className="text-muted d-block mt-1" style={{ fontSize: '0.7rem' }}>
+                          <i className="bi bi-shield-check text-success me-1"></i> Required: active streaming link (e.g. https://www.tiktok.com/@yourchannel or https://www.youtube.com/@channel)
+                        </span>
                       </div>
                     </div>
                   )}

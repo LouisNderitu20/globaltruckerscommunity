@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabaseContent } from '@/lib/supabase';
+import { isValidGtcCountry, isValidGtcTruck, isValidStreamerUrl, normalizeStreamerUrl } from '@/lib/defaultConfig';
 
 const AuthContext = createContext();
 
@@ -369,9 +370,30 @@ export function AuthProvider({ children }) {
       return { success: false, error: 'Callsign or email is already registered. Please sign in.' };
     }
 
+    // Strict validation for country & truck
+    const validatedCountry = isValidGtcCountry(formData.country) ? formData.country.trim() : 'Kenya';
+    const validatedTruck = isValidGtcTruck(formData.truck) ? formData.truck.trim() : 'Scania S730 V8';
+
+    // Streamer status verification
+    let isStreamer = Boolean(formData.isStreamer);
+    let streamerPlatform = formData.streamerPlatform || 'TikTok';
+    let streamerUrl = (formData.streamerUrl || '').trim();
+
+    if (isStreamer) {
+      if (!streamerUrl || !isValidStreamerUrl(streamerUrl, streamerPlatform)) {
+        showToast('Please provide a valid link to your streaming channel/account (e.g. TikTok, YouTube, Twitch, Kick) to confirm streamer status.', 'error');
+        return {
+          success: false,
+          error: 'Streamer status requires a valid channel link (e.g. https://www.tiktok.com/@yourchannel or https://www.youtube.com/@channel).'
+        };
+      }
+      streamerUrl = normalizeStreamerUrl(streamerUrl);
+    } else {
+      streamerUrl = '';
+    }
+
     const newId = 'GTC-' + Math.floor(1000 + Math.random() * 9000);
-    
-    const assignedRole = formData.isStreamer ? ROLES.STREAMER : ROLES.DRIVER;
+    const assignedRole = isStreamer ? ROLES.STREAMER : ROLES.DRIVER;
 
     const newDriver = {
       id: newId,
@@ -379,15 +401,16 @@ export function AuthProvider({ children }) {
       email: cleanEmail,
       password: formData.password.trim(),
       role: assignedRole,
-      country: formData.country || 'Kenya',
+      roles: isStreamer ? [ROLES.STREAMER, ROLES.DRIVER] : [ROLES.DRIVER],
+      country: validatedCountry,
       vtc: formData.vtc?.trim() || 'Independent Solo Driver',
-      truck: formData.truck || 'Scania S730',
+      truck: validatedTruck,
       games: formData.games?.length ? formData.games : ['ETS 2'],
       tmpId: formData.tmpId || 'TMP-' + Math.floor(100000 + Math.random() * 899999),
       steamId: formData.steamId || '',
-      isStreamer: Boolean(formData.isStreamer),
-      streamerPlatform: formData.streamerPlatform || '',
-      streamerUrl: formData.streamerUrl || '',
+      isStreamer,
+      streamerPlatform: isStreamer ? streamerPlatform : '',
+      streamerUrl: isStreamer ? streamerUrl : '',
       isDevModder: false,
       devSpecialty: '',
       kms: 0,
@@ -690,10 +713,52 @@ export function AuthProvider({ children }) {
       return { success: false, error: 'Unauthenticated' };
     }
 
+    const validatedCountry = updatedFields.country !== undefined
+      ? (isValidGtcCountry(updatedFields.country) ? updatedFields.country.trim() : user.country || 'Kenya')
+      : user.country;
+
+    const validatedTruck = updatedFields.truck !== undefined
+      ? (isValidGtcTruck(updatedFields.truck) ? updatedFields.truck.trim() : user.truck || 'Scania S730 V8')
+      : user.truck;
+
+    let isStreamer = updatedFields.isStreamer !== undefined ? Boolean(updatedFields.isStreamer) : Boolean(user.isStreamer);
+    let streamerPlatform = updatedFields.streamerPlatform || user.streamerPlatform || 'TikTok';
+    let streamerUrl = updatedFields.streamerUrl !== undefined ? (updatedFields.streamerUrl || '').trim() : (user.streamerUrl || '');
+
+    if (isStreamer) {
+      if (!streamerUrl || !isValidStreamerUrl(streamerUrl, streamerPlatform)) {
+        showToast('Please provide a valid link to your streaming channel/account (e.g. TikTok, YouTube, Twitch, Kick) to confirm streamer status.', 'error');
+        return {
+          success: false,
+          error: 'Streamer status requires a valid channel link (e.g. https://www.tiktok.com/@yourchannel or https://www.youtube.com/@channel).'
+        };
+      }
+      streamerUrl = normalizeStreamerUrl(streamerUrl);
+    } else {
+      streamerUrl = '';
+    }
+
+    let updatedRoles = Array.isArray(user.roles) ? [...user.roles] : [user.role || 'driver'];
+    if (isStreamer) {
+      if (!updatedRoles.includes(ROLES.STREAMER)) {
+        updatedRoles.unshift(ROLES.STREAMER);
+      }
+    } else {
+      updatedRoles = updatedRoles.filter((r) => r !== ROLES.STREAMER);
+      if (updatedRoles.length === 0) updatedRoles = [ROLES.DRIVER];
+    }
+
     const mergedUser = {
       ...user,
       ...updatedFields,
-      id: user.id
+      id: user.id,
+      country: validatedCountry,
+      truck: validatedTruck,
+      isStreamer,
+      streamerPlatform: isStreamer ? streamerPlatform : '',
+      streamerUrl: isStreamer ? streamerUrl : '',
+      roles: updatedRoles,
+      role: isStreamer ? ROLES.STREAMER : (updatedRoles[0] || ROLES.DRIVER)
     };
 
     saveUserSession(mergedUser);

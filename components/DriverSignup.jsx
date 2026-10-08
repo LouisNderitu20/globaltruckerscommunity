@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/authContext';
-import { GTC_COUNTRIES } from '@/lib/defaultConfig';
+import { GTC_COUNTRIES, GTC_TRUCKS, isValidStreamerUrl } from '@/lib/defaultConfig';
 import PhotoCustomizerModal from './PhotoCustomizerModal';
 
 export default function DriverSignup({ onSignupSuccess }) {
@@ -26,6 +26,8 @@ export default function DriverSignup({ onSignupSuccess }) {
   });
 
   const [passwordError, setPasswordError] = useState('');
+  const [streamerError, setStreamerError] = useState('');
+  const [signupError, setSignupError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [photoMode, setPhotoMode] = useState('upload');
   const [urlInput, setUrlInput] = useState('');
@@ -94,14 +96,26 @@ export default function DriverSignup({ onSignupSuccess }) {
     }
     setPasswordError('');
 
+    if (formData.isStreamer) {
+      if (!formData.streamerUrl.trim() || !isValidStreamerUrl(formData.streamerUrl, formData.streamerPlatform)) {
+        setStreamerError(`A valid ${formData.streamerPlatform} link (e.g. https://www.tiktok.com/@yourchannel or https://www.youtube.com/@channel) is required to confirm streamer status.`);
+        return;
+      }
+    }
+    setStreamerError('');
+    setSignupError('');
+
     setSubmitting(true);
     try {
       const res = await registerAccount(formData);
       if (res?.success && onSignupSuccess) {
         onSignupSuccess(res.driver);
+      } else if (!res?.success) {
+        setSignupError(res?.error || 'Registration failed. Please check your credentials.');
       }
     } catch (err) {
       console.error(err);
+      setSignupError('Registration failed. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -342,6 +356,13 @@ export default function DriverSignup({ onSignupSuccess }) {
                   </div>
                 )}
 
+                {signupError && (
+                  <div className="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                    <i className="bi bi-exclamation-circle-fill"></i>
+                    <span>{signupError}</span>
+                  </div>
+                )}
+
                 <div className="p-3 rounded-3 bg-light border mb-3" style={{ borderColor: '#e2e8f0' }}>
                   <div className="form-check form-switch mb-2">
                     <input
@@ -349,24 +370,31 @@ export default function DriverSignup({ onSignupSuccess }) {
                       type="checkbox"
                       id="signupStreamerCheck"
                       checked={formData.isStreamer}
-                      onChange={(e) => setFormData({ ...formData, isStreamer: e.target.checked })}
+                      onChange={(e) => {
+                        const nextVal = e.target.checked;
+                        setFormData({ ...formData, isStreamer: nextVal });
+                        if (!nextVal) setStreamerError('');
+                      }}
                     />
                     <label className="form-check-label fw-bold text-dark small" htmlFor="signupStreamerCheck">
                       <i className="bi bi-camera-video-fill text-danger me-1"></i> Are you a Content Creator or Live Streamer?
                     </label>
                   </div>
                   <p className="small text-secondary mb-0">
-                    Check this if you stream ETS 2 or ATS on TikTok, YouTube, Twitch, Kick, or Facebook. Streamers receive the verified <strong>Official Streamer</strong> role and badge on their driver license!
+                    Streamers receive the verified <strong>Official Streamer</strong> role and badge on GTC. To prevent unverified claims, you must provide a valid link to your live streaming account.
                   </p>
 
                   {formData.isStreamer && (
                     <div className="row g-2 mt-2 pt-2 border-top" style={{ borderColor: '#cbd5e1' }}>
                       <div className="col-12 col-sm-4">
-                        <label className="form-label small text-secondary fw-bold mb-1">Streaming Platform</label>
+                        <label className="form-label small text-secondary fw-bold mb-1">Streaming Platform *</label>
                         <select
                           className="form-select form-select-sm"
                           value={formData.streamerPlatform}
-                          onChange={(e) => setFormData({ ...formData, streamerPlatform: e.target.value })}
+                          onChange={(e) => {
+                            setFormData({ ...formData, streamerPlatform: e.target.value });
+                            setStreamerError('');
+                          }}
                         >
                           <option value="TikTok">TikTok</option>
                           <option value="YouTube">YouTube</option>
@@ -376,14 +404,32 @@ export default function DriverSignup({ onSignupSuccess }) {
                         </select>
                       </div>
                       <div className="col-12 col-sm-8">
-                        <label className="form-label small text-secondary fw-bold mb-1">Channel URL / Handle</label>
-                        <input
-                          type="text"
-                          className="form-control form-control-sm"
-                          placeholder="e.g. https://www.tiktok.com/@bryangaming__"
-                          value={formData.streamerUrl}
-                          onChange={(e) => setFormData({ ...formData, streamerUrl: e.target.value })}
-                        />
+                        <label className="form-label small text-secondary fw-bold mb-1">
+                          Channel / Profile Link *
+                        </label>
+                        <div className="input-group input-group-sm">
+                          <span className="input-group-text"><i className="bi bi-link-45deg"></i></span>
+                          <input
+                            type="text"
+                            required={formData.isStreamer}
+                            className={`form-control form-control-sm ${streamerError ? 'is-invalid' : ''}`}
+                            placeholder="e.g. https://www.tiktok.com/@bryangaming"
+                            value={formData.streamerUrl}
+                            onChange={(e) => {
+                              setFormData({ ...formData, streamerUrl: e.target.value });
+                              if (streamerError) setStreamerError('');
+                            }}
+                          />
+                        </div>
+                        {streamerError ? (
+                          <div className="text-danger small mt-1" style={{ fontSize: '0.75rem' }}>
+                            <i className="bi bi-exclamation-circle me-1"></i>{streamerError}
+                          </div>
+                        ) : (
+                          <span className="text-muted d-block mt-1" style={{ fontSize: '0.7rem' }}>
+                            <i className="bi bi-shield-check text-success me-1"></i> Must be a valid link to your active streaming profile (e.g. https://www.tiktok.com/@yourchannel or https://www.youtube.com/@channel)
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -407,7 +453,7 @@ export default function DriverSignup({ onSignupSuccess }) {
                   </div>
 
                   <div className="col-12 col-md-6">
-                    <label className="form-label small text-secondary fw-bold">Primary Truck</label>
+                    <label className="form-label small text-secondary fw-bold">Primary Truck Rig</label>
                     <div className="input-group">
                       <span className="input-group-text"><i className="bi bi-truck"></i></span>
                       <select
@@ -415,13 +461,9 @@ export default function DriverSignup({ onSignupSuccess }) {
                         value={formData.truck}
                         onChange={(e) => setFormData({ ...formData, truck: e.target.value })}
                       >
-                        <option value="Scania S730 V8">Scania S730 / R-Series</option>
-                        <option value="Volvo FH16 750">Volvo FH16 750</option>
-                        <option value="Mercedes Actros MP4">Mercedes-Benz Actros</option>
-                        <option value="MAN TGX Individual">MAN TGX Individual</option>
-                        <option value="DAF XG+">DAF XG / XF</option>
-                        <option value="Peterbilt 389">Peterbilt 389 (ATS)</option>
-                        <option value="Kenworth W900">Kenworth W900 (ATS)</option>
+                        {GTC_TRUCKS.map((trk) => (
+                          <option key={trk} value={trk}>{trk}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
