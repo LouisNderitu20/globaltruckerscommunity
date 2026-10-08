@@ -53,7 +53,6 @@ export async function PUT(request) {
 
     const client = supabaseAdmin || supabaseContent;
 
-    // Read current site_content row to preserve registered drivers & signups
     let existingSignups = [];
     try {
       const { data: row } = await client

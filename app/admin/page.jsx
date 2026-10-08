@@ -1819,7 +1819,7 @@ export default function AdminDesk() {
                         <i className="bi bi-geo-alt-fill text-primary"></i>
                         <span className="fw-semibold text-dark small">{item.name}</span>
                       </div>
-                      <span className="badge bg-primary rounded-pill px-2 py-1">{item.count}</span>
+                      <span className="badge bg-primary rounded-1 px-2 py-1">{item.count}</span>
                     </div>
                   </div>
                 ))}

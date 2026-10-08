@@ -677,10 +677,8 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
 
             return (
               <div className="d-flex flex-column gap-4">
-                {/* 3D Flippable Driver License */}
                 <div className="license-card-scene">
                   <div className={`license-card-flipper ${isLicenseFlipped ? 'is-flipped' : ''}`}>
-                    {/* FRONT FACE */}
                     <div className="license-card-face license-card-front driver-license-card">
                       <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
                         <div className="d-flex align-items-center gap-2">
@@ -843,7 +841,6 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                       </div>
                     </div>
 
-                    {/* BACK FACE */}
                     <div className="license-card-face license-card-back driver-license-card">
                       <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
                         <div className="d-flex align-items-center gap-2">
@@ -868,7 +865,6 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                         </div>
                       </div>
 
-                      {/* 1. MEMBERSHIP TENURE & SERVICE */}
                       <div className="license-tenure-banner mb-3 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
                         <div className="d-flex align-items-center gap-2">
                           <i className="bi bi-calendar2-check-fill text-primary fs-5"></i>
@@ -886,7 +882,6 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                         </div>
                       </div>
 
-                      {/* 2. AUTHORIZED TRUCKS HE/SHE CAN DRIVE */}
                       <div className="mb-3">
                         <div className="d-flex align-items-center justify-content-between mb-2">
                           <span className="small fw-bold text-uppercase text-secondary" style={{ fontSize: '0.7rem' }}>
@@ -934,7 +929,6 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                         </div>
                       </div>
 
-                      {/* 3. ENDORSEMENTS & SPECIAL TRANSPORT PERMITS */}
                       <div className="mb-3">
                         <span className="small fw-bold text-uppercase text-secondary d-block mb-2" style={{ fontSize: '0.7rem' }}>
                           <i className="bi bi-patch-check me-1 text-warning"></i> SPECIALIZED ENDORSEMENT RATINGS
@@ -953,7 +947,6 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                         </div>
                       </div>
 
-                      {/* 4. DIGITAL SECURITY SEAL & BARCODE */}
                       <div className="p-2 rounded-2 bg-light border text-center mb-3" style={{ borderColor: '#e2e8f0' }}>
                         <svg width="180" height="24" viewBox="0 0 180 24" className="mx-auto d-block opacity-75">
                           <rect x="0" y="0" width="3" height="24" fill="#1e293b" />

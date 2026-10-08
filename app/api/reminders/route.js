@@ -12,7 +12,6 @@ function getEmailTransporter() {
 
   if (!user || !pass) return null;
 
-  // If user is Gmail or host is smtp.gmail.com, use nodemailer's built-in Gmail service
   if (user.toLowerCase().endsWith('@gmail.com') || host === 'smtp.gmail.com') {
     return nodemailer.createTransport({
       service: 'gmail',
@@ -20,7 +19,6 @@ function getEmailTransporter() {
     });
   }
 
-  // Otherwise standard custom SMTP
   if (host) {
     return nodemailer.createTransport({
       host,
@@ -41,7 +39,6 @@ export async function POST(request) {
     const body = await request.json();
     const { email, name, convoyId, convoyTitle, convoyTime, action } = body;
 
-    // 0. Handle Admin Broadcast to All Registered Drivers & Accounts
     if (action === 'broadcast') {
       const bTitle = body.title || 'Official GTC Convoy Announcement';
       const bMessage = body.message || 'Convoy meetup is now underway.';
@@ -53,7 +50,6 @@ export async function POST(request) {
           .map((e) => e.trim().toLowerCase())
       );
 
-      // Collect from Supabase signups table
       try {
         const { data: signupsTable } = await supabaseContent
           .from('signups')
@@ -71,7 +67,6 @@ export async function POST(request) {
         console.warn('GTC Broadcast: signups table query notice:', e.message);
       }
 
-      // Collect from site_content
       try {
         const { data: row } = await supabaseContent
           .from('site_content')
@@ -128,12 +123,12 @@ export async function POST(request) {
                   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
                     <div style="margin-bottom: 20px;">
                       <h2 style="color: #0f172a; margin: 0;">Global Truckers Community</h2>
-                      <span style="display: inline-block; padding: 4px 10px; background: #fef3c7; color: #92400e; font-size: 11px; font-weight: bold; border-radius: 20px; text-transform: uppercase; margin-top: 8px;">
+                      <span style="display: inline-block; padding: 4px 10px; background: #fef3c7; color: #92400e; font-size: 11px; font-weight: bold; border: 1px solid #fde68a; border-radius: 4px; text-transform: uppercase; margin-top: 8px;">
                         Official Community Broadcast
                       </span>
                     </div>
                     <h3 style="color: #0f172a; margin-top: 0;">${bTitle}</h3>
-                    <div style="background: #f8fafc; border-left: 4px solid #0284c7; padding: 16px; margin: 20px 0; border-radius: 4px; white-space: pre-wrap; font-size: 15px; color: #334155; line-height: 1.6;">${bMessage}</div>
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; margin: 20px 0; border-radius: 4px; white-space: pre-wrap; font-size: 15px; color: #334155; line-height: 1.6;">${bMessage}</div>
                     <p style="color: #475569; font-size: 14px;">Please tune in to the Discord voice channel or CB radio channel 19 for real-time dispatch updates.</p>
                     <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
                     <p style="color: #94a3b8; font-size: 12px; margin: 0;">Global Truckers Community (GTC) &bull; Verified Dispatch Telemetry &bull; Nairobi, Kenya &amp; Worldwide</p>
@@ -172,7 +167,6 @@ export async function POST(request) {
     const cTitle = convoyTitle || 'GTC Official Convoy';
     const cTime = convoyTime || 'Departure Soon';
 
-    // 1. Persist to Supabase site_content
     try {
       const { data: row } = await supabaseContent
         .from('site_content')
@@ -222,7 +216,6 @@ export async function POST(request) {
       console.warn('GTC Reminders: Database update notice:', dbErr.message);
     }
 
-    // 2. Dispatch email if transport is configured
     const transporter = getEmailTransporter();
     let emailDispatched = false;
 
@@ -243,7 +236,7 @@ export async function POST(request) {
               ${action === 'remove'
                 ? `<p style="color: #64748b;">Your departure alert for <strong>${cTitle}</strong> has been cancelled.</p>`
                 : `<p style="color: #334155;">This is your confirmed convoy alert for <strong>${cTitle}</strong>.</p>
-                   <div style="background: #f8fafc; border-left: 4px solid #0284c7; padding: 16px; margin: 20px 0; border-radius: 4px;">
+                   <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; margin: 20px 0; border-radius: 4px;">
                      <div style="font-size: 14px; color: #64748b; margin-bottom: 4px;">EVENT TIME</div>
                      <div style="font-size: 18px; font-weight: bold; color: #0f172a;">${cTime}</div>
                    </div>

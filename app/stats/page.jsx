@@ -329,7 +329,6 @@ export default function StatsPage() {
                   return (
                     <div className="license-card-scene">
                       <div className={`license-card-flipper ${isDriverModalFlipped ? 'is-flipped' : ''}`}>
-                        {/* FRONT FACE */}
                         <div className="license-card-face license-card-front driver-license-card">
                           <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: 'rgba(2, 132, 199, 0.35)' }}>
                             <div className="d-flex align-items-center gap-2">
@@ -425,7 +424,6 @@ export default function StatsPage() {
                           </div>
                         </div>
 
-                        {/* BACK FACE */}
                         <div className="license-card-face license-card-back driver-license-card">
                           <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
                             <div className="d-flex align-items-center gap-2">

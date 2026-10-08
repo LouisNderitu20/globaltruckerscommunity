@@ -30,7 +30,6 @@ export async function POST(request) {
         validatedStreamUrl = normalizeStreamerUrl(stream);
         finalRole = 'streamer';
       } else {
-        // Disallow unverified streamer claims
         finalRole = 'driver';
         validatedStreamUrl = null;
       }
@@ -178,7 +177,6 @@ export async function PUT(request) {
       if (validatedStreamUrl && isValidStreamerUrl(validatedStreamUrl, body.streamerPlatform || '')) {
         validatedStreamUrl = normalizeStreamerUrl(validatedStreamUrl);
       } else {
-        // Disallow unverified streamer role
         finalRoles = finalRoles.filter((r) => r !== 'streamer');
         if (finalRoles.length === 0) finalRoles = ['driver'];
         finalRole = finalRoles[0] || 'driver';

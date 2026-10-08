@@ -14,7 +14,6 @@ export async function POST(request) {
 
     const client = getAdminClient();
 
-    // 1. Handle Role Updates (single or batch)
     if (updates || userId || role || roles) {
       const roleUpdates = updates
         ? (Array.isArray(updates) ? updates : [updates])
@@ -27,7 +26,6 @@ export async function POST(request) {
 
         if (!targetId) continue;
 
-        // Update in signups table
         try {
           await client
             .from('signups')
@@ -41,7 +39,6 @@ export async function POST(request) {
           console.warn('Publish: signups table update notice:', tableErr.message);
         }
 
-        // Update in site_content signups cache
         try {
           const { data: row } = await client
             .from('site_content')
@@ -81,12 +78,10 @@ export async function POST(request) {
       });
     }
 
-    // 2. Handle Site Content Publishing
     const contentToSave = data || body;
     if (contentToSave && typeof contentToSave === 'object') {
       const rawPayload = contentToSave.data || contentToSave;
 
-      // Read current site_content row to preserve registered drivers & signups
       let existingSignups = [];
       try {
         const { data: row } = await client
@@ -102,7 +97,6 @@ export async function POST(request) {
         console.warn('Publish: reading existing signups warning:', readErr.message);
       }
 
-      // Merge signups: keep all existing signups plus any passed in payload
       const payloadSignups = Array.isArray(rawPayload.signups) ? rawPayload.signups : [];
       const signupMap = new Map();
       existingSignups.forEach((s) => {

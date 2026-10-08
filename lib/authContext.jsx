@@ -135,7 +135,6 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    // 1. Fetch live confirmed attendees from database
     async function loadAttendanceFromServer() {
       try {
         const res = await fetch('/api/attendance', { cache: 'no-store' });
@@ -149,7 +148,6 @@ export function AuthProvider({ children }) {
         }
       } catch (e) {}
 
-      // Fallback to local storage if offline
       try {
         const storedAttendees = localStorage.getItem('gtc_convoy_attendance');
         if (storedAttendees) {
@@ -293,7 +291,6 @@ export function AuthProvider({ children }) {
         localStorage.setItem('gtc_registered_drivers', JSON.stringify(seededWithLicenses));
       }
 
-      // Load remote signups from server so real registered users appear system-wide
       async function loadRemoteDrivers() {
         try {
           const res = await fetch('/api/signup', { cache: 'no-store' });
@@ -471,18 +468,15 @@ export function AuthProvider({ children }) {
       return { success: false, error: 'Callsign or email is already registered. Please sign in.' };
     }
 
-    // Password security check
     const passValidation = validatePasswordSecurity(formData.password, cleanName || cleanEmail);
     if (!passValidation.valid) {
       showToast(passValidation.error, 'error');
       return { success: false, error: passValidation.error };
     }
 
-    // Strict validation for country & truck
     const validatedCountry = isValidGtcCountry(formData.country) ? formData.country.trim() : 'Kenya';
     const validatedTruck = isValidGtcTruck(formData.truck) ? formData.truck.trim() : 'Scania S730 V8';
 
-    // Streamer status verification
     let isStreamer = Boolean(formData.isStreamer);
     let streamerPlatform = formData.streamerPlatform || 'TikTok';
     let streamerUrl = (formData.streamerUrl || '').trim();
@@ -602,7 +596,6 @@ export function AuthProvider({ children }) {
         d.id?.toLowerCase() === query
     );
 
-    // If driver not in local cache, look up live in remote signups database
     if (!target) {
       try {
         const res = await fetch('/api/signup', { cache: 'no-store' });
@@ -653,7 +646,6 @@ export function AuthProvider({ children }) {
       return { success: false, error: 'Incorrect password. Please check your credentials.' };
     }
 
-    // Guarantee deterministic permanent license number is preserved across every login
     if (!target.licenseNumber) {
       target.licenseNumber = getPermanentLicenseNumber(target);
     }
@@ -1096,7 +1088,6 @@ export function AuthProvider({ children }) {
       localStorage.setItem('gtc_convoy_attendance', JSON.stringify(nextAttendees));
     } catch (e) {}
 
-    // Persist to shared backend database
     try {
       await fetch('/api/attendance', {
         method: 'POST',
@@ -1136,7 +1127,6 @@ export function AuthProvider({ children }) {
       localStorage.setItem('gtc_convoy_attendance', JSON.stringify(nextAttendees));
     } catch (e) {}
 
-    // Persist cancellation to shared backend database
     try {
       await fetch('/api/attendance', {
         method: 'DELETE',
@@ -1167,7 +1157,6 @@ export function AuthProvider({ children }) {
 
     addNotification(broadcastItem);
 
-    // Collect all driver emails from state + current admin email
     const localEmails = allDrivers
       .map((d) => d.email?.trim().toLowerCase())
       .filter((e) => e && e.includes('@'));

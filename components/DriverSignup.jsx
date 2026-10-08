@@ -607,7 +607,6 @@ export default function DriverSignup({ onSignupSuccess }) {
               return (
                 <div className="license-card-scene mb-3">
                   <div className={`license-card-flipper ${isPreviewFlipped ? 'is-flipped' : ''}`}>
-                    {/* FRONT PREVIEW */}
                     <div className="license-card-face license-card-front driver-license-card">
                       <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
                         <div className="d-flex align-items-center gap-2">
@@ -700,7 +699,6 @@ export default function DriverSignup({ onSignupSuccess }) {
                       </div>
                     </div>
 
-                    {/* BACK PREVIEW */}
                     <div className="license-card-face license-card-back driver-license-card">
                       <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
                         <div className="d-flex align-items-center gap-2">
