@@ -2,6 +2,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './globals.css';
 import { AuthProvider } from '@/lib/authContext';
+import { Analytics } from '@vercel/analytics/react';
 
 export const metadata = {
   title: 'Global Truckers Community – ETS 2 & ATS Virtual Convoys',
@@ -44,6 +45,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           {children}
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
