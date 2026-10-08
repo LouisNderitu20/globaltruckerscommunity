@@ -160,7 +160,7 @@ export async function GET() {
 export async function PUT(request) {
   try {
     const body = await request.json();
-    const { id, name, email, country, games, type, role, roles, vtc, tmp, steamId, truckBrand, stream, avatar, bio } = body;
+    const { id, name, email, password, country, games, type, role, roles, vtc, tmp, steamId, truckBrand, stream, avatar, bio } = body;
 
     if (!id) {
       return NextResponse.json({ success: false, error: 'Driver ID is required for update' }, { status: 400 });
@@ -190,6 +190,7 @@ export async function PUT(request) {
       id,
       name: name?.trim(),
       email: email?.trim() || null,
+      ...(password ? { password: password.trim() } : {}),
       country: validatedCountry,
       games: games || ['ETS 2'],
       driver_type: type || 'Independent driver',

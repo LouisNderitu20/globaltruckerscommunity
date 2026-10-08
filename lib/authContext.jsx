@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabaseContent } from '@/lib/supabase';
-import { isValidGtcCountry, isValidGtcTruck, isValidStreamerUrl, normalizeStreamerUrl, getPermanentLicenseNumber } from '@/lib/defaultConfig';
+import { isValidGtcCountry, isValidGtcTruck, isValidStreamerUrl, normalizeStreamerUrl, getPermanentLicenseNumber, validatePasswordSecurity } from '@/lib/defaultConfig';
 
 const AuthContext = createContext();
 
@@ -469,6 +469,13 @@ export function AuthProvider({ children }) {
     if (duplicate) {
       showToast('A driver with this callsign or email already exists. Please sign in.', 'error');
       return { success: false, error: 'Callsign or email is already registered. Please sign in.' };
+    }
+
+    // Password security check
+    const passValidation = validatePasswordSecurity(formData.password, cleanName || cleanEmail);
+    if (!passValidation.valid) {
+      showToast(passValidation.error, 'error');
+      return { success: false, error: passValidation.error };
     }
 
     // Strict validation for country & truck
@@ -952,6 +959,22 @@ export function AuthProvider({ children }) {
       streamerUrl = '';
     }
 
+    if (updatedFields.email !== undefined && updatedFields.email) {
+      const emailTrimmed = updatedFields.email.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+        showToast('Please enter a valid email address.', 'error');
+        return { success: false, error: 'Invalid email address format.' };
+      }
+    }
+
+    if (updatedFields.password !== undefined && updatedFields.password) {
+      const passValidation = validatePasswordSecurity(updatedFields.password, user.name || updatedFields.email || user.email);
+      if (!passValidation.valid) {
+        showToast(passValidation.error, 'error');
+        return { success: false, error: passValidation.error };
+      }
+    }
+
     let updatedRoles = Array.isArray(user.roles) ? [...user.roles] : [user.role || 'driver'];
     if (isStreamer) {
       if (!updatedRoles.includes(ROLES.STREAMER)) {
@@ -966,6 +989,8 @@ export function AuthProvider({ children }) {
       ...user,
       ...updatedFields,
       id: user.id,
+      email: updatedFields.email !== undefined ? updatedFields.email.trim() : user.email,
+      ...(updatedFields.password ? { password: updatedFields.password.trim() } : {}),
       country: validatedCountry,
       truck: validatedTruck,
       isStreamer,
@@ -977,6 +1002,14 @@ export function AuthProvider({ children }) {
 
     saveUserSession(mergedUser);
 
+    setAllDrivers((prev) => {
+      const updated = prev.map((d) => (d.id === user.id ? { ...d, ...mergedUser } : d));
+      try {
+        localStorage.setItem('gtc_registered_drivers', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
     try {
       await fetch('/api/signup', {
         method: 'PUT',
@@ -985,6 +1018,7 @@ export function AuthProvider({ children }) {
           id: user.id,
           name: mergedUser.name,
           email: mergedUser.email,
+          ...(updatedFields.password ? { password: updatedFields.password.trim() } : {}),
           country: mergedUser.country,
           games: mergedUser.games,
           type: mergedUser.vtc,

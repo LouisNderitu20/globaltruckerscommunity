@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/authContext';
-import { GTC_COUNTRIES, GTC_TRUCKS, ETS2_TRUCKS, ATS_TRUCKS, isValidStreamerUrl, calculateMemberTenure, getAuthorizedTrucks, getPermanentLicenseNumber } from '@/lib/defaultConfig';
+import { GTC_COUNTRIES, GTC_TRUCKS, ETS2_TRUCKS, ATS_TRUCKS, isValidStreamerUrl, calculateMemberTenure, getAuthorizedTrucks, getPermanentLicenseNumber, validatePasswordSecurity } from '@/lib/defaultConfig';
 import PhotoCustomizerModal from './PhotoCustomizerModal';
 
 export default function DriverSignup({ onSignupSuccess }) {
@@ -90,6 +90,12 @@ export default function DriverSignup({ onSignupSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
+
+    const passValidation = validatePasswordSecurity(formData.password, formData.name || formData.email);
+    if (!passValidation.valid) {
+      setPasswordError(passValidation.error);
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setPasswordError('Passwords do not match');
@@ -327,11 +333,14 @@ export default function DriverSignup({ onSignupSuccess }) {
                       <input
                         type="password"
                         required
-                        placeholder="At least 4 characters"
+                        placeholder="Min 8 chars (uppercase, lowercase, number)"
                         className="form-control"
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       />
+                    </div>
+                    <div className="text-muted mt-1" style={{ fontSize: '0.72rem' }}>
+                      Must be at least 8 characters with uppercase, lowercase, &amp; numbers.
                     </div>
                   </div>
                   <div className="col-12 col-md-6">

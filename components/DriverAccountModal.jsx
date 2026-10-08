@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth, ROLE_INFO, ROLES } from '@/lib/authContext';
-import { GTC_COUNTRIES, GTC_TRUCKS, ETS2_TRUCKS, ATS_TRUCKS, isValidStreamerUrl, calculateMemberTenure, getAuthorizedTrucks, getPermanentLicenseNumber } from '@/lib/defaultConfig';
+import { GTC_COUNTRIES, GTC_TRUCKS, ETS2_TRUCKS, ATS_TRUCKS, isValidStreamerUrl, calculateMemberTenure, getAuthorizedTrucks, getPermanentLicenseNumber, validatePasswordSecurity } from '@/lib/defaultConfig';
 import PhotoCustomizerModal from './PhotoCustomizerModal';
 
 export default function DriverAccountModal({ isOpen, onClose, initialTab = 'profile' }) {
@@ -27,6 +27,9 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
 
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
+    email: user?.email || '',
+    newPassword: '',
+    confirmNewPassword: '',
     country: user?.country || 'Kenya',
     vtc: user?.vtc || '',
     truck: user?.truck || 'Scania S730 V8',
@@ -47,6 +50,9 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
     if (user) {
       setProfileForm({
         name: user.name || '',
+        email: user.email || '',
+        newPassword: '',
+        confirmNewPassword: '',
         country: user.country || 'Kenya',
         vtc: user.vtc || '',
         truck: user.truck || 'Scania S730 V8',
@@ -101,6 +107,26 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
     e.preventDefault();
     setProfileError('');
 
+    if (profileForm.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(profileForm.email.trim())) {
+        setProfileError('Please provide a valid email address.');
+        return;
+      }
+    }
+
+    if (profileForm.newPassword) {
+      if (profileForm.newPassword !== profileForm.confirmNewPassword) {
+        setProfileError('New passwords do not match.');
+        return;
+      }
+      const pwCheck = validatePasswordSecurity(profileForm.newPassword, profileForm.name || profileForm.email);
+      if (!pwCheck.valid) {
+        setProfileError(pwCheck.error);
+        return;
+      }
+    }
+
     if (profileForm.isStreamer) {
       if (!profileForm.streamerUrl?.trim() || !isValidStreamerUrl(profileForm.streamerUrl, profileForm.streamerPlatform)) {
         setProfileError(`A valid link to your ${profileForm.streamerPlatform} account or channel (e.g. https://www.tiktok.com/@yourchannel or https://www.youtube.com/@channel) is required to confirm streamer status.`);
@@ -110,8 +136,17 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
 
     setIsSavingProfile(true);
     try {
-      const res = await updateUserProfile(profileForm);
+      const payload = {
+        ...profileForm,
+        email: profileForm.email ? profileForm.email.trim() : user?.email,
+        ...(profileForm.newPassword ? { password: profileForm.newPassword } : {})
+      };
+      delete payload.newPassword;
+      delete payload.confirmNewPassword;
+
+      const res = await updateUserProfile(payload);
       if (res?.success) {
+        setProfileForm((prev) => ({ ...prev, newPassword: '', confirmNewPassword: '' }));
         setActiveTab('profile');
       } else if (res?.error) {
         setProfileError(res.error);
@@ -176,6 +211,12 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
 
     if (registerForm.password !== registerForm.confirmPassword) {
       setRegisterError('Passwords do not match');
+      return;
+    }
+
+    const pwCheck = validatePasswordSecurity(registerForm.password, registerForm.name || registerForm.email);
+    if (!pwCheck.valid) {
+      setRegisterError(pwCheck.error);
       return;
     }
 
@@ -467,13 +508,13 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                   </div>
                 </div>
 
-                <div className="row g-3 mb-3">
+                <div className="row g-3 mb-2">
                   <div className="col-12 col-md-6">
                     <label className="form-label small text-secondary fw-bold">Password *</label>
                     <input
                       type="password"
                       required
-                      placeholder="Create a password"
+                      placeholder="Min 8 chars (upper, lower, number)"
                       className="form-control"
                       value={registerForm.password}
                       onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
@@ -490,6 +531,9 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                       onChange={(e) => setRegisterForm({ ...registerForm, confirmPassword: e.target.value })}
                     />
                   </div>
+                </div>
+                <div className="mb-3 text-muted" style={{ fontSize: '0.73rem' }}>
+                  <i className="bi bi-shield-check text-success me-1"></i> Passwords must be 8+ characters with uppercase, lowercase, and numeric digits. Generic passwords are not allowed.
                 </div>
 
                 <div className="p-3 rounded-3 bg-light border mb-3" style={{ borderColor: '#e2e8f0' }}>
@@ -1028,6 +1072,57 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                     />
                   </div>
                   <div className="col-12 col-md-6">
+                    <label className="form-label small text-secondary fw-bold">Email Address *</label>
+                    <input
+                      type="email"
+                      required
+                      className="form-control"
+                      value={profileForm.email}
+                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                      placeholder="driver@example.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2 border mb-3 bg-light" style={{ borderColor: '#e2e8f0' }}>
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <div className="d-flex align-items-center gap-2">
+                      <i className="bi bi-shield-lock-fill text-warning"></i>
+                      <span className="fw-bold small text-dark">Change Account Password</span>
+                    </div>
+                    <span className="badge bg-secondary-subtle text-secondary small fw-normal">Leave blank to keep unchanged</span>
+                  </div>
+                  <div className="row g-2">
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small text-secondary fw-semibold mb-1">New Password</label>
+                      <input
+                        type="password"
+                        className="form-control form-control-sm"
+                        placeholder="Min 8 chars (upper, lower, number)"
+                        value={profileForm.newPassword}
+                        onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                        autoComplete="new-password"
+                      />
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small text-secondary fw-semibold mb-1">Confirm New Password</label>
+                      <input
+                        type="password"
+                        className="form-control form-control-sm"
+                        placeholder="Re-enter new password"
+                        value={profileForm.confirmNewPassword}
+                        onChange={(e) => setProfileForm({ ...profileForm, confirmNewPassword: e.target.value })}
+                        autoComplete="new-password"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-muted" style={{ fontSize: '0.73rem' }}>
+                    <i className="bi bi-shield-check text-success me-1"></i> Safe password requirement: 8+ characters, uppercase, lowercase, and a number. Generic/guessable passwords are blocked.
+                  </div>
+                </div>
+
+                <div className="row g-3 mb-3">
+                  <div className="col-12 col-md-6">
                     <label className="form-label small text-secondary fw-bold">Country / Nationality</label>
                     <select
                       className="form-select"
@@ -1039,9 +1134,6 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                       ))}
                     </select>
                   </div>
-                </div>
-
-                <div className="row g-3 mb-3">
                   <div className="col-12 col-md-6">
                     <label className="form-label small text-secondary fw-bold">VTC Affiliation</label>
                     <input
@@ -1052,7 +1144,10 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                       placeholder="e.g. GTC Logistics, Euro Haulers"
                     />
                   </div>
-                  <div className="col-12 col-md-6">
+                </div>
+
+                <div className="row g-3 mb-3">
+                  <div className="col-12">
                     <label className="form-label small text-secondary fw-bold">Truck Rig / Model</label>
                     <select
                       className="form-select"
