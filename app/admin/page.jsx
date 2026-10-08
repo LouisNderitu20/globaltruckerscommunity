@@ -329,8 +329,8 @@ export default function AdminDesk() {
     setSaveSuccess(false);
 
     try {
-      const res = await fetch('/api/content', {
-        method: 'PUT',
+      const res = await fetch('/api/publish', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: config })
       });

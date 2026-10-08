@@ -76,6 +76,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
     confirmPassword: '',
     country: 'Kenya',
     truck: 'Scania S730 V8',
+    tmpId: '',
     isStreamer: false,
     streamerPlatform: 'TikTok',
     streamerUrl: ''
@@ -192,6 +193,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
         password: registerForm.password,
         country: registerForm.country,
         truck: registerForm.truck,
+        tmpId: registerForm.tmpId?.trim() || '',
         isStreamer: registerForm.isStreamer,
         streamerPlatform: registerForm.isStreamer ? registerForm.streamerPlatform : '',
         streamerUrl: registerForm.isStreamer ? registerForm.streamerUrl : '',
@@ -540,7 +542,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                   )}
                 </div>
 
-                <div className="row g-3 mb-4">
+                <div className="row g-3 mb-3">
                   <div className="col-12 col-md-6">
                     <label className="form-label small text-secondary fw-bold">Country</label>
                     <select
@@ -565,6 +567,23 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                       ))}
                     </select>
                   </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="form-label small text-secondary fw-bold">TruckersMP ID (Optional)</label>
+                  <div className="input-group">
+                    <span className="input-group-text"><i className="bi bi-hdd-network"></i></span>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. 1928374 or Profile ID (leave empty if none)"
+                      value={registerForm.tmpId}
+                      onChange={(e) => setRegisterForm({ ...registerForm, tmpId: e.target.value })}
+                    />
+                  </div>
+                  <span className="text-muted d-block mt-1" style={{ fontSize: '0.7rem' }}>
+                    Enter your genuine TruckersMP user ID. Leave blank if you don&apos;t have one yet.
+                  </span>
                 </div>
 
                 <button
@@ -677,6 +696,10 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                         <span className="fw-bold small text-dark">{user.licenseNumber || 'GTC-DL-2026-001'}</span>
                       </div>
                       <div className="col-6">
+                        <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>TRUCKERSMP ID</span>
+                        <span className="small fw-semibold text-dark">{user.tmpId || 'Not Linked'}</span>
+                      </div>
+                      <div className="col-6">
                         <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>COUNTRY</span>
                         <span className="small fw-semibold text-dark">{user.country || 'Kenya'}</span>
                       </div>
@@ -692,7 +715,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                   </div>
                 </div>
 
-                {user.isStreamer && (
+                {user.isStreamer && user.streamerUrl && isValidStreamerUrl(user.streamerUrl, user.streamerPlatform) && (
                   <div className="p-2 rounded-2 bg-light border mb-3 d-flex align-items-center justify-content-between" style={{ borderColor: '#ec4899' }}>
                     <div className="d-flex align-items-center gap-2">
                       <i className="bi bi-broadcast text-danger fs-5"></i>

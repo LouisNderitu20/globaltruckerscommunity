@@ -71,22 +71,43 @@ export function hasRole(driverOrUser, roleKey) {
   return driverOrUser.role === roleKey;
 }
 
+export function sanitizeUserRoles(u) {
+  if (!u) return u;
+  const hasValidLink = Boolean(u.streamerUrl && isValidStreamerUrl(u.streamerUrl, u.streamerPlatform));
+  let roles = Array.isArray(u.roles) ? [...u.roles] : [u.role || 'driver'];
+  let isStreamer = Boolean(u.isStreamer);
+  let role = u.role || 'driver';
+
+  if (!hasValidLink) {
+    roles = roles.filter((r) => r !== 'streamer');
+    if (role === 'streamer') role = roles[0] || 'driver';
+    isStreamer = false;
+  } else {
+    if (!roles.includes('streamer')) {
+      roles.push('streamer');
+    }
+    isStreamer = true;
+  }
+
+  return { ...u, roles, role, isStreamer };
+}
+
 const DEFAULT_DEMO_USER = {
   id: 'GTC-1001',
   name: 'Bryan Gaming',
   email: 'bryangaming@gtc.com',
   password: 'gtc2026',
   role: 'admin',
-  roles: ['admin', 'convoy_lead', 'streamer'],
+  roles: ['admin', 'convoy_lead'],
   country: 'Kenya',
   vtc: 'GTC Management',
   truck: 'Scania S730 V8',
   games: ['ETS 2', 'ATS'],
-  tmpId: 'TMP-883921',
+  tmpId: '883921',
   steamId: 'bryan_gaming_live',
-  isStreamer: true,
-  streamerPlatform: 'TikTok',
-  streamerUrl: 'https://www.tiktok.com/@bryangaming__',
+  isStreamer: false,
+  streamerPlatform: '',
+  streamerUrl: '',
   kms: 145200,
   deliveries: 1520,
   licenseNumber: 'GTC-DL-2026-001',
@@ -261,7 +282,7 @@ export function AuthProvider({ children }) {
     try {
       const stored = localStorage.getItem('gtc_user_session');
       if (stored) {
-        const activeUser = JSON.parse(stored);
+        const activeUser = sanitizeUserRoles(JSON.parse(stored));
         setUser(activeUser);
         loadUserNotifications(activeUser);
         loadUserReminders(activeUser);
@@ -329,19 +350,20 @@ export function AuthProvider({ children }) {
   };
 
   const saveUserSession = (updatedUser) => {
-    setUser(updatedUser);
+    const sanitized = sanitizeUserRoles(updatedUser);
+    setUser(sanitized);
     try {
-      localStorage.setItem('gtc_user_session', JSON.stringify(updatedUser));
+      localStorage.setItem('gtc_user_session', JSON.stringify(sanitized));
       setAllDrivers((prev) => {
-        const next = prev.map((d) => (d.id === updatedUser.id ? updatedUser : d));
-        if (!next.some((d) => d.id === updatedUser.id)) {
-          next.push(updatedUser);
+        const next = prev.map((d) => (d.id === sanitized.id ? sanitized : d));
+        if (!next.some((d) => d.id === sanitized.id)) {
+          next.push(sanitized);
         }
         localStorage.setItem('gtc_registered_drivers', JSON.stringify(next));
         return next;
       });
-      loadUserNotifications(updatedUser);
-      loadUserReminders(updatedUser);
+      loadUserNotifications(sanitized);
+      loadUserReminders(sanitized);
     } catch (e) {}
   };
 
@@ -406,7 +428,7 @@ export function AuthProvider({ children }) {
       vtc: formData.vtc?.trim() || 'Independent Solo Driver',
       truck: validatedTruck,
       games: formData.games?.length ? formData.games : ['ETS 2'],
-      tmpId: formData.tmpId || 'TMP-' + Math.floor(100000 + Math.random() * 899999),
+      tmpId: formData.tmpId?.trim() || null,
       steamId: formData.steamId || '',
       isStreamer,
       streamerPlatform: isStreamer ? streamerPlatform : '',
@@ -556,7 +578,7 @@ export function AuthProvider({ children }) {
     showToast('Notifications cleared', 'info');
   };
 
-  const toggleConvoyReminder = (convoyId, convoyTitle, convoyTime) => {
+  const toggleConvoyReminder = async (convoyId, convoyTitle, convoyTime) => {
     if (!user) {
       showToast('Please sign in to save personal convoy reminders', 'info');
       return;
@@ -567,15 +589,56 @@ export function AuthProvider({ children }) {
     if (isSubscribed) {
       nextReminders = reminders.filter((id) => id !== convoyId);
       showToast(`Reminder removed for ${convoyTitle}`, 'info');
+
+      if (user.email) {
+        fetch('/api/reminders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: user.email,
+            name: user.name,
+            convoyId,
+            convoyTitle,
+            convoyTime,
+            action: 'remove'
+          })
+        }).catch(() => {});
+      }
     } else {
       nextReminders = [...reminders, convoyId];
       addNotification({
         title: `Convoy Booked: ${convoyTitle}`,
-        message: `You saved ${convoyTitle} (${convoyTime || 'Upcoming'}). We will send a reminder before departure.`,
+        message: `You saved ${convoyTitle} (${convoyTime || 'Upcoming'}). Email reminder will be sent to ${user.email || 'your registered email'}.`,
         type: 'convoy_reminder',
         iconClass: 'bi bi-alarm-fill'
       }, user.id);
-      showToast(`Reminder saved for ${convoyTitle}!`, 'success');
+
+      if (user.email) {
+        try {
+          const res = await fetch('/api/reminders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: user.email,
+              name: user.name,
+              convoyId,
+              convoyTitle,
+              convoyTime,
+              action: 'subscribe'
+            })
+          });
+          const data = await res.json();
+          if (data?.message) {
+            showToast(data.message, 'success');
+          } else {
+            showToast(`Departure alert set for ${user.email}!`, 'success');
+          }
+        } catch (e) {
+          showToast(`Reminder saved for ${convoyTitle}!`, 'success');
+        }
+      } else {
+        showToast(`Reminder saved! Add your email in Edit Profile to receive email alerts.`, 'warning');
+      }
     }
 
     setReminders(nextReminders);
@@ -594,6 +657,25 @@ export function AuthProvider({ children }) {
     };
 
     saveUserSession(updatedUser);
+
+    const haulEntry = {
+      id: `haul-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+      driver: user.name,
+      role: user.roles?.[0] || user.role || 'driver',
+      route: route || 'Scheduled Convoy Route',
+      cargo: cargo || 'Certified Logistics Cargo',
+      kms: addedKms,
+      time: 'Just now',
+      game: game || 'ETS 2',
+      loggedAt: new Date().toISOString()
+    };
+
+    try {
+      const stored = localStorage.getItem('gtc_community_hauls');
+      const list = stored ? JSON.parse(stored) : [];
+      list.unshift(haulEntry);
+      localStorage.setItem('gtc_community_hauls', JSON.stringify(list.slice(0, 50)));
+    } catch (e) {}
 
     addNotification({
       title: 'Haul Logged Successfully',
@@ -630,13 +712,15 @@ export function AuthProvider({ children }) {
       saveUserSession(updatedCurrent);
     }
 
-    fetch('/api/signup', {
-      method: 'PUT',
+    fetch('/api/publish', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        id: driverId,
-        role: Array.isArray(newRole) ? newRole[0] : newRole,
-        roles: Array.isArray(newRole) ? newRole : [newRole]
+        updates: {
+          userId: driverId,
+          role: Array.isArray(newRole) ? newRole[0] : newRole,
+          roles: Array.isArray(newRole) ? newRole : [newRole]
+        }
       })
     }).catch(() => {});
 
@@ -692,13 +776,15 @@ export function AuthProvider({ children }) {
       saveUserSession(updatedCurrent);
     }
 
-    fetch('/api/signup', {
-      method: 'PUT',
+    fetch('/api/publish', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        id: driverId,
-        role: updatedRoles[0] || 'driver',
-        roles: updatedRoles
+        updates: {
+          userId: driverId,
+          role: updatedRoles[0] || 'driver',
+          roles: updatedRoles
+        }
       })
     }).catch(() => {});
 

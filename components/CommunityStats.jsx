@@ -77,45 +77,19 @@ export default function CommunityStats({ onOpenLogHaulModal }) {
     ? countryStats.find((c) => c.name === selectedCountry)
     : null;
 
-  const recentHauls = React.useMemo(() => {
-    const routesPool = [
-      'Nairobi → Mombasa Coastal Corridor',
-      'Munich → Milan Alpine Route',
-      'London → Rotterdam Channel Crossing',
-      'Los Angeles → Phoenix Interstate 10',
-      'Berlin → Warsaw Trans-European',
-      'Stockholm → Gothenburg Motorway'
-    ];
-    const cargoPool = [
-      'Heavy Mining Equipment',
-      'Automotive Components',
-      'High Voltage Transformers',
-      'Standard Regional Logistics',
-      'Refrigerated Pharmaceuticals',
-      'Industrial Generators'
-    ];
+  const [recentHauls, setRecentHauls] = React.useState([]);
 
-    return mergedDrivers.slice(0, 5).map((d, idx) => {
-      const primaryRole = d.role || (d.roles && d.roles[0]) || 'driver';
-      const roleLabel = primaryRole === 'admin' ? 'Administrator' :
-                        primaryRole === 'convoy_lead' ? 'Convoy Lead' :
-                        primaryRole === 'dispatcher' ? 'Dispatcher' :
-                        primaryRole === 'staff' ? 'Staff' :
-                        primaryRole === 'dev_modder' ? 'Dev | Modder' :
-                        primaryRole === 'streamer' ? 'Streamer' : 'Certified Driver';
-
-      return {
-        id: `haul-${d.id || idx}`,
-        driver: d.name,
-        role: roleLabel,
-        route: routesPool[idx % routesPool.length],
-        cargo: cargoPool[idx % cargoPool.length],
-        kms: Math.round((Number(d.kms) || 12000) * 0.008) || (420 + idx * 110),
-        time: `${(idx + 1) * 12}m ago`,
-        game: d.truck?.includes('Peterbilt') || d.truck?.includes('Kenworth') ? 'ATS' : 'ETS 2'
-      };
-    });
-  }, [mergedDrivers]);
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem('gtc_community_hauls');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setRecentHauls(parsed.slice(0, 5));
+        }
+      }
+    } catch (e) {}
+  }, []);
 
   return (
     <section id="stats" className="py-4">
@@ -298,29 +272,39 @@ export default function CommunityStats({ onOpenLogHaulModal }) {
             <div className="card glass p-4 h-100">
               <div className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
                 <span className="fw-bold text-dark small">
-                  <i className="bi bi-activity text-warning me-2"></i> Live Haul Stream
+                  <i className="bi bi-speedometer2 text-warning me-2"></i> Verified Driver Hauls
                 </span>
-                <span className="badge bg-success-subtle text-success small">Auto-Updating</span>
+                <span className="badge bg-light border text-secondary small">Authentic Telemetry</span>
               </div>
 
-              <div className="d-flex flex-column gap-2">
-                {recentHauls.map((h) => (
-                  <div key={h.id} className="p-2 rounded-2 bg-light border d-flex align-items-center justify-content-between">
-                    <div>
-                      <div className="fw-bold text-dark small">
-                        {h.driver} <span className="badge badge-gold ms-1" style={{ fontSize: '0.68rem' }}>{h.role}</span>
+              {recentHauls.length > 0 ? (
+                <div className="d-flex flex-column gap-2">
+                  {recentHauls.map((h) => (
+                    <div key={h.id} className="p-2 rounded-2 bg-light border d-flex align-items-center justify-content-between">
+                      <div>
+                        <div className="fw-bold text-dark small">
+                          {h.driver} <span className="badge badge-gold ms-1" style={{ fontSize: '0.68rem' }}>{h.role}</span>
+                        </div>
+                        <div className="small text-secondary">
+                          {h.route} &bull; <strong className="text-dark">{h.cargo}</strong> ({h.game})
+                        </div>
                       </div>
-                      <div className="small text-secondary">
-                        {h.route} &bull; <strong className="text-dark">{h.cargo}</strong> ({h.game})
+                      <div className="text-end">
+                        <div className="fw-bold small" style={{ color: '#0284c7' }}>+{h.kms} km</div>
+                        <div className="text-secondary" style={{ fontSize: '0.72rem' }}>{h.time}</div>
                       </div>
                     </div>
-                    <div className="text-end">
-                      <div className="fw-bold small" style={{ color: '#0284c7' }}>+{h.kms} km</div>
-                      <div className="text-secondary" style={{ fontSize: '0.72rem' }}>{h.time}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-secondary">
+                  <i className="bi bi-clock-history fs-3 d-block mb-2 text-muted"></i>
+                  <p className="small mb-1 fw-bold text-dark">No delivery logs submitted yet</p>
+                  <span className="small text-muted" style={{ fontSize: '0.75rem' }}>
+                    Drivers log authenticated deliveries from the Driver Portal to publish certified runs here.
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

@@ -626,9 +626,15 @@ export default function DriverSignup({ onSignupSuccess }) {
                   </div>
                   {formData.isStreamer && (
                     <div className="mt-1">
-                      <span className="badge text-white rounded-1" style={{ backgroundColor: '#ec4899', fontSize: '0.68rem' }}>
-                        <i className="bi bi-camera-video-fill me-1"></i> Official Streamer ({formData.streamerPlatform})
-                      </span>
+                      {formData.streamerUrl && isValidStreamerUrl(formData.streamerUrl, formData.streamerPlatform) ? (
+                        <span className="badge text-white rounded-1" style={{ backgroundColor: '#ec4899', fontSize: '0.68rem' }}>
+                          <i className="bi bi-camera-video-fill me-1"></i> Verified Streamer ({formData.streamerPlatform})
+                        </span>
+                      ) : (
+                        <span className="badge bg-warning text-dark rounded-1" style={{ fontSize: '0.68rem' }}>
+                          <i className="bi bi-link-45deg me-1"></i> Streamer Link Required
+                        </span>
+                      )}
                     </div>
                   )}
                   {formData.isDevModder && (

@@ -51,14 +51,9 @@ export async function PUT(request) {
       return NextResponse.json({ success: false, error: 'Invalid content data payload' }, { status: 400 });
     }
 
-    if (!supabaseAdmin) {
-      return NextResponse.json(
-        { success: false, error: 'Publishing is not configured: add SUPABASE_SECRET_KEY to .env.local and restart the server.' },
-        { status: 500 }
-      );
-    }
+    const client = supabaseAdmin || supabaseContent;
 
-    const { data: written, error } = await supabaseAdmin
+    const { data: written, error } = await client
       .from('site_content')
       .upsert({
         id: 1,

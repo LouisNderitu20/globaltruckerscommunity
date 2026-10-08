@@ -300,3 +300,29 @@ body {
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.16);
   color: #17181c;
 }
+
+/* Lighter, softer placeholder text across all forms */
+::placeholder,
+.form-control::placeholder,
+.form-select::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.65 !important;
+  font-weight: 400 !important;
+}
+
+::-webkit-input-placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.65 !important;
+}
+
+::-moz-placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.65 !important;
+}
+
+:-ms-input-placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.65 !important;
+}
