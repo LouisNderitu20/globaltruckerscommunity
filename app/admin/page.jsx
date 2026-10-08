@@ -29,6 +29,7 @@ export default function AdminDesk() {
 
   const [broadcastTitle, setBroadcastTitle] = useState('Official Convoy Meetup in Progress');
   const [broadcastMsg, setBroadcastMsg] = useState('All drivers to your rigs! Room ID: GTC-CONVOY-778 is active on TruckersMP Sim 1. Radio channel 19.');
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
 
   const [searchDriver, setSearchDriver] = useState('');
   const [driverSortBy, setDriverSortBy] = useState('kms-desc');
@@ -335,12 +336,17 @@ export default function AdminDesk() {
     }
   };
 
-  const handleBroadcast = (e) => {
+  const handleBroadcast = async (e) => {
     e.preventDefault();
-    broadcastConvoyReminder({
-      title: broadcastTitle,
-      message: broadcastMsg
-    });
+    setIsBroadcasting(true);
+    try {
+      await broadcastConvoyReminder({
+        title: broadcastTitle,
+        message: broadcastMsg
+      });
+    } finally {
+      setIsBroadcasting(false);
+    }
   };
 
   const updateNextConvoyField = (field, val) => {
@@ -1706,8 +1712,17 @@ export default function AdminDesk() {
                 />
               </div>
 
-              <button type="submit" className="btn btn-warning w-100 fw-bold shadow-sm">
-                <i className="bi bi-broadcast me-1"></i> Send Broadcast to All Member Accounts &amp; Emails
+              <button type="submit" disabled={isBroadcasting} className="btn btn-warning w-100 fw-bold shadow-sm">
+                {isBroadcasting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2"></span>
+                    Dispatching Broadcast to All Member Inboxes...
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-broadcast me-1"></i> Send Broadcast to All Member Accounts &amp; Emails
+                  </>
+                )}
               </button>
             </form>
           </div>

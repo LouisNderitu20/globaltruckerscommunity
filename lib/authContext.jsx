@@ -1149,10 +1149,10 @@ export function AuthProvider({ children }) {
     return { success: true };
   };
 
-  const broadcastConvoyReminder = ({ title, message, convoyId }) => {
+  const broadcastConvoyReminder = async ({ title, message, convoyId }) => {
     if (user?.role !== ROLES.ADMIN && !user?.roles?.includes(ROLES.ADMIN) && user?.role !== ROLES.STAFF && !user?.roles?.includes(ROLES.STAFF)) {
       showToast('Permission denied: Only Admin or Staff can broadcast reminders.', 'error');
-      return false;
+      return { success: false, error: 'Permission denied' };
     }
 
     const broadcastItem = {
@@ -1166,8 +1166,39 @@ export function AuthProvider({ children }) {
     };
 
     addNotification(broadcastItem);
-    showToast('Convoy reminder broadcasted to all member accounts & emails!', 'success');
-    return true;
+
+    // Collect all driver emails from state + current admin email
+    const localEmails = allDrivers
+      .map((d) => d.email?.trim().toLowerCase())
+      .filter((e) => e && e.includes('@'));
+    if (user?.email && user.email.includes('@')) {
+      localEmails.push(user.email.trim().toLowerCase());
+    }
+
+    try {
+      const res = await fetch('/api/reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'broadcast',
+          title: broadcastItem.title,
+          message: broadcastItem.message,
+          adminEmail: user?.email,
+          targetEmails: Array.from(new Set(localEmails))
+        })
+      });
+      const data = await res.json();
+      if (data?.success) {
+        showToast(data.message || 'Convoy reminder broadcasted to all member accounts & emails!', 'success');
+        return { success: true, data };
+      } else {
+        showToast(data?.error || 'Broadcast notification saved to accounts.', 'info');
+        return { success: false, error: data?.error };
+      }
+    } catch (err) {
+      showToast('Broadcast saved to in-app accounts.', 'info');
+      return { success: true };
+    }
   };
 
   const deleteDriverAccount = async (driverId) => {
