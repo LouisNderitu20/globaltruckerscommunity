@@ -111,7 +111,7 @@ const DEFAULT_DEMO_USER = {
   kms: 145200,
   deliveries: 1520,
   licenseNumber: 'GTC-DL-2026-001',
-  joinedAt: 'January 2026',
+  joinedAt: new Date().toISOString(),
   emailRemindersEnabled: true,
   avatar: '/apple-touch-icon.png'
 };
@@ -189,7 +189,7 @@ export function AuthProvider({ children }) {
           kms: 132400,
           deliveries: 1380,
           licenseNumber: 'GTC-DL-2026-021',
-          joinedAt: 'January 2026',
+          joinedAt: new Date().toISOString(),
           bio: 'Dev by day, Trucker by night',
           avatar: 'https://bissmepkqhackzaezvax.supabase.co/storage/v1/object/sign/site-images/2026/1790592206178-discord-mod-role.png?token=eyJraWQiOiJiYTc3OWJlMC1jYTg2LTRjZTUtOThkMC05MTAwMDhmNTg3ZjQiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJzaXRlLWltYWdlcy8yMDI2LzE3OTA1OTIyMDYxNzgtZGlzY29yZC1tb2Qtcm9sZS5wbmciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzkwNTkyMjA5LCJleHAiOjIxMDU5NTIyMDl9.UBBOvVCdZICrFQRSkwMY-x7bOgeDnIFgxSDeEIDQ1Sot013OEvh_AtwPlabNUmzgDcLpGp3x0qxbKYeTilbaMA'
         },
@@ -271,10 +271,17 @@ export function AuthProvider({ children }) {
             parsed.push(seed);
           }
         });
-        const withLicenses = parsed.map((d) => ({
-          ...d,
-          licenseNumber: d.licenseNumber || getPermanentLicenseNumber(d)
-        }));
+        const withLicenses = parsed.map((d) => {
+          let jAt = d.joinedAt;
+          if (jAt === 'January 2026' || jAt === 'Jan 2026' || !jAt) {
+            jAt = new Date().toISOString();
+          }
+          return {
+            ...d,
+            joinedAt: jAt,
+            licenseNumber: d.licenseNumber || getPermanentLicenseNumber(d)
+          };
+        });
         setAllDrivers(withLicenses);
         localStorage.setItem('gtc_registered_drivers', JSON.stringify(withLicenses));
       } else {
@@ -314,7 +321,7 @@ export function AuthProvider({ children }) {
                   kms: Number(s.kms) || 0,
                   deliveries: Number(s.deliveries) || 0,
                   licenseNumber: permLic,
-                  joinedAt: s.joined_at || 'Jan 2026',
+                  joinedAt: s.joined_at || s.joinedAt || new Date().toISOString(),
                   avatar: s.avatar || ''
                 };
                 if (!idMap.has(s.id)) {
@@ -343,12 +350,15 @@ export function AuthProvider({ children }) {
       const stored = localStorage.getItem('gtc_user_session');
       if (stored) {
         let activeUser = sanitizeUserRoles(JSON.parse(stored));
+        if (activeUser.joinedAt === 'January 2026' || activeUser.joinedAt === 'Jan 2026' || !activeUser.joinedAt) {
+          activeUser.joinedAt = new Date().toISOString();
+        }
         if (!activeUser.licenseNumber) {
           activeUser.licenseNumber = getPermanentLicenseNumber(activeUser);
-          try {
-            localStorage.setItem('gtc_user_session', JSON.stringify(activeUser));
-          } catch (e) {}
         }
+        try {
+          localStorage.setItem('gtc_user_session', JSON.stringify(activeUser));
+        } catch (e) {}
         setUser(activeUser);
         loadUserNotifications(activeUser);
         loadUserReminders(activeUser);
@@ -486,7 +496,7 @@ export function AuthProvider({ children }) {
     const newId = 'GTC-' + Math.floor(1000 + Math.random() * 9000);
     const assignedRole = isStreamer ? ROLES.STREAMER : ROLES.DRIVER;
     const permanentLicense = getPermanentLicenseNumber(newId);
-    const joinDateStr = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const joinDateStr = new Date().toISOString();
 
     const newDriver = {
       id: newId,
@@ -616,7 +626,7 @@ export function AuthProvider({ children }) {
               kms: Number(match.kms) || 0,
               deliveries: Number(match.deliveries) || 0,
               licenseNumber: permLic,
-              joinedAt: match.joined_at || 'Jan 2026',
+              joinedAt: match.joined_at || match.joinedAt || new Date().toISOString(),
               avatar: match.avatar || '',
               password: 'gtc2026'
             };
