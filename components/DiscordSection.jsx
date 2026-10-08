@@ -78,7 +78,7 @@ export default function DiscordSection({ config }) {
                     <span className="text-dark fw-semibold">
                       <i className="bi bi-soundwave text-warning me-2"></i> Dispatch &amp; Pace Car Lead
                     </span>
-                    <span className="text-secondary">4 Staff Online</span>
+                    <span className="text-secondary">Convoy Control</span>
                   </div>
 
                   <div className="d-flex justify-content-between align-items-center p-2 rounded-2 bg-white border">

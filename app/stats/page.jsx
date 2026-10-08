@@ -157,7 +157,7 @@ export default function StatsPage() {
               <div className="fs-3 fw-bold text-dark mb-1">
                 {liveDriversOnline.toLocaleString()}
               </div>
-              <div className="text-secondary small fw-semibold">Drivers Online Now</div>
+              <div className="text-secondary small fw-semibold">Certified Fleet Drivers</div>
             </div>
           </div>
           <div className="col-12 col-sm-6 col-lg-3">

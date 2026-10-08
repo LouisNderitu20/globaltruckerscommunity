@@ -62,13 +62,13 @@ export default function CommunityStats({ onOpenLogHaulModal }) {
 
   const totalMembers = mergedDrivers.length;
   const countriesRepresented = countryStats.length;
-  const staffOnline = mergedDrivers.filter((d) => {
+  const staffAndLeads = mergedDrivers.filter((d) => {
     const roles = d.roles && d.roles.length > 0 ? d.roles : [d.role || 'driver'];
-    return roles.some((r) => ['admin', 'staff', 'convoy_lead', 'dispatcher', 'dev_modder'].includes(r));
+    return roles.includes('admin') || roles.includes('staff');
   }).length;
-  const driversOnline = mergedDrivers.filter((d) => {
+  const certifiedDrivers = mergedDrivers.filter((d) => {
     const roles = d.roles && d.roles.length > 0 ? d.roles : [d.role || 'driver'];
-    return roles.includes('driver') || roles.includes('streamer') || !roles.length;
+    return roles.includes('driver') || roles.includes('streamer') || d.driver_type || !roles.length;
   }).length;
   const kmsCovered = mergedDrivers.reduce((acc, d) => acc + (Number(d.kms) || 0), 0);
   const deliveriesCompleted = mergedDrivers.reduce((acc, d) => acc + (Number(d.deliveries) || 0), 0);
@@ -125,15 +125,15 @@ export default function CommunityStats({ onOpenLogHaulModal }) {
             <div className="card glass p-4 h-100 shadow-sm">
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <i className="bi bi-truck fs-2 text-success"></i>
-                <span className="badge bg-success-subtle text-success small d-flex align-items-center gap-1 rounded-1">
-                  Live Now
+                <span className="badge bg-success-subtle text-success small">
+                  Fleet Roster
                 </span>
               </div>
               <div className="fs-2 fw-bold text-dark mb-0">
-                {driversOnline}
+                {certifiedDrivers}
               </div>
-              <div className="fw-semibold text-dark small mb-1">Drivers Online</div>
-              <div className="text-secondary small" style={{ fontSize: '0.78rem' }}>Active on TMP &amp; SCS Convoy</div>
+              <div className="fw-semibold text-dark small mb-1">Certified Drivers</div>
+              <div className="text-secondary small" style={{ fontSize: '0.78rem' }}>Active fleet haulers registered</div>
             </div>
           </div>
 
@@ -141,13 +141,13 @@ export default function CommunityStats({ onOpenLogHaulModal }) {
             <div className="card glass p-4 h-100 shadow-sm">
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <i className="bi bi-shield-fill-check fs-2 text-danger"></i>
-                <span className="badge bg-danger-subtle text-danger small">On Radio</span>
+                <span className="badge bg-danger-subtle text-danger small">Leadership</span>
               </div>
               <div className="fs-2 fw-bold text-dark mb-0">
-                {staffOnline}
+                {staffAndLeads}
               </div>
-              <div className="fw-semibold text-dark small mb-1">Staff Online</div>
-              <div className="text-secondary small" style={{ fontSize: '0.78rem' }}>Convoy Leads &amp; Monitors</div>
+              <div className="fw-semibold text-dark small mb-1">Staff &amp; Convoy Leads</div>
+              <div className="text-secondary small" style={{ fontSize: '0.78rem' }}>Official community management</div>
             </div>
           </div>
 
