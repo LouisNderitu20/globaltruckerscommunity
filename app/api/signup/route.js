@@ -88,7 +88,14 @@ export async function POST(request) {
           contentData.signups = [];
         }
         
-        contentData.signups.unshift(newSignup);
+        const existingIdx = contentData.signups.findIndex(
+          (s) => (s.id && s.id === newSignup.id) || (s.name && s.name.toLowerCase() === newSignup.name.toLowerCase())
+        );
+        if (existingIdx > -1) {
+          contentData.signups[existingIdx] = { ...contentData.signups[existingIdx], ...newSignup };
+        } else {
+          contentData.signups.unshift(newSignup);
+        }
         
         contentData.signups = contentData.signups.slice(0, 500);
 
@@ -119,27 +126,27 @@ export async function GET() {
     let signupsList = [];
 
     try {
-      const { data, error } = await db
-        .from('signups')
-        .select('*')
-        .order('submitted_at', { ascending: false })
-        .limit(200);
+      const { data: row } = await db
+        .from('site_content')
+        .select('data')
+        .eq('id', 1)
+        .single();
 
-      if (!error && Array.isArray(data) && data.length > 0) {
-        signupsList = data;
+      if (row?.data && Array.isArray(row.data.signups)) {
+        signupsList = row.data.signups;
       }
     } catch (e) {}
 
     if (signupsList.length === 0) {
       try {
-        const { data: row } = await db
-          .from('site_content')
-          .select('data')
-          .eq('id', 1)
-          .single();
+        const { data, error } = await db
+          .from('signups')
+          .select('*')
+          .order('submitted_at', { ascending: false })
+          .limit(200);
 
-        if (row?.data && Array.isArray(row.data.signups)) {
-          signupsList = row.data.signups;
+        if (!error && Array.isArray(data) && data.length > 0) {
+          signupsList = data;
         }
       } catch (e) {}
     }

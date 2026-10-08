@@ -53,11 +53,45 @@ export async function PUT(request) {
 
     const client = supabaseAdmin || supabaseContent;
 
+    // Read current site_content row to preserve registered drivers & signups
+    let existingSignups = [];
+    try {
+      const { data: row } = await client
+        .from('site_content')
+        .select('data')
+        .eq('id', 1)
+        .single();
+
+      if (row?.data && Array.isArray(row.data.signups)) {
+        existingSignups = row.data.signups;
+      }
+    } catch (readErr) {
+      console.warn('Content PUT: reading existing signups warning:', readErr.message);
+    }
+
+    const payloadSignups = Array.isArray(dataToSave.signups) ? dataToSave.signups : [];
+    const signupMap = new Map();
+    existingSignups.forEach((s) => {
+      if (s?.id) signupMap.set(s.id, s);
+    });
+    payloadSignups.forEach((s) => {
+      if (s?.id) {
+        const current = signupMap.get(s.id) || {};
+        signupMap.set(s.id, { ...current, ...s });
+      }
+    });
+    const finalSignups = Array.from(signupMap.values());
+
+    const finalData = {
+      ...dataToSave,
+      signups: finalSignups.length > 0 ? finalSignups : existingSignups
+    };
+
     const { data: written, error } = await client
       .from('site_content')
       .upsert({
         id: 1,
-        data: dataToSave,
+        data: finalData,
         updated_at: new Date().toISOString(),
       })
       .select();

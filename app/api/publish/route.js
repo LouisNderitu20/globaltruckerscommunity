@@ -84,11 +84,48 @@ export async function POST(request) {
     // 2. Handle Site Content Publishing
     const contentToSave = data || body;
     if (contentToSave && typeof contentToSave === 'object') {
+      const rawPayload = contentToSave.data || contentToSave;
+
+      // Read current site_content row to preserve registered drivers & signups
+      let existingSignups = [];
+      try {
+        const { data: row } = await client
+          .from('site_content')
+          .select('data')
+          .eq('id', 1)
+          .single();
+
+        if (row?.data && Array.isArray(row.data.signups)) {
+          existingSignups = row.data.signups;
+        }
+      } catch (readErr) {
+        console.warn('Publish: reading existing signups warning:', readErr.message);
+      }
+
+      // Merge signups: keep all existing signups plus any passed in payload
+      const payloadSignups = Array.isArray(rawPayload.signups) ? rawPayload.signups : [];
+      const signupMap = new Map();
+      existingSignups.forEach((s) => {
+        if (s?.id) signupMap.set(s.id, s);
+      });
+      payloadSignups.forEach((s) => {
+        if (s?.id) {
+          const current = signupMap.get(s.id) || {};
+          signupMap.set(s.id, { ...current, ...s });
+        }
+      });
+      const finalSignups = Array.from(signupMap.values());
+
+      const finalData = {
+        ...rawPayload,
+        signups: finalSignups.length > 0 ? finalSignups : existingSignups
+      };
+
       const { data: written, error } = await client
         .from('site_content')
         .upsert({
           id: 1,
-          data: contentToSave.data || contentToSave,
+          data: finalData,
           updated_at: new Date().toISOString()
         })
         .select();

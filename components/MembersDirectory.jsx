@@ -10,7 +10,7 @@ export default function MembersDirectory() {
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [directorySort, setDirectorySort] = useState('kms-desc');
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 6;
+  const pageSize = 12;
 
   useEffect(() => {
     async function loadSignups() {
@@ -34,13 +34,19 @@ export default function MembersDirectory() {
         list.push({
           id: s.id,
           name: s.name,
-          role: s.driver_type === 'Official Streamer' ? 'streamer' : 'driver',
-          country: s.country || 'International',
-          vtc: s.vtc || 'Independent',
-          truck: s.truck_brand || 'Scania',
-          kms: 0,
-          deliveries: 0,
-          avatar: s.avatar || null
+          role: s.role || (s.driver_type === 'Official Streamer' ? 'streamer' : 'driver'),
+          roles: Array.isArray(s.roles) && s.roles.length > 0 ? s.roles : [s.role || (s.driver_type === 'Official Streamer' ? 'streamer' : 'driver')],
+          country: s.country || 'Kenya',
+          vtc: s.vtc || s.driver_type || 'Independent Solo Driver',
+          truck: s.truck_brand || 'Scania S730 V8',
+          kms: Number(s.kms) || 0,
+          deliveries: Number(s.deliveries) || 0,
+          avatar: s.avatar || null,
+          licenseNumber: s.license_number || s.licenseNumber,
+          joinedAt: s.joined_at || s.joinedAt,
+          stream: s.stream_url || s.stream,
+          tmp: s.truckers_mp_id || s.tmp,
+          isStreamer: Boolean(s.stream_url) || s.role === 'streamer' || (Array.isArray(s.roles) && s.roles.includes('streamer'))
         });
         existingIds.add(s.id);
       }
@@ -72,7 +78,18 @@ export default function MembersDirectory() {
       return matchSearch && matchRole;
     })
     .sort((a, b) => {
-      if (directorySort === 'kms-desc') return (Number(b.kms) || 0) - (Number(a.kms) || 0);
+      if (directorySort === 'newest') {
+        const idA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
+        const idB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
+        return idB - idA;
+      }
+      if (directorySort === 'kms-desc') {
+        const diff = (Number(b.kms) || 0) - (Number(a.kms) || 0);
+        if (diff !== 0) return diff;
+        const idA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
+        const idB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
+        return idB - idA;
+      }
       if (directorySort === 'kms-asc') return (Number(a.kms) || 0) - (Number(b.kms) || 0);
       if (directorySort === 'jobs-desc') return (Number(b.deliveries) || 0) - (Number(a.deliveries) || 0);
       if (directorySort === 'jobs-asc') return (Number(a.deliveries) || 0) - (Number(b.deliveries) || 0);
@@ -141,6 +158,7 @@ export default function MembersDirectory() {
                 setCurrentPage(1);
               }}
             >
+              <option value="newest">Newest Members First</option>
               <option value="kms-desc">Distance: High to Low</option>
               <option value="kms-asc">Distance: Low to High</option>
               <option value="jobs-desc">Jobs: High to Low</option>
