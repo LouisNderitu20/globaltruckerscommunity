@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/authContext';
-import { GTC_COUNTRIES, GTC_TRUCKS, isValidStreamerUrl, calculateMemberTenure, getAuthorizedTrucks, getPermanentLicenseNumber } from '@/lib/defaultConfig';
+import { GTC_COUNTRIES, GTC_TRUCKS, ETS2_TRUCKS, ATS_TRUCKS, isValidStreamerUrl, calculateMemberTenure, getAuthorizedTrucks, getPermanentLicenseNumber } from '@/lib/defaultConfig';
 import PhotoCustomizerModal from './PhotoCustomizerModal';
 
 export default function DriverSignup({ onSignupSuccess }) {
@@ -462,9 +462,16 @@ export default function DriverSignup({ onSignupSuccess }) {
                         value={formData.truck}
                         onChange={(e) => setFormData({ ...formData, truck: e.target.value })}
                       >
-                        {GTC_TRUCKS.map((trk) => (
-                          <option key={trk} value={trk}>{trk}</option>
-                        ))}
+                        <optgroup label="Euro Truck Simulator 2 (ETS 2 Fleet)">
+                          {ETS2_TRUCKS.map((trk) => (
+                            <option key={trk} value={trk}>{trk}</option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="American Truck Simulator (ATS Fleet)">
+                          {ATS_TRUCKS.map((trk) => (
+                            <option key={trk} value={trk}>{trk}</option>
+                          ))}
+                        </optgroup>
                       </select>
                     </div>
                   </div>
