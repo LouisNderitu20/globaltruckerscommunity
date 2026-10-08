@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth, ROLE_INFO, ROLES } from '@/lib/authContext';
 import { DEFAULT_CONFIG, TIMETABLE_CONVOYS, buildConvoyFromSlot } from '@/lib/defaultConfig';
+import DriverAccountModal from '@/components/DriverAccountModal';
 
 export default function AdminDesk() {
   const {
@@ -24,8 +25,7 @@ export default function AdminDesk() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [adminKey, setAdminKey] = useState('');
-  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const [broadcastTitle, setBroadcastTitle] = useState('Official Convoy Meetup in Progress');
   const [broadcastMsg, setBroadcastMsg] = useState('All drivers to your rigs! Room ID: GTC-CONVOY-778 is active on TruckersMP Sim 1. Radio channel 19.');
@@ -60,10 +60,6 @@ export default function AdminDesk() {
   const [editingGalleryId, setEditingGalleryId] = useState(null);
 
   useEffect(() => {
-    if (isAdmin) {
-      setIsUnlocked(true);
-    }
-
     async function loadSiteConfig() {
       try {
         const res = await fetch('/api/content', { cache: 'no-store' });
@@ -313,17 +309,6 @@ export default function AdminDesk() {
     }
   };
 
-  const handleUnlock = (e) => {
-    e.preventDefault();
-    if (adminKey === 'GTC2026' || adminKey === 'ADMIN2026') {
-      setIsUnlocked(true);
-      loginAccount('Bryan Gaming');
-      showToast('Admin Content Desk unlocked!', 'success');
-    } else {
-      showToast('Invalid admin key. (Hint: GTC2026)', 'error');
-    }
-  };
-
   const handleSaveToSupabase = async () => {
     setSaving(true);
     setSaveSuccess(false);
@@ -466,56 +451,50 @@ export default function AdminDesk() {
       return 0;
     });
 
-  if (user && (user.role === 'streamer' || user.isStreamer) && !isAdmin) {
+  if (!isAdmin) {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center p-3" style={{ background: '#f8fafc' }}>
-        <div className="card glass p-4 p-md-5 shadow-lg text-center" style={{ maxWidth: '440px', width: '100%', borderColor: '#0284c7' }}>
-          <i className="bi bi-shield-slash-fill fs-1 mb-2 text-danger"></i>
-          <h2 className="h4 fw-bold text-dark mb-2">Access Restricted</h2>
+        <div className="card glass p-4 p-md-5 shadow-lg text-center" style={{ maxWidth: '460px', width: '100%', borderColor: '#ef4444' }}>
+          <div className="rounded-circle d-inline-flex align-items-center justify-content-center p-3 mb-3 mx-auto" style={{ width: '70px', height: '70px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+            <i className="bi bi-shield-lock-fill fs-1"></i>
+          </div>
+          <h2 className="h4 fw-bold text-dark mb-2">Administrator Access Required</h2>
           <p className="text-secondary small mb-4">
-            The GTC CMS Content Desk is reserved strictly for community Administrators and Convoy Operations. Streamers and Drivers do not have access to this management area.
-          </p>
-          <Link href="/" className="btn btn-primary w-100 fw-bold shadow-sm" style={{ backgroundColor: '#0284c7', borderColor: '#0284c7' }}>
-            <i className="bi bi-arrow-left me-1"></i> Return to Homepage
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isUnlocked) {
-    return (
-      <div className="min-vh-100 d-flex align-items-center justify-content-center p-3" style={{ background: '#f8fafc' }}>
-        <div className="card glass p-4 p-md-5 shadow-lg text-center" style={{ maxWidth: '440px', width: '100%', borderColor: '#0284c7' }}>
-          <i className="bi bi-shield-lock-fill fs-1 mb-2" style={{ color: '#0284c7' }}></i>
-          <h2 className="h4 fw-bold text-dark mb-2">GTC Admin Content Desk</h2>
-          <p className="text-secondary small mb-4">
-            Enter management passcode to manage next convoy details, assign driver roles, broadcast reminders, and update community telemetry.
+            The GTC CMS Content Desk is strictly restricted to verified <strong>Administrator</strong> accounts. Passcode bypasses have been disabled for security.
           </p>
 
-          <form onSubmit={handleUnlock}>
-            <div className="input-group mb-3">
-              <span className="input-group-text"><i className="bi bi-key-fill"></i></span>
-              <input
-                type="password"
-                placeholder="Passcode (e.g. GTC2026)"
-                className="form-control text-center"
-                value={adminKey}
-                onChange={(e) => setAdminKey(e.target.value)}
-                required
-              />
+          {user ? (
+            <div className="alert alert-warning small text-start mb-4 py-2 px-3 border-0">
+              <i className="bi bi-person-fill-exclamation me-1"></i> Logged in as: <strong>{user.name}</strong> ({user.role || 'Driver'}). This account does not possess Administrator privileges.
             </div>
-            <button type="submit" className="btn btn-warning w-100 fw-bold shadow-sm">
-              <i className="bi bi-unlock-fill me-1"></i> Unlock CMS Content Desk
-            </button>
-          </form>
+          ) : (
+            <div className="alert alert-secondary small text-start mb-4 py-2 px-3 border-0">
+              <i className="bi bi-info-circle me-1"></i> You are currently not signed in. Please sign in with an Administrator credential to manage the community.
+            </div>
+          )}
 
-          <div className="mt-3">
-            <Link href="/" className="text-secondary text-decoration-none small hover-gold">
-              &larr; Return to Public Portal
+          <div className="d-flex flex-column gap-2">
+            <button
+              type="button"
+              onClick={() => setIsAuthModalOpen(true)}
+              className="btn btn-warning w-100 fw-bold shadow-sm"
+            >
+              <i className="bi bi-box-arrow-in-right me-1"></i> Sign In to Administrator Account
+            </button>
+            <Link
+              href="/"
+              className="btn btn-outline-secondary w-100 fw-bold"
+            >
+              <i className="bi bi-arrow-left me-1"></i> Return to Homepage
             </Link>
           </div>
         </div>
+
+        <DriverAccountModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          initialTab="signin"
+        />
       </div>
     );
   }
@@ -1834,6 +1813,12 @@ export default function AdminDesk() {
           </div>
         )}
       </div>
+
+      <DriverAccountModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialTab="signin"
+      />
     </div>
   );
 }
