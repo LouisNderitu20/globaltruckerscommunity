@@ -6,11 +6,11 @@ import { AuthProvider } from '@/lib/authContext';
 export const metadata = {
   title: 'Global Truckers Community – ETS 2 & ATS Virtual Convoys',
   description: 'Global Truckers Community (GTC): a worldwide community of ETS 2 and ATS truckers and streamers from many VTCs and independent players.',
-  metadataBase: new URL('https://globaltruckerscommunity.vercel.app'),
+  metadataBase: new URL('https://theglobaltruckerscommunity.vercel.app'),
   openGraph: {
     title: 'Global Truckers Community (GTC)',
     description: 'ETS 2 and ATS virtual convoys for truckers and streamers from every VTC and independent players, worldwide.',
-    url: 'https://globaltruckerscommunity.vercel.app',
+    url: 'https://theglobaltruckerscommunity.vercel.app',
     siteName: 'Global Truckers Community',
     images: [
       {

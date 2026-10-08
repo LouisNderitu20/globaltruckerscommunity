@@ -210,7 +210,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                 src={user.avatar}
                 alt={user.name}
                 className="rounded-circle border object-fit-cover shadow-sm"
-                style={{ width: '42px', height: '42px', borderColor: '#0284c7' }}
+                style={{ width: '42px', height: '42px', borderColor: '#e2e8f0' }}
               />
             ) : (
               <i className="bi bi-person-badge-fill fs-4" style={{ color: '#0284c7' }}></i>
@@ -588,7 +588,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                   <div className="col-4 col-sm-3 text-center">
                     <div
                       className="rounded-2 border overflow-hidden mx-auto shadow-sm position-relative d-flex align-items-center justify-content-center"
-                      style={{ width: '84px', height: '84px', backgroundColor: '#f8fafc', borderColor: '#0284c7' }}
+                      style={{ width: '84px', height: '84px', backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
                     >
                       {user.avatar ? (
                         <img src={user.avatar} alt={user.name} className="w-100 h-100 object-fit-cover" />

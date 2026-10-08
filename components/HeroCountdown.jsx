@@ -119,7 +119,7 @@ export default function HeroCountdown({ nextConvoy, onOpenAccountModal }) {
                 <div>
                   <span
                     className="badge text-uppercase fw-bold mb-1"
-                    style={{ backgroundColor: '#e0f2fe', color: '#0284c7', border: '1px solid #0284c7' }}
+                    style={{ backgroundColor: '#e0f2fe', color: '#0284c7', border: '1px solid rgba(2, 132, 199, 0.25)' }}
                   >
                     <i className="bi bi-stopwatch-fill me-1"></i> Timetable Countdown
                   </span>

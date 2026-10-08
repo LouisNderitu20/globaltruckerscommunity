@@ -200,7 +200,7 @@ export default function DriverSignup({ onSignupSuccess }) {
                   <div className="d-flex align-items-center gap-3 mb-3">
                     <div
                       className="rounded-3 overflow-hidden border d-flex align-items-center justify-content-center bg-white shadow-sm flex-shrink-0"
-                      style={{ width: '70px', height: '70px', borderColor: '#0284c7' }}
+                      style={{ width: '70px', height: '70px', borderColor: '#e2e8f0' }}
                     >
                       {formData.avatar ? (
                         <img src={formData.avatar} alt="Driver preview" className="w-100 h-100 object-fit-cover" />
@@ -549,7 +549,7 @@ export default function DriverSignup({ onSignupSuccess }) {
                 <div className="col-4 col-sm-3 text-center">
                   <div
                     className="rounded-2 bg-light border d-flex align-items-center justify-content-center overflow-hidden mx-auto shadow-sm"
-                    style={{ width: '84px', height: '84px', borderColor: '#0284c7' }}
+                    style={{ width: '84px', height: '84px', borderColor: '#e2e8f0' }}
                   >
                     {formData.avatar ? (
                       <img

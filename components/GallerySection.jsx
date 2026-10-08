@@ -88,7 +88,7 @@ export default function GallerySection({ gallery }) {
           >
             <div
               className="card bg-white shadow-lg overflow-hidden position-relative"
-              style={{ maxWidth: '900px', width: '100%', borderColor: '#0284c7' }}
+              style={{ maxWidth: '900px', width: '100%', borderColor: '#e2e8f0' }}
               onClick={(e) => e.stopPropagation()}
             >
               <button

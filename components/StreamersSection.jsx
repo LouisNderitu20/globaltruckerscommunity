@@ -29,8 +29,8 @@ export default function StreamersSection({ streamers }) {
                     style={{
                       width: '60px',
                       height: '50px',
-                      backgroundColor: 'rgba(2, 132, 199, 0.15)',
-                      borderColor: '#0284c7',
+                      backgroundColor: 'rgba(2, 132, 199, 0.08)',
+                      borderColor: '#e2e8f0',
                       color: '#0284c7'
                     }}
                   >

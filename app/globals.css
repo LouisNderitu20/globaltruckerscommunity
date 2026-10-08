@@ -26,10 +26,10 @@
   --text-primary: #17181c;
   --text-secondary: #475569;
   --text-muted: #64748b;
-  --border-color: #0284c7;
-  --border-hover: #0369a1;
+  --border-color: #e2e8f0;
+  --border-hover: #cbd5e1;
   --glass-bg: rgba(255, 255, 255, 0.94);
-  --glass-border: #0284c7;
+  --glass-border: #e2e8f0;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.08);
@@ -44,9 +44,9 @@
   --bs-primary-rgb: 2, 132, 199;
   --bs-warning: #0284c7;
   --bs-warning-rgb: 2, 132, 199;
-  --bs-border-color: #0284c7;
+  --bs-border-color: #e2e8f0;
   --bs-card-bg: #ffffff;
-  --bs-card-border-color: #0284c7;
+  --bs-card-border-color: #e2e8f0;
   --bs-card-color: #17181c;
 }
 
@@ -92,8 +92,8 @@ body {
 
 .glass, .master-card, .main-container {
   background: #ffffff !important;
-  border: 1.5px solid #0284c7 !important;
-  box-shadow: 0 4px 20px rgba(2, 132, 199, 0.08) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
   border-radius: 12px;
 }
 
@@ -164,29 +164,30 @@ body {
 
 .btn-outline-secondary {
   color: #475569 !important;
-  border-color: #0284c7 !important;
+  border-color: #cbd5e1 !important;
 }
 .btn-outline-secondary:hover {
   background-color: #f1f5f9 !important;
   color: #17181c !important;
+  border-color: #94a3b8 !important;
 }
 
 .badge-gold {
-  background: rgba(2, 132, 199, 0.12) !important;
+  background: rgba(2, 132, 199, 0.08) !important;
   color: #0284c7 !important;
-  border: 1px solid #0284c7 !important;
+  border: 1px solid rgba(2, 132, 199, 0.22) !important;
 }
 
 .badge-blue {
-  background: rgba(2, 132, 199, 0.12) !important;
+  background: rgba(2, 132, 199, 0.08) !important;
   color: #0284c7 !important;
-  border: 1px solid #0284c7 !important;
+  border: 1px solid rgba(2, 132, 199, 0.22) !important;
 }
 
 .badge-green {
-  background: rgba(16, 185, 129, 0.12) !important;
+  background: rgba(16, 185, 129, 0.08) !important;
   color: #059669 !important;
-  border: 1px solid #10b981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.25) !important;
 }
 
 .rounded-pill {
@@ -227,12 +228,12 @@ body {
 
 .driver-license-card {
   background: #ffffff;
-  border: 1.5px solid #0284c7;
+  border: 1px solid #e2e8f0;
   border-radius: 14px;
   padding: 24px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 18px rgba(2, 132, 199, 0.1);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
   color: #17181c;
 }
 
@@ -246,10 +247,10 @@ body {
   right: 24px;
   z-index: 1090;
   background: #ffffff;
-  border: 1px solid #0284c7;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 14px 20px;
-  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   color: #17181c;
   font-weight: 600;
   display: flex;
@@ -271,7 +272,7 @@ body {
 
 .modal-content-custom {
   background: #ffffff;
-  border: 1.5px solid #0284c7;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
   max-width: 680px;
   width: 100%;

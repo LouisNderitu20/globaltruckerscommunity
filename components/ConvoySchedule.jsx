@@ -73,7 +73,7 @@ export default function ConvoySchedule({ planner, activeSlot, onSelectSlot }) {
           </a>
         </div>
 
-        <div className="card shadow-sm overflow-hidden mb-4" style={{ border: '1.5px solid #0284c7', borderRadius: '10px' }}>
+        <div className="card shadow-sm overflow-hidden mb-4" style={{ border: '1px solid #e2e8f0', borderRadius: '10px' }}>
           
           <div
             className="px-4 py-3 d-flex flex-wrap align-items-center justify-content-between gap-2"
@@ -92,7 +92,7 @@ export default function ConvoySchedule({ planner, activeSlot, onSelectSlot }) {
             <table
               className="table table-bordered mb-0 text-center align-middle"
               style={{
-                borderColor: '#cbdfe9',
+                borderColor: '#e2e8f0',
                 minWidth: '780px',
                 tableLayout: 'fixed'
               }}
@@ -107,7 +107,7 @@ export default function ConvoySchedule({ planner, activeSlot, onSelectSlot }) {
                       padding: '12px 6px',
                       fontWeight: 800,
                       letterSpacing: '0.5px',
-                      borderRight: '1px solid #cbdfe9'
+                      borderRight: '1px solid #e2e8f0'
                     }}
                   >
                     TIME (EAT / UTC)
@@ -121,7 +121,7 @@ export default function ConvoySchedule({ planner, activeSlot, onSelectSlot }) {
                         padding: '12px 6px',
                         fontWeight: 800,
                         letterSpacing: '1px',
-                        borderRight: '1px solid #cbdfe9'
+                        borderRight: '1px solid #e2e8f0'
                       }}
                     >
                       {day}
@@ -145,7 +145,7 @@ export default function ConvoySchedule({ planner, activeSlot, onSelectSlot }) {
                         style={{
                           backgroundColor: '#ffffff',
                           padding: '10px 6px',
-                          borderRight: '1px solid #cbdfe9'
+                          borderRight: '1px solid #e2e8f0'
                         }}
                       >
                         <div className="fw-bolder" style={{ color: '#0284c7', fontSize: '0.92rem' }}>
@@ -167,7 +167,7 @@ export default function ConvoySchedule({ planner, activeSlot, onSelectSlot }) {
                                 backgroundColor: '#ffffff',
                                 height: '54px',
                                 padding: '8px 4px',
-                                borderRight: '1px solid #cbdfe9'
+                                borderRight: '1px solid #e2e8f0'
                               }}
                             ></td>
                           );
@@ -192,7 +192,7 @@ export default function ConvoySchedule({ planner, activeSlot, onSelectSlot }) {
                               backgroundColor: isCurrentSlot ? '#e0f2fe' : (isReminded ? '#f0fdf4' : '#ffffff'),
                               padding: '8px 4px',
                               cursor: 'pointer',
-                              borderRight: '1px solid #cbdfe9',
+                              borderRight: '1px solid #e2e8f0',
                               border: isCurrentSlot ? '2px solid #0284c7' : undefined,
                               transition: 'all 0.15s ease'
                             }}

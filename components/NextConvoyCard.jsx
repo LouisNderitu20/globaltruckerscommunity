@@ -504,7 +504,7 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
                               src={att.avatar}
                               alt={att.name}
                               className="rounded-circle object-fit-cover border shadow-sm"
-                              style={{ width: '40px', height: '40px', borderColor: '#0284c7' }}
+                              style={{ width: '40px', height: '40px', borderColor: '#e2e8f0' }}
                             />
                           ) : (
                             <div

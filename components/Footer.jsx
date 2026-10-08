@@ -12,7 +12,7 @@ export default function Footer({ config }) {
   const discordUrl = config?.discordUrl || 'https://discord.gg/NMucFhYaaY';
 
   return (
-    <footer className="bg-white border-top pt-5 pb-4 mt-5" style={{ borderColor: '#0284c7' }}>
+    <footer className="bg-white border-top pt-5 pb-4 mt-5" style={{ borderColor: '#e2e8f0' }}>
       <div className="container">
         <div className="row g-4 mb-4">
           

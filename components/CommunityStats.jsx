@@ -261,7 +261,7 @@ export default function CommunityStats({ onOpenLogHaulModal }) {
           </div>
 
           {selectedCountryData && (
-            <div className="mt-3 p-3 rounded-2 bg-light border shadow-sm" style={{ borderColor: '#0284c7' }}>
+            <div className="mt-3 p-3 rounded-2 bg-light border shadow-sm" style={{ borderColor: '#e2e8f0' }}>
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <span className="small text-secondary fw-bold text-uppercase" style={{ fontSize: '0.72rem' }}>
                   <i className="bi bi-people-fill text-primary me-1"></i> Drivers Registered from {selectedCountryData.name} ({selectedCountryData.count}):
