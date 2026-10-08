@@ -244,6 +244,91 @@ body {
   }
 }
 
+/* 3D Flippable Driver License Card */
+.license-card-scene {
+  perspective: 1400px;
+  width: 100%;
+}
+
+.license-card-flipper {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  transform-style: preserve-3d;
+  transition: transform 0.65s cubic-bezier(0.25, 1, 0.5, 1);
+  width: 100%;
+  position: relative;
+}
+
+.license-card-flipper.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.license-card-face {
+  grid-area: 1 / 1 / 2 / 2;
+  width: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: 14px;
+  transition: opacity 0.3s ease;
+}
+
+.license-card-face.license-card-front {
+  transform: rotateY(0deg);
+}
+
+.license-card-face.license-card-back {
+  transform: rotateY(180deg);
+}
+
+/* Backface & Flip controls */
+.btn-flip-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(2, 132, 199, 0.3);
+  background: rgba(2, 132, 199, 0.06);
+  color: #0284c7;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-flip-card:hover {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  transform: scale(1.03);
+}
+
+.license-tenure-banner {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%);
+  border: 1px solid rgba(2, 132, 199, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.license-barcode-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 28px;
+  opacity: 0.75;
+  user-select: none;
+}
+
+.license-barcode-line {
+  display: inline-block;
+  height: 100%;
+  background-color: #1e293b;
+}
+
 .license-hologram-strip {
   display: none !important;
 }

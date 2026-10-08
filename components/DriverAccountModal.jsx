@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth, ROLE_INFO, ROLES } from '@/lib/authContext';
-import { GTC_COUNTRIES, GTC_TRUCKS, isValidStreamerUrl } from '@/lib/defaultConfig';
+import { GTC_COUNTRIES, GTC_TRUCKS, isValidStreamerUrl, calculateMemberTenure, getAuthorizedTrucks, getPermanentLicenseNumber } from '@/lib/defaultConfig';
 import PhotoCustomizerModal from './PhotoCustomizerModal';
 
 export default function DriverAccountModal({ isOpen, onClose, initialTab = 'profile' }) {
@@ -23,6 +23,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState(user ? initialTab : 'login');
+  const [isLicenseFlipped, setIsLicenseFlipped] = useState(false);
 
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
@@ -618,164 +619,369 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
             </div>
           )}
 
-          {user && activeTab === 'profile' && (
-            <div className="d-flex flex-column gap-4">
-              <div className="driver-license-card">
-                <div className="license-hologram-strip"></div>
+          {user && activeTab === 'profile' && (() => {
+            const permanentLicense = user.licenseNumber || getPermanentLicenseNumber(user);
+            const tenureInfo = calculateMemberTenure(user.joinedAt || user.joined_at || user.submitted_at);
+            const truckInfo = getAuthorizedTrucks(user);
 
-                <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
-                  <div className="d-flex align-items-center gap-2">
-                    <i className="bi bi-truck fs-4 text-warning"></i>
-                    <div>
-                      <div className="fw-extrabold text-dark small lh-1">GLOBAL TRUCKERS COMMUNITY</div>
-                      <div className="fw-bold text-uppercase" style={{ fontSize: '0.65rem', color: '#0284c7' }}>
-                        OFFICIAL DRIVER CREDENTIAL
-                      </div>
-                    </div>
-                  </div>
-                  <i className="bi bi-patch-check-fill fs-5" style={{ color: '#0284c7' }}></i>
-                </div>
-
-                <div className="row g-3 align-items-center mb-3">
-                  <div className="col-12 col-sm-4 col-md-3 text-center mb-2 mb-sm-0">
-                    <div
-                      className="rounded-2 border overflow-hidden mx-auto shadow-sm position-relative d-flex align-items-center justify-content-center"
-                      style={{ width: '84px', height: '84px', backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
-                    >
-                      {user.avatar ? (
-                        <img src={user.avatar} alt={user.name} className="w-100 h-100 object-fit-cover" />
-                      ) : (
-                        <i className="bi bi-person fs-1" style={{ color: '#0284c7' }}></i>
-                      )}
-                    </div>
-
-                    <div className="d-flex flex-column gap-1 mt-2">
-                      <label className="btn btn-outline-warning btn-sm fw-bold w-100 py-1" style={{ fontSize: '0.68rem' }}>
-                        <i className="bi bi-camera-fill me-1"></i> {user.avatar ? 'Change Photo' : 'Upload Photo'}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="d-none"
-                          onChange={handleAvatarChange}
-                        />
-                      </label>
-                      {user.avatar && (
-                        <button
-                          type="button"
-                          onClick={handleOpenCustomizer}
-                          className="btn btn-outline-primary btn-sm fw-bold w-100 py-1"
-                          style={{ fontSize: '0.68rem' }}
-                        >
-                          <i className="bi bi-crop me-1"></i> Crop &amp; Adjust
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="col-12 col-sm-8 col-md-9 text-center text-sm-start">
-                    <div className="row g-2">
-                      <div className="col-6">
-                        <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>CALLSIGN</span>
-                        <strong className="text-dark small d-block">{user.name}</strong>
-                      </div>
-                      <div className="col-6">
-                        <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>ROLE</span>
-                        <div className="d-flex flex-wrap gap-1">
-                          {((user.roles && user.roles.length > 0) ? user.roles : [user.role || 'driver']).map((rKey) => {
-                            const rInfo = ROLE_INFO[rKey] || ROLE_INFO.driver;
-                            return (
-                              <span key={rKey} className={`badge ${rInfo.badgeClass} small`} style={rInfo.style}>
-                                <i className={`${rInfo.iconClass} me-1`}></i> {rInfo.label}
-                              </span>
-                            );
-                          })}
+            return (
+              <div className="d-flex flex-column gap-4">
+                {/* 3D Flippable Driver License */}
+                <div className="license-card-scene">
+                  <div className={`license-card-flipper ${isLicenseFlipped ? 'is-flipped' : ''}`}>
+                    {/* FRONT FACE */}
+                    <div className="license-card-face license-card-front driver-license-card">
+                      <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
+                        <div className="d-flex align-items-center gap-2">
+                          <i className="bi bi-truck fs-4 text-warning"></i>
+                          <div>
+                            <div className="fw-extrabold text-dark small lh-1">GLOBAL TRUCKERS COMMUNITY</div>
+                            <div className="fw-bold text-uppercase" style={{ fontSize: '0.65rem', color: '#0284c7' }}>
+                              OFFICIAL DRIVER CREDENTIAL (FRONT)
+                            </div>
+                          </div>
+                        </div>
+                        <div className="d-flex align-items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setIsLicenseFlipped(true)}
+                            className="btn-flip-card shadow-sm"
+                            title="Flip to view Authorized Trucks & Tenure"
+                          >
+                            <i className="bi bi-arrow-repeat"></i> Flip Card ↺
+                          </button>
+                          <i className="bi bi-patch-check-fill fs-5" style={{ color: '#0284c7' }}></i>
                         </div>
                       </div>
-                      <div className="col-6">
-                        <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>LICENSE NO.</span>
-                        <span className="fw-bold small text-dark">{user.licenseNumber || 'GTC-DL-2026-001'}</span>
+
+                      <div className="row g-3 align-items-center mb-3">
+                        <div className="col-12 col-sm-4 col-md-3 text-center mb-2 mb-sm-0">
+                          <div
+                            className="rounded-2 border overflow-hidden mx-auto shadow-sm position-relative d-flex align-items-center justify-content-center"
+                            style={{ width: '84px', height: '84px', backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
+                          >
+                            {user.avatar ? (
+                              <img src={user.avatar} alt={user.name} className="w-100 h-100 object-fit-cover" />
+                            ) : (
+                              <i className="bi bi-person fs-1" style={{ color: '#0284c7' }}></i>
+                            )}
+                          </div>
+
+                          <div className="d-flex flex-column gap-1 mt-2">
+                            <label className="btn btn-outline-warning btn-sm fw-bold w-100 py-1" style={{ fontSize: '0.68rem' }}>
+                              <i className="bi bi-camera-fill me-1"></i> {user.avatar ? 'Change Photo' : 'Upload Photo'}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="d-none"
+                                onChange={handleAvatarChange}
+                              />
+                            </label>
+                            {user.avatar && (
+                              <button
+                                type="button"
+                                onClick={handleOpenCustomizer}
+                                className="btn btn-outline-primary btn-sm fw-bold w-100 py-1"
+                                style={{ fontSize: '0.68rem' }}
+                              >
+                                <i className="bi bi-crop me-1"></i> Crop &amp; Adjust
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="col-12 col-sm-8 col-md-9 text-center text-sm-start">
+                          <div className="row g-2">
+                            <div className="col-6">
+                              <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>CALLSIGN</span>
+                              <strong className="text-dark small d-block">{user.name}</strong>
+                            </div>
+                            <div className="col-6">
+                              <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>ROLE</span>
+                              <div className="d-flex flex-wrap gap-1">
+                                {((user.roles && user.roles.length > 0) ? user.roles : [user.role || 'driver']).map((rKey) => {
+                                  const rInfo = ROLE_INFO[rKey] || ROLE_INFO.driver;
+                                  return (
+                                    <span key={rKey} className={`badge ${rInfo.badgeClass} small`} style={rInfo.style}>
+                                      <i className={`${rInfo.iconClass} me-1`}></i> {rInfo.label}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <div className="col-6">
+                              <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>LICENSE NO. (PERMANENT)</span>
+                              <span className="fw-bold small text-dark">{permanentLicense}</span>
+                            </div>
+                            <div className="col-6">
+                              <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>TRUCKERSMP ID</span>
+                              <span className="small fw-semibold text-dark">{user.tmpId || 'Not Linked'}</span>
+                            </div>
+                            <div className="col-6">
+                              <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>COUNTRY</span>
+                              <span className="small fw-semibold text-dark">{user.country || 'Kenya'}</span>
+                            </div>
+                            <div className="col-6">
+                              <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>ASSIGNED TRUCK</span>
+                              <span className="small text-secondary">{user.truck || 'Scania S730'}</span>
+                            </div>
+                            <div className="col-6">
+                              <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>STATUS</span>
+                              <span className="badge bg-success small">Verified Active</span>
+                            </div>
+                            <div className="col-6">
+                              <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>TENURE</span>
+                              <span className="badge bg-primary-subtle text-primary small">{tenureInfo.tenureText}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="col-6">
-                        <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>TRUCKERSMP ID</span>
-                        <span className="small fw-semibold text-dark">{user.tmpId || 'Not Linked'}</span>
+
+                      {user.isStreamer && user.streamerUrl && isValidStreamerUrl(user.streamerUrl, user.streamerPlatform) && (
+                        <div className="p-2 rounded-2 bg-light border mb-3 d-flex align-items-center justify-content-between" style={{ borderColor: '#ec4899' }}>
+                          <div className="d-flex align-items-center gap-2">
+                            <i className="bi bi-broadcast text-danger fs-5"></i>
+                            <div>
+                              <strong className="small text-dark d-block">Verified Community Streamer</strong>
+                              <span className="small text-secondary">{user.streamerPlatform || 'Streaming Partner'}</span>
+                            </div>
+                          </div>
+                          {user.streamerUrl && (
+                            <a href={user.streamerUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-danger py-0 px-2 small">
+                              View Channel
+                            </a>
+                          )}
+                        </div>
+                      )}
+
+                      {(user.isDevModder || user.role === 'dev_modder') && (
+                        <div className="p-2 rounded-2 bg-light border mb-3 d-flex align-items-center justify-content-between" style={{ borderColor: '#e2e8f0' }}>
+                          <div className="d-flex align-items-center gap-2">
+                            <i className="bi bi-code-slash text-primary fs-5"></i>
+                            <div>
+                              <strong className="small text-dark d-block">Verified Dev | Modder</strong>
+                              <span className="small text-secondary">{user.devSpecialty || 'Community Tools & Modding Contributor'}</span>
+                            </div>
+                          </div>
+                          <span className="badge text-white rounded-1" style={{ backgroundColor: '#0284c7' }}>
+                            Mod Specialist
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="d-flex justify-content-between align-items-center pt-2 border-top small text-secondary flex-wrap gap-2">
+                        <span>Issued: {tenureInfo.joinDateDisplay}</span>
+                        <div className="d-flex align-items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setIsLicenseFlipped(true)}
+                            className="btn btn-sm btn-outline-info py-0 px-2 fw-bold"
+                            style={{ fontSize: '0.75rem' }}
+                          >
+                            <i className="bi bi-arrow-repeat me-1"></i> View Trucks &amp; Tenure (Back) &rarr;
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('edit')}
+                            className="btn btn-sm btn-outline-primary py-0 px-2 fw-bold"
+                            style={{ borderColor: '#0284c7', color: '#0284c7', fontSize: '0.75rem' }}
+                          >
+                            <i className="bi bi-pencil-square me-1"></i> Edit Profile Details
+                          </button>
+                        </div>
                       </div>
-                      <div className="col-6">
-                        <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>COUNTRY</span>
-                        <span className="small fw-semibold text-dark">{user.country || 'Kenya'}</span>
+                    </div>
+
+                    {/* BACK FACE */}
+                    <div className="license-card-face license-card-back driver-license-card">
+                      <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
+                        <div className="d-flex align-items-center gap-2">
+                          <i className="bi bi-shield-shaded fs-4 text-primary"></i>
+                          <div>
+                            <div className="fw-extrabold text-dark small lh-1">GLOBAL TRUCKERS COMMUNITY</div>
+                            <div className="fw-bold text-uppercase" style={{ fontSize: '0.65rem', color: '#10b981' }}>
+                              AUTHORIZED FLEET &amp; TENURE RECORD (REVERSE)
+                            </div>
+                          </div>
+                        </div>
+                        <div className="d-flex align-items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setIsLicenseFlipped(false)}
+                            className="btn-flip-card shadow-sm"
+                            title="Flip to Front of License"
+                          >
+                            <i className="bi bi-arrow-repeat"></i> Flip to Front ⟲
+                          </button>
+                          <span className="badge bg-secondary-subtle text-secondary small font-monospace">{permanentLicense}</span>
+                        </div>
                       </div>
-                      <div className="col-6">
-                        <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>TRUCK</span>
-                        <span className="small text-secondary">{user.truck || 'Scania S730'}</span>
+
+                      {/* 1. MEMBERSHIP TENURE & SERVICE */}
+                      <div className="license-tenure-banner mb-3 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                        <div className="d-flex align-items-center gap-2">
+                          <i className="bi bi-calendar2-check-fill text-primary fs-5"></i>
+                          <div>
+                            <strong className="text-dark small d-block">{tenureInfo.tagline}</strong>
+                            <span className="text-secondary" style={{ fontSize: '0.72rem' }}>
+                              Enlisted: <strong>{tenureInfo.joinDateDisplay}</strong> • Active Good Standing ({tenureInfo.days} days service)
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="badge bg-success small py-1 px-2">
+                            <i className="bi bi-check2-circle me-1"></i> {tenureInfo.badge}
+                          </span>
+                        </div>
                       </div>
-                      <div className="col-6">
-                        <span className="small text-muted d-block" style={{ fontSize: '0.7rem' }}>STATUS</span>
-                        <span className="badge bg-success small">Verified Active</span>
+
+                      {/* 2. AUTHORIZED TRUCKS HE/SHE CAN DRIVE */}
+                      <div className="mb-3">
+                        <div className="d-flex align-items-center justify-content-between mb-2">
+                          <span className="small fw-bold text-uppercase text-secondary" style={{ fontSize: '0.7rem' }}>
+                            <i className="bi bi-truck-front-fill me-1 text-primary"></i> AUTHORIZED TRUCKS &amp; FLEET RATINGS
+                          </span>
+                          <span className="badge bg-primary-subtle text-primary small" style={{ fontSize: '0.65rem' }}>
+                            Primary Rig: {truckInfo.primaryTruck}
+                          </span>
+                        </div>
+
+                        <div className="p-2 rounded-2 bg-light border mb-2" style={{ borderColor: '#e2e8f0' }}>
+                          {truckInfo.hasETS2 && (
+                            <div className="mb-2 pb-2 border-bottom" style={{ borderColor: '#e2e8f0' }}>
+                              <div className="d-flex align-items-center justify-content-between mb-1">
+                                <span className="small fw-bold text-dark">
+                                  <i className="bi bi-check-circle-fill text-success me-1"></i> Euro Truck Simulator 2 (European Fleet):
+                                </span>
+                                <span className="badge bg-primary text-white" style={{ fontSize: '0.6rem' }}>ETS 2 Class 1 HGV</span>
+                              </div>
+                              <div className="small text-secondary" style={{ fontSize: '0.72rem', lineHeight: '1.4' }}>
+                                Authorized to operate: <strong>Scania S730 / 770S V8</strong>, <strong>Volvo FH16 750</strong>, <strong>Mercedes-Benz New Actros</strong>, <strong>MAN TGX Lion S</strong>, <strong>DAF XG+ / XF</strong>, <strong>Renault T High</strong>, and <strong>Iveco S-Way</strong>.
+                              </div>
+                            </div>
+                          )}
+
+                          {truckInfo.hasATS && (
+                            <div className="mb-1">
+                              <div className="d-flex align-items-center justify-content-between mb-1">
+                                <span className="small fw-bold text-dark">
+                                  <i className="bi bi-check-circle-fill text-success me-1"></i> American Truck Simulator (US Conventional Fleet):
+                                </span>
+                                <span className="badge bg-success text-white" style={{ fontSize: '0.6rem' }}>ATS Class-A CDL</span>
+                              </div>
+                              <div className="small text-secondary" style={{ fontSize: '0.72rem', lineHeight: '1.4' }}>
+                                Authorized to operate: <strong>Peterbilt 389 / 579</strong>, <strong>Kenworth W900 / T680</strong>, <strong>Freightliner Cascadia</strong>, <strong>Western Star 49X / 57X</strong>, <strong>Mack Anthem</strong>, and <strong>International LT</strong>.
+                              </div>
+                            </div>
+                          )}
+
+                          {!truckInfo.hasATS && (
+                            <div className="small text-muted" style={{ fontSize: '0.7rem' }}>
+                              <i className="bi bi-info-circle me-1"></i> ATS Conventional endorsement available by enabling ATS in your profile settings.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 3. ENDORSEMENTS & SPECIAL TRANSPORT PERMITS */}
+                      <div className="mb-3">
+                        <span className="small fw-bold text-uppercase text-secondary d-block mb-2" style={{ fontSize: '0.7rem' }}>
+                          <i className="bi bi-patch-check me-1 text-warning"></i> SPECIALIZED ENDORSEMENT RATINGS
+                        </span>
+                        <div className="d-flex flex-wrap gap-1">
+                          {truckInfo.endorsements.map((end) => (
+                            <span
+                              key={end.code}
+                              className="badge bg-white text-dark border px-2 py-1 shadow-sm"
+                              style={{ borderColor: '#cbd5e1', fontSize: '0.68rem' }}
+                              title={end.desc}
+                            >
+                              <strong className="text-primary me-1">{end.code}:</strong> {end.title}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 4. DIGITAL SECURITY SEAL & BARCODE */}
+                      <div className="p-2 rounded-2 bg-light border text-center mb-3" style={{ borderColor: '#e2e8f0' }}>
+                        <svg width="180" height="24" viewBox="0 0 180 24" className="mx-auto d-block opacity-75">
+                          <rect x="0" y="0" width="3" height="24" fill="#1e293b" />
+                          <rect x="5" y="0" width="2" height="24" fill="#1e293b" />
+                          <rect x="9" y="0" width="4" height="24" fill="#1e293b" />
+                          <rect x="15" y="0" width="1" height="24" fill="#1e293b" />
+                          <rect x="18" y="0" width="3" height="24" fill="#1e293b" />
+                          <rect x="23" y="0" width="2" height="24" fill="#1e293b" />
+                          <rect x="27" y="0" width="4" height="24" fill="#1e293b" />
+                          <rect x="33" y="0" width="1" height="24" fill="#1e293b" />
+                          <rect x="36" y="0" width="3" height="24" fill="#1e293b" />
+                          <rect x="42" y="0" width="2" height="24" fill="#1e293b" />
+                          <rect x="46" y="0" width="3" height="24" fill="#1e293b" />
+                          <rect x="51" y="0" width="1" height="24" fill="#1e293b" />
+                          <rect x="54" y="0" width="4" height="24" fill="#1e293b" />
+                          <rect x="60" y="0" width="2" height="24" fill="#1e293b" />
+                          <rect x="64" y="0" width="3" height="24" fill="#1e293b" />
+                          <rect x="69" y="0" width="1" height="24" fill="#1e293b" />
+                          <rect x="72" y="0" width="4" height="24" fill="#1e293b" />
+                          <rect x="78" y="0" width="2" height="24" fill="#1e293b" />
+                          <rect x="82" y="0" width="3" height="24" fill="#1e293b" />
+                          <rect x="87" y="0" width="2" height="24" fill="#1e293b" />
+                          <rect x="91" y="0" width="4" height="24" fill="#1e293b" />
+                          <rect x="97" y="0" width="1" height="24" fill="#1e293b" />
+                          <rect x="100" y="0" width="3" height="24" fill="#1e293b" />
+                          <rect x="105" y="0" width="2" height="24" fill="#1e293b" />
+                          <rect x="109" y="0" width="4" height="24" fill="#1e293b" />
+                          <rect x="115" y="0" width="1" height="24" fill="#1e293b" />
+                          <rect x="118" y="0" width="3" height="24" fill="#1e293b" />
+                          <rect x="123" y="0" width="2" height="24" fill="#1e293b" />
+                          <rect x="127" y="0" width="4" height="24" fill="#1e293b" />
+                          <rect x="133" y="0" width="2" height="24" fill="#1e293b" />
+                          <rect x="137" y="0" width="3" height="24" fill="#1e293b" />
+                          <rect x="142" y="0" width="1" height="24" fill="#1e293b" />
+                          <rect x="145" y="0" width="4" height="24" fill="#1e293b" />
+                          <rect x="151" y="0" width="2" height="24" fill="#1e293b" />
+                          <rect x="155" y="0" width="3" height="24" fill="#1e293b" />
+                          <rect x="160" y="0" width="2" height="24" fill="#1e293b" />
+                          <rect x="164" y="0" width="4" height="24" fill="#1e293b" />
+                          <rect x="170" y="0" width="2" height="24" fill="#1e293b" />
+                          <rect x="174" y="0" width="3" height="24" fill="#1e293b" />
+                          <rect x="178" y="0" width="2" height="24" fill="#1e293b" />
+                        </svg>
+                        <div className="font-monospace text-muted mt-1" style={{ fontSize: '0.68rem', letterSpacing: '0.12em' }}>
+                          *{permanentLicense}* • GTC-ID: {user.id}
+                        </div>
+                      </div>
+
+                      <div className="d-flex justify-content-between align-items-center pt-2 border-top small text-secondary">
+                        <button
+                          type="button"
+                          onClick={() => setIsLicenseFlipped(false)}
+                          className="btn btn-sm btn-outline-primary w-100 py-1 fw-bold"
+                          style={{ borderColor: '#0284c7', color: '#0284c7', fontSize: '0.75rem' }}
+                        >
+                          <i className="bi bi-arrow-repeat me-1"></i> Flip Back to Front License &larr;
+                        </button>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {user.isStreamer && user.streamerUrl && isValidStreamerUrl(user.streamerUrl, user.streamerPlatform) && (
-                  <div className="p-2 rounded-2 bg-light border mb-3 d-flex align-items-center justify-content-between" style={{ borderColor: '#ec4899' }}>
-                    <div className="d-flex align-items-center gap-2">
-                      <i className="bi bi-broadcast text-danger fs-5"></i>
-                      <div>
-                        <strong className="small text-dark d-block">Verified Community Streamer</strong>
-                        <span className="small text-secondary">{user.streamerPlatform || 'Streaming Partner'}</span>
-                      </div>
+                <div className="row g-3">
+                  <div className="col-6">
+                    <div className="p-3 rounded-3 bg-white border text-center shadow-sm" style={{ borderColor: '#e2e8f0' }}>
+                      <span className="small text-secondary fw-bold text-uppercase d-block mb-1">Total Hauled</span>
+                      <span className="fs-4 fw-extrabold text-dark">{((user.kms || 0)).toLocaleString()} km</span>
                     </div>
-                    {user.streamerUrl && (
-                      <a href={user.streamerUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-danger py-0 px-2 small">
-                        View Channel
-                      </a>
-                    )}
                   </div>
-                )}
-
-                {(user.isDevModder || user.role === 'dev_modder') && (
-                  <div className="p-2 rounded-2 bg-light border mb-3 d-flex align-items-center justify-content-between" style={{ borderColor: '#e2e8f0' }}>
-                    <div className="d-flex align-items-center gap-2">
-                      <i className="bi bi-code-slash text-primary fs-5"></i>
-                      <div>
-                        <strong className="small text-dark d-block">Verified Dev | Modder</strong>
-                        <span className="small text-secondary">{user.devSpecialty || 'Community Tools & Modding Contributor'}</span>
-                      </div>
+                  <div className="col-6">
+                    <div className="p-3 rounded-3 bg-white border text-center shadow-sm" style={{ borderColor: '#e2e8f0' }}>
+                      <span className="small text-secondary fw-bold text-uppercase d-block mb-1">Deliveries</span>
+                      <span className="fs-4 fw-extrabold text-dark">{user.deliveries || 0}</span>
                     </div>
-                    <span className="badge text-white rounded-1" style={{ backgroundColor: '#0284c7' }}>
-                      Mod Specialist
-                    </span>
                   </div>
-                )}
-
-                <div className="d-flex justify-content-between align-items-center pt-2 border-top small text-secondary">
-                  <span>Issued: {user.joinedAt || '2026'}</span>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('edit')}
-                    className="btn btn-sm btn-outline-primary py-0 px-2 fw-bold"
-                    style={{ borderColor: '#0284c7', color: '#0284c7', fontSize: '0.75rem' }}
-                  >
-                    <i className="bi bi-pencil-square me-1"></i> Edit Profile Details
-                  </button>
                 </div>
               </div>
-
-              <div className="row g-3">
-                <div className="col-6">
-                  <div className="p-3 rounded-3 bg-white border text-center shadow-sm" style={{ borderColor: '#e2e8f0' }}>
-                    <span className="small text-secondary fw-bold text-uppercase d-block mb-1">Total Hauled</span>
-                    <span className="fs-4 fw-extrabold text-dark">{((user.kms || 0)).toLocaleString()} km</span>
-                  </div>
-                </div>
-                <div className="col-6">
-                  <div className="p-3 rounded-3 bg-white border text-center shadow-sm" style={{ borderColor: '#e2e8f0' }}>
-                    <span className="small text-secondary fw-bold text-uppercase d-block mb-1">Deliveries</span>
-                    <span className="fs-4 fw-extrabold text-dark">{user.deliveries || 0}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {user && activeTab === 'edit' && (
             <div>

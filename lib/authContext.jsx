@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabaseContent } from '@/lib/supabase';
-import { isValidGtcCountry, isValidGtcTruck, isValidStreamerUrl, normalizeStreamerUrl } from '@/lib/defaultConfig';
+import { isValidGtcCountry, isValidGtcTruck, isValidStreamerUrl, normalizeStreamerUrl, getPermanentLicenseNumber } from '@/lib/defaultConfig';
 
 const AuthContext = createContext();
 
@@ -271,18 +271,84 @@ export function AuthProvider({ children }) {
             parsed.push(seed);
           }
         });
-        setAllDrivers(parsed);
-        localStorage.setItem('gtc_registered_drivers', JSON.stringify(parsed));
+        const withLicenses = parsed.map((d) => ({
+          ...d,
+          licenseNumber: d.licenseNumber || getPermanentLicenseNumber(d)
+        }));
+        setAllDrivers(withLicenses);
+        localStorage.setItem('gtc_registered_drivers', JSON.stringify(withLicenses));
       } else {
-        setAllDrivers(seedDrivers);
-        localStorage.setItem('gtc_registered_drivers', JSON.stringify(seedDrivers));
+        const seededWithLicenses = seedDrivers.map((d) => ({
+          ...d,
+          licenseNumber: d.licenseNumber || getPermanentLicenseNumber(d)
+        }));
+        setAllDrivers(seededWithLicenses);
+        localStorage.setItem('gtc_registered_drivers', JSON.stringify(seededWithLicenses));
       }
+
+      // Load remote signups from server so real registered users appear system-wide
+      async function loadRemoteDrivers() {
+        try {
+          const res = await fetch('/api/signup', { cache: 'no-store' });
+          const json = await res.json();
+          if (json?.success && Array.isArray(json.signups)) {
+            setAllDrivers((current) => {
+              const currentList = [...current];
+              const idMap = new Map(currentList.map((d) => [d.id, d]));
+              json.signups.forEach((s) => {
+                const permLic = s.license_number || s.licenseNumber || getPermanentLicenseNumber(s.id);
+                const normalized = {
+                  id: s.id,
+                  name: s.name,
+                  email: s.email || '',
+                  role: s.role || (s.driver_type === 'Official Streamer' ? 'streamer' : 'driver'),
+                  roles: Array.isArray(s.roles) && s.roles.length > 0 ? s.roles : [s.role || (s.driver_type === 'Official Streamer' ? 'streamer' : 'driver')],
+                  country: s.country || 'Kenya',
+                  vtc: s.vtc || s.driver_type || 'Independent Solo Driver',
+                  truck: s.truck_brand || 'Scania S730 V8',
+                  games: s.games || ['ETS 2'],
+                  tmpId: s.truckers_mp_id || s.tmp || null,
+                  steamId: s.steam_id || '',
+                  isStreamer: Boolean(s.stream_url),
+                  streamerUrl: s.stream_url || '',
+                  kms: Number(s.kms) || 0,
+                  deliveries: Number(s.deliveries) || 0,
+                  licenseNumber: permLic,
+                  joinedAt: s.joined_at || 'Jan 2026',
+                  avatar: s.avatar || ''
+                };
+                if (!idMap.has(s.id)) {
+                  currentList.push(normalized);
+                  idMap.set(s.id, normalized);
+                } else {
+                  const existing = idMap.get(s.id);
+                  const merged = { ...normalized, ...existing, licenseNumber: existing.licenseNumber || permLic };
+                  const idx = currentList.findIndex((d) => d.id === s.id);
+                  if (idx > -1) currentList[idx] = merged;
+                }
+              });
+              try {
+                localStorage.setItem('gtc_registered_drivers', JSON.stringify(currentList));
+              } catch (e) {}
+              return currentList;
+            });
+          }
+        } catch (e) {}
+      }
+
+      loadRemoteDrivers();
     } catch (e) {}
 
     try {
       const stored = localStorage.getItem('gtc_user_session');
       if (stored) {
-        const activeUser = sanitizeUserRoles(JSON.parse(stored));
+        let activeUser = sanitizeUserRoles(JSON.parse(stored));
+        if (!activeUser.licenseNumber) {
+          activeUser.licenseNumber = getPermanentLicenseNumber(activeUser);
+          try {
+            localStorage.setItem('gtc_user_session', JSON.stringify(activeUser));
+          } catch (e) {}
+        }
         setUser(activeUser);
         loadUserNotifications(activeUser);
         loadUserReminders(activeUser);
@@ -314,7 +380,7 @@ export function AuthProvider({ children }) {
             id: `n-welcome-${u.id}`,
             userId: u.id,
             title: `Welcome Callsign ${u.name}!`,
-            message: `Your driver license (${u.licenseNumber || 'Active'}) is registered. Your personal convoy reminders will appear here.`,
+            message: `Your driver license (${u.licenseNumber || getPermanentLicenseNumber(u)}) is registered. Your personal convoy reminders will appear here.`,
             time: 'Just now',
             read: false,
             type: 'system',
@@ -350,7 +416,10 @@ export function AuthProvider({ children }) {
   };
 
   const saveUserSession = (updatedUser) => {
-    const sanitized = sanitizeUserRoles(updatedUser);
+    let sanitized = sanitizeUserRoles(updatedUser);
+    if (!sanitized.licenseNumber) {
+      sanitized.licenseNumber = getPermanentLicenseNumber(sanitized);
+    }
     setUser(sanitized);
     try {
       localStorage.setItem('gtc_user_session', JSON.stringify(sanitized));
@@ -416,6 +485,8 @@ export function AuthProvider({ children }) {
 
     const newId = 'GTC-' + Math.floor(1000 + Math.random() * 9000);
     const assignedRole = isStreamer ? ROLES.STREAMER : ROLES.DRIVER;
+    const permanentLicense = getPermanentLicenseNumber(newId);
+    const joinDateStr = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
     const newDriver = {
       id: newId,
@@ -437,8 +508,8 @@ export function AuthProvider({ children }) {
       devSpecialty: '',
       kms: 0,
       deliveries: 0,
-      licenseNumber: `GTC-DL-2026-${Math.floor(100 + Math.random() * 900)}`,
-      joinedAt: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+      licenseNumber: permanentLicense,
+      joinedAt: joinDateStr,
       emailRemindersEnabled: true,
       avatar: formData.avatar || formData.photo || ''
     };
@@ -450,7 +521,7 @@ export function AuthProvider({ children }) {
 
     addNotification({
       title: notifTitle,
-      message: `Welcome aboard Callsign ${newDriver.name}! Your GTC ID is ${newDriver.id}. ${newDriver.isStreamer ? 'Streamer partner verification badge unlocked.' : ''} Check the weekly timetable to book your runs.`,
+      message: `Welcome aboard Callsign ${newDriver.name}! Your GTC ID is ${newDriver.id} with License ${permanentLicense}. ${newDriver.isStreamer ? 'Streamer partner verification badge unlocked.' : ''} Check the weekly timetable to book your runs.`,
       type: 'system',
       iconClass: notifIcon
     }, newDriver.id);
@@ -472,6 +543,8 @@ export function AuthProvider({ children }) {
           truckBrand: newDriver.truck,
           avatar: newDriver.avatar,
           role: newDriver.role,
+          licenseNumber: permanentLicense,
+          joinedAt: joinDateStr,
           isStreamer: newDriver.isStreamer,
           streamerPlatform: newDriver.streamerPlatform,
           streamerUrl: newDriver.streamerUrl
@@ -489,7 +562,7 @@ export function AuthProvider({ children }) {
     showToast('Driver profile photo updated!', 'success');
   };
 
-  const loginAccount = (credentials) => {
+  const loginAccount = async (credentials) => {
     let emailOrCallsign = '';
     let password = 'gtc2026';
     if (typeof credentials === 'string') {
@@ -505,12 +578,52 @@ export function AuthProvider({ children }) {
     }
 
     const query = emailOrCallsign.trim().toLowerCase();
-    const target = allDrivers.find(
+    let target = allDrivers.find(
       (d) =>
         d.name?.toLowerCase() === query ||
         d.email?.toLowerCase() === query ||
         d.id?.toLowerCase() === query
     );
+
+    // If driver not in local cache, look up live in remote signups database
+    if (!target) {
+      try {
+        const res = await fetch('/api/signup', { cache: 'no-store' });
+        const json = await res.json();
+        if (json?.success && Array.isArray(json.signups)) {
+          const match = json.signups.find(
+            (s) =>
+              s.name?.toLowerCase() === query ||
+              s.email?.toLowerCase() === query ||
+              s.id?.toLowerCase() === query
+          );
+          if (match) {
+            const permLic = match.license_number || match.licenseNumber || getPermanentLicenseNumber(match.id);
+            target = {
+              id: match.id,
+              name: match.name,
+              email: match.email || '',
+              role: match.role || (match.driver_type === 'Official Streamer' ? 'streamer' : 'driver'),
+              roles: Array.isArray(match.roles) && match.roles.length > 0 ? match.roles : [match.role || 'driver'],
+              country: match.country || 'Kenya',
+              vtc: match.vtc || match.driver_type || 'Independent Solo Driver',
+              truck: match.truck_brand || 'Scania S730 V8',
+              games: match.games || ['ETS 2'],
+              tmpId: match.truckers_mp_id || match.tmp || null,
+              steamId: match.steam_id || '',
+              isStreamer: Boolean(match.stream_url),
+              streamerUrl: match.stream_url || '',
+              kms: Number(match.kms) || 0,
+              deliveries: Number(match.deliveries) || 0,
+              licenseNumber: permLic,
+              joinedAt: match.joined_at || 'Jan 2026',
+              avatar: match.avatar || '',
+              password: 'gtc2026'
+            };
+          }
+        }
+      } catch (e) {}
+    }
 
     if (!target) {
       showToast('No driver account found with this callsign or email.', 'error');
@@ -521,6 +634,11 @@ export function AuthProvider({ children }) {
     if (password.trim() !== expectedPassword && password.trim() !== 'gtc2026' && password.trim() !== 'ADMIN2026') {
       showToast('Incorrect password. Please try again.', 'error');
       return { success: false, error: 'Incorrect password. Please check your credentials.' };
+    }
+
+    // Guarantee deterministic permanent license number is preserved across every login
+    if (!target.licenseNumber) {
+      target.licenseNumber = getPermanentLicenseNumber(target);
     }
 
     saveUserSession(target);

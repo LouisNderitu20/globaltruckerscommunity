@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import DriverAccountModal from '@/components/DriverAccountModal';
-import { DEFAULT_CONFIG } from '@/lib/defaultConfig';
+import { DEFAULT_CONFIG, calculateMemberTenure, getAuthorizedTrucks, getPermanentLicenseNumber } from '@/lib/defaultConfig';
 import { useAuth, ROLE_INFO } from '@/lib/authContext';
 
 export default function StatsPage() {
@@ -15,6 +15,7 @@ export default function StatsPage() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [remoteSignups, setRemoteSignups] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState(null);
+  const [isDriverModalFlipped, setIsDriverModalFlipped] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [accountModalTab, setAccountModalTab] = useState('profile');
 
@@ -320,84 +321,189 @@ export default function StatsPage() {
               </div>
 
               <div className="p-4">
-                <div className="driver-license-card">
-                  <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: 'rgba(2, 132, 199, 0.35)' }}>
-                    <div className="d-flex align-items-center gap-2">
-                      <i className="bi bi-truck fs-4 text-warning"></i>
-                      <div>
-                        <div className="fw-extrabold text-dark small lh-1">GLOBAL TRUCKERS COMMUNITY</div>
-                        <div className="fw-bold text-uppercase" style={{ fontSize: '0.65rem', color: '#0284c7' }}>
-                          VERIFIED TELEMETRY RECORD
+                {(() => {
+                  const permLicense = selectedDriver.licenseNumber || getPermanentLicenseNumber(selectedDriver);
+                  const driverTenure = calculateMemberTenure(selectedDriver.joinedAt || selectedDriver.joined_at || selectedDriver.submitted_at);
+                  const driverTrucks = getAuthorizedTrucks(selectedDriver);
+
+                  return (
+                    <div className="license-card-scene">
+                      <div className={`license-card-flipper ${isDriverModalFlipped ? 'is-flipped' : ''}`}>
+                        {/* FRONT FACE */}
+                        <div className="license-card-face license-card-front driver-license-card">
+                          <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: 'rgba(2, 132, 199, 0.35)' }}>
+                            <div className="d-flex align-items-center gap-2">
+                              <i className="bi bi-truck fs-4 text-warning"></i>
+                              <div>
+                                <div className="fw-extrabold text-dark small lh-1">GLOBAL TRUCKERS COMMUNITY</div>
+                                <div className="fw-bold text-uppercase" style={{ fontSize: '0.65rem', color: '#0284c7' }}>
+                                  VERIFIED TELEMETRY RECORD (FRONT)
+                                </div>
+                              </div>
+                            </div>
+                            <div className="d-flex align-items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setIsDriverModalFlipped(true)}
+                                className="btn-flip-card shadow-sm"
+                              >
+                                <i className="bi bi-arrow-repeat"></i> Flip ↺
+                              </button>
+                              <i className="bi bi-patch-check-fill fs-5" style={{ color: '#0284c7' }}></i>
+                            </div>
+                          </div>
+
+                          <div className="row g-3 align-items-center mb-3">
+                            <div className="col-4 col-sm-3 text-center">
+                              <div
+                                className="rounded-2 border overflow-hidden mx-auto shadow-sm d-flex align-items-center justify-content-center"
+                                style={{ width: '84px', height: '84px', backgroundColor: '#f8fafc', borderColor: '#0284c7' }}
+                              >
+                                {selectedDriver.avatar ? (
+                                  <img
+                                    src={selectedDriver.avatar}
+                                    alt={selectedDriver.name}
+                                    className="w-100 h-100 object-fit-cover"
+                                  />
+                                ) : (
+                                  <i className="bi bi-person fs-1" style={{ color: '#0284c7' }}></i>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="col-8 col-sm-9">
+                              <div className="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                <div className="h5 fw-extrabold text-dark mb-0">{selectedDriver.name}</div>
+                                {((selectedDriver.roles && selectedDriver.roles.length > 0) ? selectedDriver.roles : [selectedDriver.role || 'driver']).map((rKey) => {
+                                  const rInfo = ROLE_INFO[rKey] || ROLE_INFO.driver;
+                                  return (
+                                    <span
+                                      key={rKey}
+                                      className={`badge ${rInfo.badgeClass} small`}
+                                      style={rInfo.style}
+                                    >
+                                      {rInfo.label}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                              <div className="small fw-bold" style={{ color: '#0284c7' }}>VTC: {selectedDriver.vtc || 'Independent'}</div>
+
+                              <div className="small text-secondary mt-1">
+                                <i className="bi bi-person-vcard me-1"></i> License: <strong className="text-dark">{permLicense}</strong>
+                              </div>
+                              <div className="small text-secondary">
+                                <i className="bi bi-geo-alt me-1"></i> Nationality: <strong className="text-dark">{selectedDriver.country}</strong>
+                              </div>
+                              <div className="small text-secondary">
+                                <i className="bi bi-truck me-1"></i> Rig: <strong className="text-dark">{selectedDriver.truck || 'Scania S730'}</strong>
+                              </div>
+                              <div className="small text-secondary">
+                                <i className="bi bi-hdd-network me-1"></i> TMP ID: <strong className="text-dark">{selectedDriver.tmpId || 'TMP-None'}</strong>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="d-flex align-items-center justify-content-between pt-3 border-top small text-secondary" style={{ borderColor: '#e2e8f0' }}>
+                            <div>
+                              <span className="d-block text-uppercase" style={{ fontSize: '0.62rem' }}>Total Distance</span>
+                              <strong className="fs-5" style={{ color: '#0284c7' }}>
+                                {(selectedDriver.kms || 0).toLocaleString()} KM
+                              </strong>
+                            </div>
+
+                            <div className="text-end">
+                              <button
+                                type="button"
+                                onClick={() => setIsDriverModalFlipped(true)}
+                                className="btn btn-sm btn-outline-info py-0 px-2 fw-bold"
+                                style={{ fontSize: '0.72rem' }}
+                              >
+                                <i className="bi bi-arrow-repeat me-1"></i> View Trucks &amp; Tenure &rarr;
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* BACK FACE */}
+                        <div className="license-card-face license-card-back driver-license-card">
+                          <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
+                            <div className="d-flex align-items-center gap-2">
+                              <i className="bi bi-shield-shaded fs-4 text-primary"></i>
+                              <div>
+                                <div className="fw-extrabold text-dark small lh-1">GLOBAL TRUCKERS COMMUNITY</div>
+                                <div className="fw-bold text-uppercase" style={{ fontSize: '0.65rem', color: '#10b981' }}>
+                                  FLEET RECORD &amp; TENURE (REVERSE)
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setIsDriverModalFlipped(false)}
+                              className="btn-flip-card shadow-sm"
+                            >
+                              <i className="bi bi-arrow-repeat"></i> Front ⟲
+                            </button>
+                          </div>
+
+                          <div className="license-tenure-banner mb-3 d-flex align-items-center justify-content-between">
+                            <div className="d-flex align-items-center gap-2">
+                              <i className="bi bi-calendar2-check-fill text-primary"></i>
+                              <div>
+                                <strong className="text-dark small d-block">{driverTenure.tagline}</strong>
+                                <span className="text-secondary" style={{ fontSize: '0.7rem' }}>Enlisted: {driverTenure.joinDateDisplay}</span>
+                              </div>
+                            </div>
+                            <span className="badge bg-success small">{driverTenure.badge}</span>
+                          </div>
+
+                          <div className="mb-2">
+                            <span className="small fw-bold text-uppercase text-secondary d-block mb-1" style={{ fontSize: '0.68rem' }}>
+                              <i className="bi bi-truck-front-fill me-1 text-primary"></i> AUTHORIZED TRUCKS:
+                            </span>
+                            <div className="p-2 rounded-2 bg-light border small text-secondary" style={{ fontSize: '0.72rem' }}>
+                              <div><strong>Primary Rig:</strong> {driverTrucks.primaryTruck}</div>
+                              {driverTrucks.hasETS2 && (
+                                <div className="mt-1">
+                                  <strong>ETS 2 Heavy Fleet:</strong> Scania S/R V8, Volvo FH16 750, Mercedes Actros, MAN TGX, DAF XG+, Renault T, Iveco S-Way.
+                                </div>
+                              )}
+                              {driverTrucks.hasATS && (
+                                <div className="mt-1">
+                                  <strong>ATS Conventional Fleet:</strong> Peterbilt 389/579, Kenworth W900/T680, Freightliner Cascadia, Western Star 49X, Mack Anthem.
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mb-3">
+                            <span className="small fw-bold text-uppercase text-secondary d-block mb-1" style={{ fontSize: '0.68rem' }}>
+                              <i className="bi bi-patch-check me-1 text-warning"></i> ENDORSEMENTS:
+                            </span>
+                            <div className="d-flex flex-wrap gap-1">
+                              {driverTrucks.endorsements.slice(0, 3).map((end) => (
+                                <span key={end.code} className="badge bg-white text-dark border px-2 py-1" style={{ fontSize: '0.65rem' }}>
+                                  <strong className="text-primary">{end.code}:</strong> {end.title}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="pt-2 border-top text-center">
+                            <button
+                              type="button"
+                              onClick={() => setIsDriverModalFlipped(false)}
+                              className="btn btn-sm btn-outline-primary w-100 py-1 fw-bold"
+                              style={{ fontSize: '0.72rem' }}
+                            >
+                              <i className="bi bi-arrow-repeat me-1"></i> Flip Back to Front
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                    <i className="bi bi-patch-check-fill fs-5" style={{ color: '#0284c7' }}></i>
-                  </div>
-
-                  <div className="row g-3 align-items-center mb-3">
-                    <div className="col-4 col-sm-3 text-center">
-                      <div
-                        className="rounded-2 border overflow-hidden mx-auto shadow-sm d-flex align-items-center justify-content-center"
-                        style={{ width: '84px', height: '84px', backgroundColor: '#f8fafc', borderColor: '#0284c7' }}
-                      >
-                        {selectedDriver.avatar ? (
-                          <img
-                            src={selectedDriver.avatar}
-                            alt={selectedDriver.name}
-                            className="w-100 h-100 object-fit-cover"
-                          />
-                        ) : (
-                          <i className="bi bi-person fs-1" style={{ color: '#0284c7' }}></i>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="col-8 col-sm-9">
-                      <div className="d-flex align-items-center gap-2 flex-wrap mb-1">
-                        <div className="h5 fw-extrabold text-dark mb-0">{selectedDriver.name}</div>
-                        {((selectedDriver.roles && selectedDriver.roles.length > 0) ? selectedDriver.roles : [selectedDriver.role || 'driver']).map((rKey) => {
-                          const rInfo = ROLE_INFO[rKey] || ROLE_INFO.driver;
-                          return (
-                            <span
-                              key={rKey}
-                              className={`badge ${rInfo.badgeClass} small`}
-                              style={rInfo.style}
-                            >
-                              {rInfo.label}
-                            </span>
-                          );
-                        })}
-                      </div>
-                      <div className="small fw-bold" style={{ color: '#0284c7' }}>VTC: {selectedDriver.vtc}</div>
-
-                      <div className="small text-secondary mt-1">
-                        <i className="bi bi-geo-alt me-1"></i> Nationality: <strong className="text-dark">{selectedDriver.country}</strong>
-                      </div>
-                      <div className="small text-secondary">
-                        <i className="bi bi-truck me-1"></i> Rig: <strong className="text-dark">{selectedDriver.truck || 'Scania S730'}</strong>
-                      </div>
-                      <div className="small text-secondary">
-                        <i className="bi bi-hdd-network me-1"></i> TMP ID: <strong className="text-dark">{selectedDriver.tmpId || 'TMP-None'}</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="d-flex align-items-center justify-content-between pt-3 border-top small text-secondary" style={{ borderColor: '#e2e8f0' }}>
-                    <div>
-                      <span className="d-block text-uppercase" style={{ fontSize: '0.62rem' }}>Total Distance</span>
-                      <strong className="fs-5" style={{ color: '#0284c7' }}>
-                        {(selectedDriver.kms || 0).toLocaleString()} KM
-                      </strong>
-                    </div>
-
-                    <div className="text-end">
-                      <span className="d-block text-uppercase" style={{ fontSize: '0.62rem' }}>Deliveries Completed</span>
-                      <strong className="text-success fs-5">
-                        {selectedDriver.deliveries || 0}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
             </div>
           </div>

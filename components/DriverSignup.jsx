@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/authContext';
-import { GTC_COUNTRIES, GTC_TRUCKS, isValidStreamerUrl } from '@/lib/defaultConfig';
+import { GTC_COUNTRIES, GTC_TRUCKS, isValidStreamerUrl, calculateMemberTenure, getAuthorizedTrucks, getPermanentLicenseNumber } from '@/lib/defaultConfig';
 import PhotoCustomizerModal from './PhotoCustomizerModal';
 
 export default function DriverSignup({ onSignupSuccess }) {
   const { registerAccount } = useAuth();
+  const [isPreviewFlipped, setIsPreviewFlipped] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -570,95 +571,198 @@ export default function DriverSignup({ onSignupSuccess }) {
           </div>
 
           <div className="col-12 col-lg-5">
-            <span className="badge badge-gold text-uppercase fw-bold mb-3 d-inline-block">
-              <i className="bi bi-eye me-1"></i> Live Digital License Preview
-            </span>
-
-            <div className="driver-license-card mb-3">
-              <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
-                <div className="d-flex align-items-center gap-2">
-                  <i className="bi bi-truck fs-4 text-warning"></i>
-                  <div>
-                    <div className="fw-extrabold text-dark small lh-1">GLOBAL TRUCKERS COMMUNITY</div>
-                    <div className="fw-bold text-uppercase" style={{ fontSize: '0.65rem', color: '#0284c7' }}>
-                      VERIFIED DRIVER IDENTIFICATION
-                    </div>
-                  </div>
-                </div>
-                <i className="bi bi-patch-check-fill text-warning fs-5"></i>
-              </div>
-
-              <div className="row g-3 align-items-center mb-3">
-                <div className="col-12 col-sm-4 text-center mb-2 mb-sm-0">
-                  <div
-                    className="rounded-2 bg-light border d-flex align-items-center justify-content-center overflow-hidden mx-auto shadow-sm"
-                    style={{ width: '84px', height: '84px', borderColor: '#e2e8f0' }}
-                  >
-                    {formData.avatar ? (
-                      <img
-                        src={formData.avatar}
-                        alt="Driver Photo Preview"
-                        className="w-100 h-100 object-fit-cover"
-                      />
-                    ) : (
-                      <i className="bi bi-person fs-1" style={{ color: '#0284c7' }}></i>
-                    )}
-                  </div>
-                  {formData.avatar && (
-                    <span className="badge bg-success-subtle text-success mt-1" style={{ fontSize: '0.62rem' }}>
-                      <i className="bi bi-check-circle me-1"></i> Photo Set
-                    </span>
-                  )}
-                </div>
-
-                <div className="col-12 col-sm-8 text-center text-sm-start">
-                  <div className="h5 fw-extrabold text-dark mb-0">{formData.name || 'YOUR CALLSIGN'}</div>
-                  <div className="small fw-bold" style={{ color: '#0284c7' }}>VTC: {formData.vtc || 'Independent Solo'}</div>
-
-                  <div className="small text-secondary mt-1">
-                    <i className="bi bi-geo-alt me-1"></i> Nationality: <strong className="text-dark">{formData.country}</strong>
-                  </div>
-                  <div className="small text-secondary">
-                    <i className="bi bi-truck me-1"></i> Rig: <strong className="text-dark">{formData.truck}</strong>
-                  </div>
-                  <div className="small text-secondary">
-                    <i className="bi bi-controller me-1"></i> Sims: <strong className="text-dark">{formData.games.join(', ')}</strong>
-                  </div>
-                  {formData.isStreamer && (
-                    <div className="mt-1">
-                      {formData.streamerUrl && isValidStreamerUrl(formData.streamerUrl, formData.streamerPlatform) ? (
-                        <span className="badge text-white rounded-1" style={{ backgroundColor: '#ec4899', fontSize: '0.68rem' }}>
-                          <i className="bi bi-camera-video-fill me-1"></i> Verified Streamer ({formData.streamerPlatform})
-                        </span>
-                      ) : (
-                        <span className="badge bg-warning text-dark rounded-1" style={{ fontSize: '0.68rem' }}>
-                          <i className="bi bi-link-45deg me-1"></i> Streamer Link Required
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {formData.isDevModder && (
-                    <div className="mt-1">
-                      <span className="badge text-white rounded-1" style={{ backgroundColor: '#0284c7', fontSize: '0.68rem' }}>
-                        <i className="bi bi-code-slash me-1"></i> Dev | Modder {formData.devSpecialty ? `(${formData.devSpecialty})` : ''}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="d-flex align-items-center justify-content-between pt-3 border-top small text-secondary" style={{ borderColor: 'rgba(2, 132, 199, 0.35)' }}>
-                <div>
-                  <span className="d-block text-uppercase" style={{ fontSize: '0.62rem' }}>License Class</span>
-                  <strong style={{ color: '#0284c7' }}>CLASS-A HEAVY HAUL</strong>
-                </div>
-
-                <div className="text-end">
-                  <span className="d-block text-uppercase" style={{ fontSize: '0.62rem' }}>Status</span>
-                  <span className="badge badge-gold small"><i className="bi bi-check-circle-fill me-1"></i> CERTIFIED</span>
-                </div>
-              </div>
+            <div className="d-flex align-items-center justify-content-between mb-3">
+              <span className="badge badge-gold text-uppercase fw-bold d-inline-block">
+                <i className="bi bi-eye me-1"></i> Live Digital License Preview
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsPreviewFlipped(!isPreviewFlipped)}
+                className="btn-flip-card shadow-sm"
+              >
+                <i className="bi bi-arrow-repeat"></i> {isPreviewFlipped ? 'Flip to Front ⟲' : 'Flip to Back ↺'}
+              </button>
             </div>
+
+            {(() => {
+              const previewTruckInfo = getAuthorizedTrucks({ games: formData.games, truck: formData.truck, isStreamer: formData.isStreamer, isDevModder: formData.isDevModder });
+              const previewTenure = calculateMemberTenure(new Date());
+
+              return (
+                <div className="license-card-scene mb-3">
+                  <div className={`license-card-flipper ${isPreviewFlipped ? 'is-flipped' : ''}`}>
+                    {/* FRONT PREVIEW */}
+                    <div className="license-card-face license-card-front driver-license-card">
+                      <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
+                        <div className="d-flex align-items-center gap-2">
+                          <i className="bi bi-truck fs-4 text-warning"></i>
+                          <div>
+                            <div className="fw-extrabold text-dark small lh-1">GLOBAL TRUCKERS COMMUNITY</div>
+                            <div className="fw-bold text-uppercase" style={{ fontSize: '0.65rem', color: '#0284c7' }}>
+                              VERIFIED DRIVER IDENTIFICATION (FRONT)
+                            </div>
+                          </div>
+                        </div>
+                        <i className="bi bi-patch-check-fill text-warning fs-5"></i>
+                      </div>
+
+                      <div className="row g-3 align-items-center mb-3">
+                        <div className="col-12 col-sm-4 text-center mb-2 mb-sm-0">
+                          <div
+                            className="rounded-2 bg-light border d-flex align-items-center justify-content-center overflow-hidden mx-auto shadow-sm"
+                            style={{ width: '84px', height: '84px', borderColor: '#e2e8f0' }}
+                          >
+                            {formData.avatar ? (
+                              <img
+                                src={formData.avatar}
+                                alt="Driver Photo Preview"
+                                className="w-100 h-100 object-fit-cover"
+                              />
+                            ) : (
+                              <i className="bi bi-person fs-1" style={{ color: '#0284c7' }}></i>
+                            )}
+                          </div>
+                          {formData.avatar && (
+                            <span className="badge bg-success-subtle text-success mt-1" style={{ fontSize: '0.62rem' }}>
+                              <i className="bi bi-check-circle me-1"></i> Photo Set
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="col-12 col-sm-8 text-center text-sm-start">
+                          <div className="h5 fw-extrabold text-dark mb-0">{formData.name || 'YOUR CALLSIGN'}</div>
+                          <div className="small fw-bold" style={{ color: '#0284c7' }}>VTC: {formData.vtc || 'Independent Solo'}</div>
+
+                          <div className="small text-secondary mt-1">
+                            <i className="bi bi-geo-alt me-1"></i> Nationality: <strong className="text-dark">{formData.country}</strong>
+                          </div>
+                          <div className="small text-secondary">
+                            <i className="bi bi-truck me-1"></i> Rig: <strong className="text-dark">{formData.truck}</strong>
+                          </div>
+                          <div className="small text-secondary">
+                            <i className="bi bi-controller me-1"></i> Sims: <strong className="text-dark">{formData.games.join(', ')}</strong>
+                          </div>
+                          {formData.isStreamer && (
+                            <div className="mt-1">
+                              {formData.streamerUrl && isValidStreamerUrl(formData.streamerUrl, formData.streamerPlatform) ? (
+                                <span className="badge text-white rounded-1" style={{ backgroundColor: '#ec4899', fontSize: '0.68rem' }}>
+                                  <i className="bi bi-camera-video-fill me-1"></i> Verified Streamer ({formData.streamerPlatform})
+                                </span>
+                              ) : (
+                                <span className="badge bg-warning text-dark rounded-1" style={{ fontSize: '0.68rem' }}>
+                                  <i className="bi bi-link-45deg me-1"></i> Streamer Link Required
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {formData.isDevModder && (
+                            <div className="mt-1">
+                              <span className="badge text-white rounded-1" style={{ backgroundColor: '#0284c7', fontSize: '0.68rem' }}>
+                                <i className="bi bi-code-slash me-1"></i> Dev | Modder {formData.devSpecialty ? `(${formData.devSpecialty})` : ''}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="d-flex align-items-center justify-content-between pt-3 border-top small text-secondary" style={{ borderColor: 'rgba(2, 132, 199, 0.35)' }}>
+                        <div>
+                          <span className="d-block text-uppercase" style={{ fontSize: '0.62rem' }}>License Class</span>
+                          <strong style={{ color: '#0284c7' }}>CLASS-A HEAVY HAUL</strong>
+                        </div>
+
+                        <div className="text-end">
+                          <button
+                            type="button"
+                            onClick={() => setIsPreviewFlipped(true)}
+                            className="btn btn-sm btn-outline-info py-0 px-2 small fw-bold"
+                            style={{ fontSize: '0.72rem' }}
+                          >
+                            <i className="bi bi-arrow-repeat me-1"></i> Flip to Back &rarr;
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* BACK PREVIEW */}
+                    <div className="license-card-face license-card-back driver-license-card">
+                      <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
+                        <div className="d-flex align-items-center gap-2">
+                          <i className="bi bi-shield-shaded fs-4 text-primary"></i>
+                          <div>
+                            <div className="fw-extrabold text-dark small lh-1">GLOBAL TRUCKERS COMMUNITY</div>
+                            <div className="fw-bold text-uppercase" style={{ fontSize: '0.65rem', color: '#10b981' }}>
+                              AUTHORIZED FLEET &amp; TENURE RECORD (BACK)
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsPreviewFlipped(false)}
+                          className="btn-flip-card shadow-sm"
+                        >
+                          <i className="bi bi-arrow-repeat"></i> Front ⟲
+                        </button>
+                      </div>
+
+                      <div className="license-tenure-banner mb-3 d-flex align-items-center justify-content-between">
+                        <div className="d-flex align-items-center gap-2">
+                          <i className="bi bi-calendar2-check-fill text-primary"></i>
+                          <div>
+                            <strong className="text-dark small d-block">Tenure: {previewTenure.tagline}</strong>
+                            <span className="text-secondary" style={{ fontSize: '0.7rem' }}>Enlisted: {previewTenure.joinDateDisplay}</span>
+                          </div>
+                        </div>
+                        <span className="badge bg-success small">{previewTenure.badge}</span>
+                      </div>
+
+                      <div className="mb-2">
+                        <span className="small fw-bold text-uppercase text-secondary d-block mb-1" style={{ fontSize: '0.68rem' }}>
+                          <i className="bi bi-truck-front-fill me-1 text-primary"></i> AUTHORIZED TRUCKS &amp; SIMULATOR FLEET:
+                        </span>
+                        <div className="p-2 rounded-2 bg-light border small text-secondary" style={{ fontSize: '0.72rem' }}>
+                          <div><strong>Assigned Rig:</strong> {formData.truck}</div>
+                          {previewTruckInfo.hasETS2 && (
+                            <div className="mt-1">
+                              <strong>ETS 2 Heavy Fleet:</strong> Scania S/R V8, Volvo FH16 750, Mercedes Actros, MAN TGX, DAF XG+, Renault T, Iveco S-Way.
+                            </div>
+                          )}
+                          {previewTruckInfo.hasATS && (
+                            <div className="mt-1">
+                              <strong>ATS Conventional Fleet:</strong> Peterbilt 389/579, Kenworth W900/T680, Freightliner Cascadia, Western Star 49X, Mack Anthem.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mb-2">
+                        <span className="small fw-bold text-uppercase text-secondary d-block mb-1" style={{ fontSize: '0.68rem' }}>
+                          <i className="bi bi-patch-check me-1 text-warning"></i> ENDORSEMENT RATINGS:
+                        </span>
+                        <div className="d-flex flex-wrap gap-1">
+                          {previewTruckInfo.endorsements.slice(0, 3).map((end) => (
+                            <span key={end.code} className="badge bg-white text-dark border px-2 py-1" style={{ fontSize: '0.65rem' }}>
+                              <strong className="text-primary">{end.code}:</strong> {end.title}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-top text-center">
+                        <button
+                          type="button"
+                          onClick={() => setIsPreviewFlipped(false)}
+                          className="btn btn-sm btn-outline-primary w-100 py-1 fw-bold"
+                          style={{ fontSize: '0.72rem' }}
+                        >
+                          <i className="bi bi-arrow-repeat me-1"></i> Flip Back to Front Preview
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="p-3 rounded-3 bg-white border small text-secondary shadow-sm" style={{ borderColor: '#e2e8f0' }}>
               <i className="bi bi-shield-lock-fill text-warning me-2"></i>

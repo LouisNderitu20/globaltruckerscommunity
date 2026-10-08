@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
-import { supabaseContent } from '@/lib/supabase';
-import { DEFAULT_CONFIG, isValidGtcCountry, isValidGtcTruck, isValidStreamerUrl, normalizeStreamerUrl } from '@/lib/defaultConfig';
+import { supabaseAdmin, supabaseContent } from '@/lib/supabase';
+import { DEFAULT_CONFIG, isValidGtcCountry, isValidGtcTruck, isValidStreamerUrl, normalizeStreamerUrl, getPermanentLicenseNumber } from '@/lib/defaultConfig';
 
 export const dynamic = 'force-dynamic';
+
+const db = supabaseAdmin || supabaseContent;
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { id, name, email, country, games, type, vtc, tmp, steamId, truckBrand, stream, avatar, role, isStreamer, streamerPlatform } = body;
+    const { id, name, email, country, games, type, vtc, tmp, steamId, truckBrand, stream, avatar, role, isStreamer, streamerPlatform, licenseNumber, joinedAt } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json(
@@ -34,8 +36,12 @@ export async function POST(request) {
       }
     }
 
+    const assignedId = id || ('GTC-' + Math.floor(1000 + Math.random() * 9000));
+    const permanentLicense = licenseNumber || getPermanentLicenseNumber(assignedId);
+    const joinDate = joinedAt || new Date().toISOString();
+
     const newSignup = {
-      id: id || ('GTC-' + Math.floor(1000 + Math.random() * 9000)),
+      id: assignedId,
       name: name.trim(),
       email: email?.trim() || null,
       country: validatedCountry,
@@ -48,12 +54,15 @@ export async function POST(request) {
       truck_brand: validatedTruck,
       stream_url: validatedStreamUrl,
       avatar: avatar || null,
+      license_number: permanentLicense,
+      licenseNumber: permanentLicense,
+      joined_at: joinDate,
       submitted_at: new Date().toISOString(),
     };
 
     let dbSuccess = false;
     try {
-      const { error: dbError } = await supabaseContent
+      const { error: dbError } = await db
         .from('signups')
         .insert([newSignup]);
 
@@ -67,7 +76,7 @@ export async function POST(request) {
     }
 
     try {
-      const { data: row } = await supabaseContent
+      const { data: row } = await db
         .from('site_content')
         .select('data')
         .eq('id', 1)
@@ -83,7 +92,7 @@ export async function POST(request) {
         
         contentData.signups = contentData.signups.slice(0, 500);
 
-        await supabaseContent
+        await db
           .from('site_content')
           .update({
             data: contentData,
@@ -110,7 +119,7 @@ export async function GET() {
     let signupsList = [];
 
     try {
-      const { data, error } = await supabaseContent
+      const { data, error } = await db
         .from('signups')
         .select('*')
         .order('submitted_at', { ascending: false })
@@ -123,7 +132,7 @@ export async function GET() {
 
     if (signupsList.length === 0) {
       try {
-        const { data: row } = await supabaseContent
+        const { data: row } = await db
           .from('site_content')
           .select('data')
           .eq('id', 1)
@@ -186,17 +195,18 @@ export async function PUT(request) {
       stream_url: validatedStreamUrl,
       avatar: avatar || null,
       bio: bio?.trim() || null,
+      license_number: body.licenseNumber || body.license_number || getPermanentLicenseNumber(id),
       updated_at: new Date().toISOString()
     };
 
     try {
-      await supabaseContent
+      await db
         .from('signups')
         .upsert([updatedData], { onConflict: 'id' });
     } catch (e) {}
 
     try {
-      const { data: row } = await supabaseContent
+      const { data: row } = await db
         .from('site_content')
         .select('data')
         .eq('id', 1)
@@ -207,7 +217,7 @@ export async function PUT(request) {
         if (!list.some((s) => s.id === id)) {
           list.unshift(updatedData);
         }
-        await supabaseContent
+        await db
           .from('site_content')
           .update({
             data: { ...row.data, signups: list },
@@ -232,11 +242,11 @@ export async function DELETE(request) {
     }
 
     try {
-      await supabaseContent.from('signups').delete().eq('id', id);
+      await db.from('signups').delete().eq('id', id);
     } catch (e) {}
 
     try {
-      const { data: row } = await supabaseContent
+      const { data: row } = await db
         .from('site_content')
         .select('data')
         .eq('id', 1)
@@ -244,7 +254,7 @@ export async function DELETE(request) {
 
       if (row?.data && Array.isArray(row.data.signups)) {
         const filtered = row.data.signups.filter((s) => s.id !== id);
-        await supabaseContent
+        await db
           .from('site_content')
           .update({
             data: { ...row.data, signups: filtered },
