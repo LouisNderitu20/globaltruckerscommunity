@@ -1878,6 +1878,22 @@ export default function AdminDesk() {
                             <span>
                               Truck: <strong>{driver.truck || 'Scania'}</strong>
                             </span>
+                            {(driver.streamerUrl || driver.stream_url || driver.stream) && (
+                              <>
+                                <span>&bull;</span>
+                                <span className="text-info">
+                                  <i className="bi bi-broadcast me-1"></i>
+                                  <a
+                                    href={driver.streamerUrl || driver.stream_url || driver.stream}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-decoration-underline text-info small"
+                                  >
+                                    Live Channel
+                                  </a>
+                                </span>
+                              </>
+                            )}
                           </div>
 
                           <div className="d-flex align-items-center gap-2 flex-wrap mt-2">
@@ -1978,6 +1994,39 @@ export default function AdminDesk() {
                                 </button>
                               );
                             })}
+                          {(Array.isArray(driver.roles) ? driver.roles.includes('streamer') : driver.role === 'streamer') && (
+                            <button
+                              type="button"
+                              className="btn py-0 px-2 rounded-pill fw-bold border text-primary bg-light"
+                              style={{ fontSize: '0.66rem', lineHeight: '1.4', borderColor: '#93c5fd' }}
+                              onClick={async () => {
+                                const current = driver.streamerUrl || driver.stream_url || '';
+                                const newUrl = prompt(`Enter live streaming channel URL for ${driver.name} (e.g. TikTok, YouTube, Twitch):`, current);
+                                if (newUrl !== null && newUrl.trim()) {
+                                  try {
+                                    await fetch(`/api/drivers/${encodeURIComponent(driver.id)}/role`, {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        role: driver.role || 'streamer',
+                                        roles: Array.isArray(driver.roles) && driver.roles.length > 0 ? driver.roles : ['streamer'],
+                                        streamerUrl: newUrl.trim(),
+                                        driverData: { ...driver, streamerUrl: newUrl.trim(), stream_url: newUrl.trim() }
+                                      })
+                                    });
+                                    const res = await fetch('/api/auth', { cache: 'no-store' });
+                                    const json = await res.json();
+                                    if (json?.success && Array.isArray(json.users)) {
+                                      setRemoteSignups(json.users);
+                                    }
+                                  } catch (e) {}
+                                }
+                              }}
+                              title="Edit streamer channel URL"
+                            >
+                              <i className="bi bi-link-45deg me-1"></i> Edit Channel Link
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
