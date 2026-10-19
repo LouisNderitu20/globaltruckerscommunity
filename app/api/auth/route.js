@@ -108,27 +108,50 @@ export async function POST(request) {
 
       let signups = row?.data && Array.isArray(row.data.signups) ? row.data.signups : [];
 
-      let targetIndex = signups.findIndex(
+      // Find all matching accounts for the query
+      const candidates = signups.filter(
         (s) =>
-          s.name?.toLowerCase() === query ||
           s.email?.toLowerCase() === query ||
+          s.name?.toLowerCase() === query ||
           s.id?.toLowerCase() === query
       );
 
-      let targetDriver = targetIndex > -1 ? signups[targetIndex] : null;
+      // Prioritize: 1. Exact email match, 2. Admin role, 3. Most recent login
+      candidates.sort((a, b) => {
+        if (a.email?.toLowerCase() === query && b.email?.toLowerCase() !== query) return -1;
+        if (b.email?.toLowerCase() === query && a.email?.toLowerCase() !== query) return 1;
+        const aIsAdmin = a.role === 'admin' || a.roles?.includes('admin');
+        const bIsAdmin = b.role === 'admin' || b.roles?.includes('admin');
+        if (aIsAdmin && !bIsAdmin) return -1;
+        if (!aIsAdmin && bIsAdmin) return 1;
+        return new Date(b.last_login || b.lastLogin || 0) - new Date(a.last_login || a.lastLogin || 0);
+      });
+
+      let targetDriver = candidates[0] || null;
+      let targetIndex = targetDriver ? signups.findIndex((s) => s.id === targetDriver.id && s.email === targetDriver.email) : -1;
 
       // Check Supabase Auth if not in signups
       let matchingAuthUser = null;
       try {
         const { data: authList } = await client.auth.admin.listUsers();
         if (authList?.users) {
-          matchingAuthUser = authList.users.find(
+          const authCandidates = authList.users.filter(
             (u) =>
               u.email?.toLowerCase() === query ||
               u.user_metadata?.callsign?.toLowerCase() === query ||
               u.user_metadata?.name?.toLowerCase() === query ||
               u.user_metadata?.id?.toLowerCase() === query
           );
+          authCandidates.sort((a, b) => {
+            if (a.email?.toLowerCase() === query && b.email?.toLowerCase() !== query) return -1;
+            if (b.email?.toLowerCase() === query && a.email?.toLowerCase() !== query) return 1;
+            const aAdmin = a.user_metadata?.role === 'admin' || a.user_metadata?.roles?.includes('admin');
+            const bAdmin = b.user_metadata?.role === 'admin' || b.user_metadata?.roles?.includes('admin');
+            if (aAdmin && !bAdmin) return -1;
+            if (!aAdmin && bAdmin) return 1;
+            return new Date(b.last_sign_in_at || 0) - new Date(a.last_sign_in_at || 0);
+          });
+          matchingAuthUser = authCandidates[0] || null;
         }
       } catch (e) {}
 
@@ -309,6 +332,13 @@ export async function POST(request) {
             const existing = list?.users?.find((u) => u.email?.toLowerCase() === cleanEmail.toLowerCase());
             if (existing) {
               supabaseAuthId = existing.id;
+              const preservedRole = existing.user_metadata?.role && existing.user_metadata.role !== 'driver'
+                ? existing.user_metadata.role
+                : assignedRole;
+              const preservedRoles = Array.isArray(existing.user_metadata?.roles) && existing.user_metadata.roles.length > 0
+                ? existing.user_metadata.roles
+                : assignedRoles;
+
               await client.auth.admin.updateUserById(existing.id, {
                 password: cleanPass,
                 user_metadata: {
@@ -316,8 +346,8 @@ export async function POST(request) {
                   id: assignedId,
                   callsign: cleanName,
                   name: cleanName,
-                  role: assignedRole,
-                  roles: assignedRoles,
+                  role: preservedRole,
+                  roles: preservedRoles,
                   last_login: nowIso
                 }
               });
@@ -338,11 +368,20 @@ export async function POST(request) {
 
         let signups = row?.data && Array.isArray(row.data.signups) ? [...row.data.signups] : [];
         const existingIdx = signups.findIndex(
-          (s) => s.id === assignedId || s.name?.toLowerCase() === cleanName.toLowerCase() || s.email?.toLowerCase() === cleanEmail.toLowerCase()
+          (s) => s.id === assignedId || s.email?.toLowerCase() === cleanEmail.toLowerCase()
         );
 
         if (existingIdx > -1) {
-          signups[existingIdx] = { ...signups[existingIdx], ...newDriver, authUserId: supabaseAuthId };
+          const old = signups[existingIdx];
+          const preservedRole = old.role && old.role !== 'driver' ? old.role : assignedRole;
+          const preservedRoles = Array.isArray(old.roles) && old.roles.length > 0 ? old.roles : assignedRoles;
+          signups[existingIdx] = {
+            ...old,
+            ...newDriver,
+            role: preservedRole,
+            roles: preservedRoles,
+            authUserId: supabaseAuthId
+          };
         } else {
           signups.unshift({ ...newDriver, authUserId: supabaseAuthId });
         }

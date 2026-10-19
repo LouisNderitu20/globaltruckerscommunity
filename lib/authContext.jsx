@@ -95,10 +95,10 @@ export function sanitizeUserRoles(u) {
 const DEFAULT_DEMO_USER = {
   id: 'GTC-1001',
   name: 'Bryan Gaming',
-  email: 'bryangaming@gtc.com',
+  email: 'bryangamingofficial@outlook.com',
   password: 'gtc2026',
   role: 'admin',
-  roles: ['admin', 'convoy_lead'],
+  roles: ['admin', 'streamer', 'convoy_lead'],
   country: 'Kenya',
   vtc: 'GTC Management',
   truck: 'Scania S730 V8',
@@ -313,7 +313,12 @@ export function AuthProvider({ children }) {
           if (listToProcess && Array.isArray(listToProcess)) {
             setAllDrivers((current) => {
               const currentList = [...current];
-              const idMap = new Map(currentList.map((d) => [d.id, d]));
+              const keyMap = new Map();
+              currentList.forEach((d) => {
+                if (d.email) keyMap.set(d.email.toLowerCase(), d);
+                if (d.id) keyMap.set(d.id, d);
+              });
+
               listToProcess.forEach((s) => {
                 const permLic = s.license_number || s.licenseNumber || getPermanentLicenseNumber(s.id);
                 const normalized = {
@@ -339,14 +344,17 @@ export function AuthProvider({ children }) {
                   authUserId: s.authUserId || null,
                   isAuthRegistered: s.isAuthRegistered
                 };
-                if (!idMap.has(s.id)) {
+
+                const emailKey = s.email?.toLowerCase();
+                const existing = (emailKey && keyMap.get(emailKey)) || keyMap.get(s.id);
+
+                if (!existing) {
                   currentList.push(normalized);
-                  idMap.set(s.id, normalized);
+                  if (emailKey) keyMap.set(emailKey, normalized);
+                  keyMap.set(s.id, normalized);
                 } else {
-                  const existing = idMap.get(s.id);
-                  // Remote server data MUST update stale local state
                   const merged = { ...existing, ...normalized, licenseNumber: normalized.licenseNumber || existing.licenseNumber || permLic };
-                  const idx = currentList.findIndex((d) => d.id === s.id);
+                  const idx = currentList.findIndex((d) => (emailKey && d.email?.toLowerCase() === emailKey) || d.id === s.id);
                   if (idx > -1) currentList[idx] = merged;
                 }
               });

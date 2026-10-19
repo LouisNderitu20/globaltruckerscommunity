@@ -390,11 +390,18 @@ export default function AdminDesk() {
 
   const mergedAdminDrivers = React.useMemo(() => {
     const list = [...(allDrivers || [])];
-    const existingIds = new Set(list.map((d) => d.id));
+    const keyMap = new Map();
+    list.forEach((d) => {
+      if (d.email) keyMap.set(d.email.toLowerCase(), d);
+      if (d.id) keyMap.set(d.id, d);
+    });
 
     remoteSignups.forEach((s) => {
-      if (!existingIds.has(s.id)) {
-        list.push({
+      const emailKey = s.email?.toLowerCase();
+      const existing = (emailKey && keyMap.get(emailKey)) || keyMap.get(s.id);
+
+      if (!existing) {
+        const item = {
           id: s.id,
           name: s.name,
           email: s.email || '',
@@ -410,10 +417,12 @@ export default function AdminDesk() {
           joinedAt: s.joined_at || s.joinedAt || null,
           authUserId: s.authUserId || null,
           isAuthRegistered: s.isAuthRegistered
-        });
-        existingIds.add(s.id);
+        };
+        list.push(item);
+        if (emailKey) keyMap.set(emailKey, item);
+        keyMap.set(s.id, item);
       } else {
-        const idx = list.findIndex((d) => d.id === s.id);
+        const idx = list.findIndex((d) => (emailKey && d.email?.toLowerCase() === emailKey) || d.id === s.id);
         if (idx > -1) {
           list[idx] = {
             ...list[idx],
