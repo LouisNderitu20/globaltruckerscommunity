@@ -39,6 +39,9 @@ export async function PUT(req, { params }) {
         let signups = Array.isArray(row.data.signups) ? [...row.data.signups] : [];
         let found = false;
 
+        const hasStreamerRole = rolesArray.includes('streamer') || primaryRole === 'streamer';
+        const streamUrlVal = body.streamerUrl || driverData?.streamerUrl || driverData?.stream_url;
+
         signups = signups.map((s) => {
           if (s.id === id || s.email?.toLowerCase() === id.toLowerCase()) {
             found = true;
@@ -46,6 +49,9 @@ export async function PUT(req, { params }) {
               ...s,
               role: primaryRole,
               roles: rolesArray,
+              isStreamer: hasStreamerRole || Boolean(s.isStreamer),
+              streamerUrl: streamUrlVal || s.streamerUrl || s.stream_url || '',
+              stream_url: streamUrlVal || s.stream_url || s.streamerUrl || '',
               updated_at: nowIso
             };
             return updatedDriver;
@@ -59,6 +65,9 @@ export async function PUT(req, { params }) {
             id,
             role: primaryRole,
             roles: rolesArray,
+            isStreamer: hasStreamerRole || Boolean(driverData.isStreamer),
+            streamerUrl: streamUrlVal || driverData.streamerUrl || driverData.stream_url || '',
+            stream_url: streamUrlVal || driverData.stream_url || driverData.streamerUrl || '',
             updated_at: nowIso
           };
           signups.unshift(updatedDriver);
@@ -95,7 +104,10 @@ export async function PUT(req, { params }) {
             user_metadata: {
               ...(targetAuthUser.user_metadata || {}),
               role: primaryRole,
-              roles: rolesArray
+              roles: rolesArray,
+              isStreamer: hasStreamerRole || Boolean(targetAuthUser.user_metadata?.isStreamer),
+              streamerUrl: streamUrlVal || targetAuthUser.user_metadata?.streamerUrl || targetAuthUser.user_metadata?.stream_url || '',
+              stream_url: streamUrlVal || targetAuthUser.user_metadata?.stream_url || targetAuthUser.user_metadata?.streamerUrl || ''
             }
           });
           authUpdated = true;

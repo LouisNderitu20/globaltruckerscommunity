@@ -7,26 +7,46 @@ export default function StreamersSection({ streamers }) {
   const { allDrivers } = useAuth();
 
   const streamerList = React.useMemo(() => {
-    const list = [...(streamers || [])];
-    const existingUrls = new Set(list.map((s) => (s.url || '').toLowerCase()));
-    const existingNames = new Set(list.map((s) => (s.name || '').toLowerCase()));
+    const list = [];
+    const seenNames = new Set();
+    const seenUrls = new Set();
 
+    // 1. Process all live drivers from database via useAuth (handles 100+ users dynamically)
     (allDrivers || []).forEach((d) => {
-      const url = d.streamerUrl || d.stream || d.stream_url;
       const isStreamerRole = d.role === 'streamer' || (Array.isArray(d.roles) && d.roles.includes('streamer')) || d.isStreamer;
-      if (isStreamerRole && url && !existingUrls.has(url.toLowerCase()) && !existingNames.has(d.name?.toLowerCase())) {
-        list.push({
-          id: d.id,
-          name: d.name,
-          platform: url.includes('tiktok') ? 'TikTok' : url.includes('twitch') ? 'Twitch' : 'YouTube',
-          url: url,
-          games: (Array.isArray(d.games) ? d.games.join(', ') : d.games) || 'ETS 2, ATS',
-          status: 'Official Streamer',
-          avatar: d.avatar || '',
-          live: false
-        });
-        existingUrls.add(url.toLowerCase());
-        existingNames.add(d.name?.toLowerCase());
+      if (isStreamerRole) {
+        let url = d.streamerUrl || d.stream || d.stream_url;
+        if (!url) {
+          const handle = (d.name || d.callsign || '').toLowerCase().replace(/[^a-z0-9_]/g, '');
+          url = `https://www.tiktok.com/@${handle || 'globaltruckers'}`;
+        }
+        const platform = d.streamerPlatform || (url.includes('tiktok') ? 'TikTok' : url.includes('twitch') ? 'Twitch' : url.includes('youtube') || url.includes('youtu.be') ? 'YouTube' : 'TikTok');
+        const cleanName = (d.name || '').trim().toLowerCase();
+        if (cleanName && !seenNames.has(cleanName)) {
+          list.push({
+            id: d.id,
+            name: d.name,
+            platform,
+            url,
+            games: (Array.isArray(d.games) ? d.games.join(', ') : d.games) || 'ETS 2, ATS',
+            status: 'Official Streamer',
+            avatar: d.avatar || '',
+            live: false
+          });
+          seenNames.add(cleanName);
+          seenUrls.add(url.toLowerCase());
+        }
+      }
+    });
+
+    // 2. Also merge any configured streamers if not already present
+    (streamers || []).forEach((s) => {
+      const cleanName = (s.name || '').trim().toLowerCase();
+      const cleanUrl = (s.url || '').trim().toLowerCase();
+      if (cleanName && !seenNames.has(cleanName) && (!cleanUrl || !seenUrls.has(cleanUrl))) {
+        list.push(s);
+        seenNames.add(cleanName);
+        if (cleanUrl) seenUrls.add(cleanUrl);
       }
     });
 

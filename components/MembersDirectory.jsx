@@ -60,10 +60,10 @@ export default function MembersDirectory() {
           deliveries: Number(s.deliveries) || 0,
           avatar: s.avatar || null,
           licenseNumber: s.license_number || s.licenseNumber,
-          joinedAt: s.joined_at || s.joinedAt,
-          stream: s.stream_url || s.stream,
+          stream: s.stream_url || s.stream || s.streamerUrl || '',
+          streamerUrl: s.stream_url || s.stream || s.streamerUrl || '',
           tmp: s.truckers_mp_id || s.tmp,
-          isStreamer: Boolean(s.stream_url) || s.role === 'streamer' || (Array.isArray(s.roles) && s.roles.includes('streamer'))
+          isStreamer: Boolean(s.stream_url || s.stream || s.streamerUrl) || s.role === 'streamer' || (Array.isArray(s.roles) && s.roles.includes('streamer'))
         };
         list.push(item);
         if (emailKey) keyMap.set(emailKey, item);

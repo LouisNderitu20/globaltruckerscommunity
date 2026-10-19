@@ -7,9 +7,9 @@ export default function GallerySection({ gallery }) {
   const [filter, setFilter] = useState('ALL');
 
   const photos = gallery?.length ? gallery : [
-    { id: 'g1', title: 'Sunset Haul Through Scandinavia', game: 'ETS 2', src: '/images/about-trucks.jpg', author: 'Bryan Gaming' },
-    { id: 'g2', title: 'Desert Sunset Convoy in Nevada', game: 'ATS', src: '/images/ats-art.jpg', author: 'HighwayKing_99' },
-    { id: 'g3', title: 'Heavy Transport Crossing Germany', game: 'ETS 2', src: '/images/ets2-art.jpg', author: 'Klaus_Trucker' }
+    { id: 'g1', title: 'Sunset Haul Through Scandinavia', game: 'ETS 2', src: '/images/about-trucks.jpg', author: 'GTC Community' },
+    { id: 'g2', title: 'Desert Sunset Convoy in Nevada', game: 'ATS', src: '/images/ats-art.jpg', author: 'GTC Community' },
+    { id: 'g3', title: 'Heavy Transport Crossing Germany', game: 'ETS 2', src: '/images/ets2-art.jpg', author: 'GTC Community' }
   ];
 
   const filteredPhotos = photos.filter((p) => {
