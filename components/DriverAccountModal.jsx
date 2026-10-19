@@ -188,15 +188,15 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
     setLoginError('');
     setIsLoggingIn(true);
     try {
-      const res = loginAccount({
+      const res = await loginAccount({
         emailOrCallsign: loginForm.emailOrCallsign,
         password: loginForm.password
       });
-      if (res.success) {
+      if (res?.success) {
         setLoginForm({ emailOrCallsign: '', password: '' });
         setActiveTab('profile');
       } else {
-        setLoginError(res.error || 'Invalid credentials');
+        setLoginError(res?.error || 'Invalid credentials');
       }
     } catch (err) {
       setLoginError('Login failed. Please try again.');

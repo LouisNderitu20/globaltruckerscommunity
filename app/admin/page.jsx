@@ -17,7 +17,8 @@ export default function AdminDesk() {
     deleteDriverAccount,
     broadcastConvoyReminder,
     loginAccount,
-    showToast
+    showToast,
+    syncAllFleetAccounts
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState('next-convoy');
@@ -26,6 +27,8 @@ export default function AdminDesk() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSyncingAuth, setIsSyncingAuth] = useState(false);
+  const [activityFilter, setActivityFilter] = useState('ALL');
 
   const [broadcastTitle, setBroadcastTitle] = useState('Official Convoy Meetup in Progress');
   const [broadcastMsg, setBroadcastMsg] = useState('All drivers to your rigs! Room ID: GTC-CONVOY-778 is active on TruckersMP Sim 1. Radio channel 19.');
@@ -95,6 +98,15 @@ export default function AdminDesk() {
     }
 
     async function loadSignups() {
+      try {
+        const res = await fetch('/api/auth', { cache: 'no-store' });
+        const json = await res.json();
+        if (json?.success && Array.isArray(json.users)) {
+          setRemoteSignups(json.users);
+          return;
+        }
+      } catch (e) {}
+
       try {
         const res = await fetch('/api/signup', { cache: 'no-store' });
         const json = await res.json();
@@ -383,16 +395,35 @@ export default function AdminDesk() {
         list.push({
           id: s.id,
           name: s.name,
+          email: s.email || '',
           role: s.driver_type === 'Official Streamer' ? 'streamer' : (s.role || 'driver'),
-          roles: s.roles || (s.role ? [s.role] : [s.driver_type === 'Official Streamer' ? 'streamer' : 'driver']),
+          roles: Array.isArray(s.roles) && s.roles.length > 0 ? s.roles : (s.role ? [s.role] : [s.driver_type === 'Official Streamer' ? 'streamer' : 'driver']),
           country: s.country || 'International',
           vtc: s.vtc || 'Independent Solo Driver',
-          truck: s.truck_brand || 'Scania',
+          truck: s.truck_brand || s.truck || 'Scania',
           kms: Number(s.kms) || 0,
           deliveries: Number(s.deliveries) || 0,
-          avatar: s.avatar || null
+          avatar: s.avatar || null,
+          lastLogin: s.last_login || s.lastLogin || null,
+          joinedAt: s.joined_at || s.joinedAt || null,
+          authUserId: s.authUserId || null,
+          isAuthRegistered: s.isAuthRegistered
         });
         existingIds.add(s.id);
+      } else {
+        const idx = list.findIndex((d) => d.id === s.id);
+        if (idx > -1) {
+          list[idx] = {
+            ...list[idx],
+            email: s.email || list[idx].email,
+            role: s.role || list[idx].role,
+            roles: Array.isArray(s.roles) && s.roles.length > 0 ? s.roles : list[idx].roles,
+            lastLogin: s.last_login || s.lastLogin || list[idx].lastLogin || null,
+            joinedAt: s.joined_at || s.joinedAt || list[idx].joinedAt || null,
+            authUserId: s.authUserId || list[idx].authUserId || null,
+            isAuthRegistered: s.isAuthRegistered !== undefined ? s.isAuthRegistered : list[idx].isAuthRegistered
+          };
+        }
       }
     });
 
@@ -434,18 +465,95 @@ export default function AdminDesk() {
     };
   }, [mergedAdminDrivers, countryBreakdown]);
 
+  const formatLoginStatus = (lastLogin) => {
+    if (!lastLogin) {
+      return {
+        text: 'Never signed in',
+        badgeClass: 'badge bg-secondary-subtle text-secondary border border-secondary-subtle',
+        icon: 'bi bi-clock-history',
+        isOnline: false
+      };
+    }
+    const date = new Date(lastLogin);
+    if (isNaN(date.getTime())) {
+      return {
+        text: 'Never signed in',
+        badgeClass: 'badge bg-secondary-subtle text-secondary border border-secondary-subtle',
+        icon: 'bi bi-clock-history',
+        isOnline: false
+      };
+    }
+
+    const diffMs = Date.now() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+
+    if (diffMins < 15) {
+      return {
+        text: 'Active Now (Online)',
+        badgeClass: 'badge bg-success text-white shadow-sm',
+        icon: 'bi bi-broadcast',
+        isOnline: true
+      };
+    }
+    if (diffHours < 1) {
+      return {
+        text: `Active ${diffMins}m ago`,
+        badgeClass: 'badge bg-info-subtle text-info-emphasis border border-info-subtle',
+        icon: 'bi bi-box-arrow-in-right',
+        isOnline: false
+      };
+    }
+    if (diffHours < 24) {
+      return {
+        text: `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        badgeClass: 'badge bg-primary-subtle text-primary border border-primary-subtle',
+        icon: 'bi bi-check2-circle',
+        isOnline: false
+      };
+    }
+    return {
+      text: date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }),
+      badgeClass: 'badge bg-light text-secondary border',
+      icon: 'bi bi-calendar-event',
+      isOnline: false
+    };
+  };
+
   const filteredDrivers = mergedAdminDrivers
     .filter((d) => {
       const q = searchDriver.toLowerCase().trim();
-      if (!q) return true;
-      return (
+      const matchesSearch = !q || (
         d.name?.toLowerCase().includes(q) ||
         d.id?.toLowerCase().includes(q) ||
+        (d.email && d.email.toLowerCase().includes(q)) ||
         (d.vtc && d.vtc.toLowerCase().includes(q)) ||
         (d.country && d.country.toLowerCase().includes(q))
       );
+
+      if (!matchesSearch) return false;
+
+      if (activityFilter === 'ONLINE') {
+        const status = formatLoginStatus(d.lastLogin);
+        return status.isOnline;
+      }
+      if (activityFilter === 'TODAY') {
+        if (!d.lastLogin) return false;
+        const diffMs = Date.now() - new Date(d.lastLogin).getTime();
+        return diffMs < 86400000;
+      }
+      if (activityFilter === 'NEVER') {
+        return !d.lastLogin;
+      }
+
+      return true;
     })
     .sort((a, b) => {
+      if (driverSortBy === 'recent-login') {
+        const timeA = a.lastLogin ? new Date(a.lastLogin).getTime() : 0;
+        const timeB = b.lastLogin ? new Date(b.lastLogin).getTime() : 0;
+        return timeB - timeA;
+      }
       if (driverSortBy === 'kms-desc') return (Number(b.kms) || 0) - (Number(a.kms) || 0);
       if (driverSortBy === 'kms-asc') return (Number(a.kms) || 0) - (Number(b.kms) || 0);
       if (driverSortBy === 'jobs-desc') return (Number(b.deliveries) || 0) - (Number(a.deliveries) || 0);
@@ -1565,117 +1673,278 @@ export default function AdminDesk() {
         )}
 
         {activeTab === 'roles' && (
-          <div className="card glass p-4 p-md-5 shadow-sm">
-            <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+          <div className="card glass p-4 p-md-5 shadow-sm border" style={{ borderColor: '#0284c7' }}>
+            <div className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4 pb-3 border-bottom">
               <div>
-                <h3 className="h5 fw-bold text-dark mb-0">
-                  <i className="bi bi-people-fill text-primary me-2"></i> Driver Roster &amp; Role Management
+                <h3 className="h5 fw-bold text-dark mb-1">
+                  <i className="bi bi-person-badge-fill text-primary me-2"></i> Fleet Accounts, Login Telemetry &amp; Roles
                 </h3>
-                <p className="text-secondary small mb-0">Assign roles to member accounts: Driver, Dispatcher, Convoy Lead, Staff, and Admin.</p>
+                <p className="text-secondary small mb-0">
+                  Real-time visibility into all member accounts, live login timestamps, and 1-click role permissions synced with Supabase.
+                </p>
               </div>
 
               <div className="d-flex align-items-center gap-2 flex-wrap">
-                <input
-                  type="text"
-                  placeholder="Search callsign, ID or VTC..."
-                  className="form-control form-control-sm w-auto"
-                  value={searchDriver}
-                  onChange={(e) => setSearchDriver(e.target.value)}
-                />
+                <button
+                  type="button"
+                  disabled={isSyncingAuth}
+                  onClick={async () => {
+                    setIsSyncingAuth(true);
+                    try {
+                      if (syncAllFleetAccounts) {
+                        await syncAllFleetAccounts();
+                      }
+                      // Refresh remote signups
+                      const res = await fetch('/api/auth', { cache: 'no-store' });
+                      const json = await res.json();
+                      if (json?.success && Array.isArray(json.users)) {
+                        setRemoteSignups(json.users);
+                      }
+                    } finally {
+                      setIsSyncingAuth(false);
+                    }
+                  }}
+                  className="btn btn-outline-primary btn-sm fw-bold shadow-sm"
+                  title="Ensure all member accounts exist in Supabase Authentication Dashboard"
+                >
+                  {isSyncingAuth ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-1"></span> Syncing to Supabase Auth...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-arrow-repeat me-1"></i> Sync All to Supabase Auth
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Account Quick Metrics */}
+            <div className="row g-2 mb-4">
+              <div className="col-6 col-md-3">
+                <div className="p-3 rounded bg-light border text-center shadow-xs">
+                  <div className="fs-5 fw-bold text-dark">{mergedAdminDrivers.length}</div>
+                  <div className="text-secondary small fw-semibold" style={{ fontSize: '0.75rem' }}>Total Accounts</div>
+                </div>
+              </div>
+              <div className="col-6 col-md-3">
+                <div className="p-3 rounded bg-light border text-center shadow-xs">
+                  <div className="fs-5 fw-bold text-success">
+                    {mergedAdminDrivers.filter((d) => formatLoginStatus(d.lastLogin).isOnline).length}
+                  </div>
+                  <div className="text-secondary small fw-semibold" style={{ fontSize: '0.75rem' }}>Active Online Now</div>
+                </div>
+              </div>
+              <div className="col-6 col-md-3">
+                <div className="p-3 rounded bg-light border text-center shadow-xs">
+                  <div className="fs-5 fw-bold" style={{ color: '#0284c7' }}>
+                    {mergedAdminDrivers.filter((d) => {
+                      if (!d.lastLogin) return false;
+                      return (Date.now() - new Date(d.lastLogin).getTime()) < 86400000;
+                    }).length}
+                  </div>
+                  <div className="text-secondary small fw-semibold" style={{ fontSize: '0.75rem' }}>Logged In Today</div>
+                </div>
+              </div>
+              <div className="col-6 col-md-3">
+                <div className="p-3 rounded bg-light border text-center shadow-xs">
+                  <div className="fs-5 fw-bold text-warning">
+                    {mergedAdminDrivers.filter((d) => {
+                      const roles = d.roles && d.roles.length > 0 ? d.roles : [d.role || 'driver'];
+                      return roles.some((r) => ['admin', 'staff', 'convoy_lead', 'dispatcher', 'dev_modder'].includes(r));
+                    }).length}
+                  </div>
+                  <div className="text-secondary small fw-semibold" style={{ fontSize: '0.75rem' }}>Staff &amp; Officers</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 p-2 bg-light rounded border">
+              <div className="d-flex align-items-center gap-1 flex-wrap">
+                <span className="small text-secondary fw-bold me-1 ms-1">Filter Activity:</span>
+                {[
+                  { key: 'ALL', label: 'All Accounts' },
+                  { key: 'ONLINE', label: '🟢 Online Now' },
+                  { key: 'TODAY', label: 'Today’s Logins' },
+                  { key: 'NEVER', label: 'Never Signed In' }
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setActivityFilter(key)}
+                    className={`btn btn-sm py-1 px-2 fw-bold ${activityFilter === key ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    style={{ fontSize: '0.75rem', ...(activityFilter === key ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : {}) }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="d-flex align-items-center gap-2 flex-wrap">
+                <div className="input-group input-group-sm" style={{ width: '220px' }}>
+                  <span className="input-group-text"><i className="bi bi-search"></i></span>
+                  <input
+                    type="text"
+                    placeholder="Search name, email, ID..."
+                    className="form-control"
+                    value={searchDriver}
+                    onChange={(e) => setSearchDriver(e.target.value)}
+                  />
+                </div>
                 <select
                   className="form-select form-select-sm w-auto fw-bold"
                   value={driverSortBy}
                   onChange={(e) => setDriverSortBy(e.target.value)}
                 >
+                  <option value="recent-login">Sort: Recent Login First</option>
                   <option value="kms-desc">Distance: Highest First</option>
-                  <option value="kms-asc">Distance: Lowest First</option>
                   <option value="jobs-desc">Jobs: Highest First</option>
-                  <option value="jobs-asc">Jobs: Lowest First</option>
                   <option value="name-asc">Callsign: A to Z</option>
-                  <option value="name-desc">Callsign: Z to A</option>
                   <option value="role">Sort by Role</option>
                   <option value="id">Sort by ID</option>
                 </select>
               </div>
             </div>
 
+            {/* Driver Account Roster */}
             <div className="d-flex flex-column gap-3">
-              {filteredDrivers.map((driver) => (
-                <div key={driver.id} className="p-3 rounded-2 bg-light border d-flex flex-wrap align-items-center justify-content-between gap-3 shadow-sm" style={{ borderColor: '#0284c7' }}>
-                  <div className="d-flex align-items-center gap-3">
-                    {driver.avatar ? (
-                      <img
-                        src={driver.avatar}
-                        alt={driver.name}
-                        className="rounded-circle object-fit-cover border shadow-sm"
-                        style={{ width: '42px', height: '42px', borderColor: '#0284c7' }}
-                      />
-                    ) : (
-                      <div className="rounded-circle d-flex align-items-center justify-content-center p-2 fs-5" style={{ width: '42px', height: '42px', backgroundColor: '#0284c7', color: '#ffffff' }}>
-                        <i className="bi bi-person-fill"></i>
-                      </div>
-                    )}
-                    <div>
-                      <div className="fw-bold text-dark">
-                        {driver.name} <span className="text-secondary small">({driver.id})</span>
-                      </div>
-                      <div className="small text-secondary">
-                        VTC: <strong className="text-dark">{driver.vtc}</strong> &bull; Distance: <strong style={{ color: '#0284c7' }}>{(driver.kms || 0).toLocaleString()} km</strong> &bull; Jobs: <strong className="text-success">{driver.deliveries || 0}</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="d-flex flex-column gap-2 align-items-start align-items-md-end">
-                    <div className="d-flex align-items-center gap-1 flex-wrap">
-                      <span className="small text-secondary fw-semibold me-1">Roles:</span>
-                      {[
-                        { key: 'driver', label: 'Driver', color: '#10b981' },
-                        { key: 'streamer', label: 'Streamer', color: '#ec4899' },
-                        { key: 'dev_modder', label: 'Dev | Modder', color: '#0284c7' },
-                        { key: 'dispatcher', label: 'Dispatcher', color: '#0ea5e9' },
-                        { key: 'convoy_lead', label: 'Convoy Lead', color: '#f59e0b' },
-                        { key: 'staff', label: 'Staff', color: '#a855f7' },
-                        { key: 'admin', label: 'Admin', color: '#ef4444' }
-                      ].map(({ key: rKey, label: rLabel, color: rColor }) => {
-                        const driverRoles = driver.roles && driver.roles.length > 0 ? driver.roles : [driver.role || 'driver'];
-                        const isActive = driverRoles.includes(rKey);
-
-                        return (
-                          <button
-                            key={rKey}
-                            type="button"
-                            onClick={() => toggleDriverRole(driver.id, rKey)}
-                            className={`btn btn-sm py-0 px-2 fw-bold transition ${isActive ? 'text-white shadow-sm' : 'btn-outline-secondary'}`}
-                            style={{
-                              fontSize: '0.72rem',
-                              backgroundColor: isActive ? rColor : 'transparent',
-                              borderColor: isActive ? rColor : '#cbd5e1',
-                              color: isActive ? (rKey === 'convoy_lead' ? '#0f172a' : '#ffffff') : '#64748b'
-                            }}
-                            title={`Toggle ${rLabel} role for ${driver.name}`}
-                          >
-                            {isActive ? `✓ ${rLabel}` : `+ ${rLabel}`}
-                          </button>
-                        );
-                      })}
-
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-danger fw-bold ms-2 py-0 px-2"
-                        style={{ fontSize: '0.72rem' }}
-                        onClick={() => {
-                          if (confirm(`Remove driver ${driver.name} (${driver.id}) from the system?`)) {
-                            deleteDriverAccount(driver.id);
-                          }
-                        }}
-                        title="Delete driver from system"
-                      >
-                        <i className="bi bi-trash"></i>
-                      </button>
-                    </div>
-                  </div>
+              {filteredDrivers.length === 0 ? (
+                <div className="p-4 text-center text-muted bg-light rounded border">
+                  No member accounts match the current filter criteria.
                 </div>
-              ))}
+              ) : (
+                filteredDrivers.map((driver) => {
+                  const loginInfo = formatLoginStatus(driver.lastLogin);
+                  const isCurrentAuthUser = user?.id === driver.id;
+
+                  return (
+                    <div
+                      key={driver.id}
+                      className="p-3 rounded-2 bg-light border d-flex flex-wrap align-items-center justify-content-between gap-3 shadow-sm transition hover-shadow"
+                      style={{ borderColor: isCurrentAuthUser ? '#10b981' : '#0284c7' }}
+                    >
+                      <div className="d-flex align-items-center gap-3">
+                        {driver.avatar ? (
+                          <img
+                            src={driver.avatar}
+                            alt={driver.name}
+                            className="rounded-circle object-fit-cover border shadow-sm"
+                            style={{ width: '46px', height: '46px', borderColor: '#0284c7' }}
+                          />
+                        ) : (
+                          <div
+                            className="rounded-circle d-flex align-items-center justify-content-center p-2 fs-5"
+                            style={{ width: '46px', height: '46px', backgroundColor: '#0284c7', color: '#ffffff' }}
+                          >
+                            <i className="bi bi-person-fill"></i>
+                          </div>
+                        )}
+
+                        <div>
+                          <div className="d-flex align-items-center gap-2 flex-wrap mb-1">
+                            <span className="fw-bold text-dark fs-6">{driver.name}</span>
+                            <span className="badge bg-dark small" style={{ fontSize: '0.7rem' }}>{driver.id}</span>
+                            {isCurrentAuthUser && (
+                              <span className="badge bg-success-subtle text-success border border-success-subtle small" style={{ fontSize: '0.68rem' }}>
+                                (Your Active Session)
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="d-flex align-items-center gap-2 flex-wrap small text-secondary">
+                            {driver.email && (
+                              <span className="text-dark me-2">
+                                <i className="bi bi-envelope-at me-1 text-primary"></i>
+                                <code>{driver.email}</code>
+                              </span>
+                            )}
+                            <span>
+                              Country: <strong>{driver.country || 'Kenya'}</strong>
+                            </span>
+                            <span>&bull;</span>
+                            <span>
+                              Truck: <strong>{driver.truck || 'Scania'}</strong>
+                            </span>
+                          </div>
+
+                          <div className="d-flex align-items-center gap-2 flex-wrap mt-2">
+                            {/* Login Activity Telemetry Badge */}
+                            <span className={loginInfo.badgeClass} style={{ fontSize: '0.72rem' }}>
+                              <i className={`${loginInfo.icon} me-1`}></i>
+                              {loginInfo.text}
+                            </span>
+
+                            <span className="badge bg-light text-secondary border small" style={{ fontSize: '0.72rem' }}>
+                              <i className="bi bi-speedometer2 me-1" style={{ color: '#0284c7' }}></i>
+                              {(driver.kms || 0).toLocaleString()} km
+                            </span>
+
+                            <span className="badge bg-light text-secondary border small" style={{ fontSize: '0.72rem' }}>
+                              <i className="bi bi-box-seam me-1 text-success"></i>
+                              {driver.deliveries || 0} jobs
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Role Permission Toggles */}
+                      <div className="d-flex flex-column gap-2 align-items-start align-items-md-end">
+                        <div className="d-flex align-items-center gap-1 flex-wrap">
+                          <span className="small text-secondary fw-semibold me-1" style={{ fontSize: '0.75rem' }}>
+                            Roles:
+                          </span>
+                          {[
+                            { key: 'driver', label: 'Driver', color: '#10b981' },
+                            { key: 'streamer', label: 'Streamer', color: '#ec4899' },
+                            { key: 'dev_modder', label: 'Dev | Modder', color: '#0284c7' },
+                            { key: 'dispatcher', label: 'Dispatcher', color: '#0ea5e9' },
+                            { key: 'convoy_lead', label: 'Convoy Lead', color: '#f59e0b' },
+                            { key: 'staff', label: 'Staff', color: '#a855f7' },
+                            { key: 'admin', label: 'Admin', color: '#ef4444' }
+                          ].map(({ key: rKey, label: rLabel, color: rColor }) => {
+                            const driverRoles = driver.roles && driver.roles.length > 0 ? driver.roles : [driver.role || 'driver'];
+                            const isActive = driverRoles.includes(rKey);
+
+                            return (
+                              <button
+                                key={rKey}
+                                type="button"
+                                onClick={() => toggleDriverRole(driver.id, rKey, driver)}
+                                className={`btn btn-sm py-1 px-2 fw-bold transition ${isActive ? 'text-white shadow-sm' : 'btn-outline-secondary'}`}
+                                style={{
+                                  fontSize: '0.72rem',
+                                  backgroundColor: isActive ? rColor : 'transparent',
+                                  borderColor: isActive ? rColor : '#cbd5e1',
+                                  color: isActive ? (rKey === 'convoy_lead' ? '#0f172a' : '#ffffff') : '#64748b'
+                                }}
+                                title={`Toggle ${rLabel} role for ${driver.name}`}
+                              >
+                                {isActive ? `✓ ${rLabel}` : `+ ${rLabel}`}
+                              </button>
+                            );
+                          })}
+
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger fw-bold ms-2 py-1 px-2"
+                            style={{ fontSize: '0.72rem' }}
+                            onClick={() => {
+                              if (confirm(`Remove driver ${driver.name} (${driver.id}) from the system and Supabase Auth?`)) {
+                                deleteDriverAccount(driver.id);
+                              }
+                            }}
+                            title="Delete driver from system"
+                          >
+                            <i className="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         )}

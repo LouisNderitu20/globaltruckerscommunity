@@ -293,13 +293,28 @@ export function AuthProvider({ children }) {
 
       async function loadRemoteDrivers() {
         try {
-          const res = await fetch('/api/signup', { cache: 'no-store' });
-          const json = await res.json();
-          if (json?.success && Array.isArray(json.signups)) {
+          let listToProcess = null;
+          try {
+            const authRes = await fetch('/api/auth', { cache: 'no-store' });
+            const authJson = await authRes.json();
+            if (authJson?.success && Array.isArray(authJson.users)) {
+              listToProcess = authJson.users;
+            }
+          } catch (e) {}
+
+          if (!listToProcess) {
+            const res = await fetch('/api/signup', { cache: 'no-store' });
+            const json = await res.json();
+            if (json?.success && Array.isArray(json.signups)) {
+              listToProcess = json.signups;
+            }
+          }
+
+          if (listToProcess && Array.isArray(listToProcess)) {
             setAllDrivers((current) => {
               const currentList = [...current];
               const idMap = new Map(currentList.map((d) => [d.id, d]));
-              json.signups.forEach((s) => {
+              listToProcess.forEach((s) => {
                 const permLic = s.license_number || s.licenseNumber || getPermanentLicenseNumber(s.id);
                 const normalized = {
                   id: s.id,
@@ -309,24 +324,28 @@ export function AuthProvider({ children }) {
                   roles: Array.isArray(s.roles) && s.roles.length > 0 ? s.roles : [s.role || (s.driver_type === 'Official Streamer' ? 'streamer' : 'driver')],
                   country: s.country || 'Kenya',
                   vtc: s.vtc || s.driver_type || 'Independent Solo Driver',
-                  truck: s.truck_brand || 'Scania S730 V8',
+                  truck: s.truck_brand || s.truck || 'Scania S730 V8',
                   games: s.games || ['ETS 2'],
-                  tmpId: s.truckers_mp_id || s.tmp || null,
-                  steamId: s.steam_id || '',
-                  isStreamer: Boolean(s.stream_url),
-                  streamerUrl: s.stream_url || '',
+                  tmpId: s.truckers_mp_id || s.tmp || s.tmpId || null,
+                  steamId: s.steam_id || s.steamId || '',
+                  isStreamer: Boolean(s.stream_url || s.isStreamer),
+                  streamerUrl: s.stream_url || s.streamerUrl || '',
                   kms: Number(s.kms) || 0,
                   deliveries: Number(s.deliveries) || 0,
                   licenseNumber: permLic,
                   joinedAt: s.joined_at || s.joinedAt || new Date().toISOString(),
-                  avatar: s.avatar || ''
+                  lastLogin: s.last_login || s.lastLogin || null,
+                  avatar: s.avatar || '',
+                  authUserId: s.authUserId || null,
+                  isAuthRegistered: s.isAuthRegistered
                 };
                 if (!idMap.has(s.id)) {
                   currentList.push(normalized);
                   idMap.set(s.id, normalized);
                 } else {
                   const existing = idMap.get(s.id);
-                  const merged = { ...normalized, ...existing, licenseNumber: existing.licenseNumber || permLic };
+                  // Remote server data MUST update stale local state
+                  const merged = { ...existing, ...normalized, licenseNumber: normalized.licenseNumber || existing.licenseNumber || permLic };
                   const idx = currentList.findIndex((d) => d.id === s.id);
                   if (idx > -1) currentList[idx] = merged;
                 }
@@ -540,20 +559,24 @@ export function AuthProvider({ children }) {
     showToast(`Welcome ${newDriver.name}! ${formData.isStreamer ? 'Official Streamer Credential Issued.' : 'Driver License Issued.'}`, 'success');
 
     try {
-      await fetch('/api/signup', {
+      const authRes = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'register',
           id: newDriver.id,
           name: newDriver.name,
           email: newDriver.email,
+          password: newDriver.password,
           country: newDriver.country,
           games: newDriver.games,
-          type: newDriver.vtc,
-          tmp: newDriver.tmpId,
-          truckBrand: newDriver.truck,
+          vtc: newDriver.vtc,
+          tmpId: newDriver.tmpId,
+          steamId: newDriver.steamId,
+          truck: newDriver.truck,
           avatar: newDriver.avatar,
           role: newDriver.role,
+          roles: newDriver.roles,
           licenseNumber: permanentLicense,
           joinedAt: joinDateStr,
           isStreamer: newDriver.isStreamer,
@@ -561,7 +584,39 @@ export function AuthProvider({ children }) {
           streamerUrl: newDriver.streamerUrl
         })
       });
-    } catch (e) {}
+      const authJson = await authRes.json();
+      if (authJson?.success && authJson?.driver) {
+        newDriver.authUserId = authJson.driver.authUserId;
+        newDriver.lastLogin = authJson.driver.last_login || new Date().toISOString();
+        saveUserSession(newDriver);
+      }
+    } catch (e) {
+      try {
+        await fetch('/api/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: newDriver.id,
+            name: newDriver.name,
+            email: newDriver.email,
+            password: newDriver.password,
+            country: newDriver.country,
+            games: newDriver.games,
+            type: newDriver.vtc,
+            tmp: newDriver.tmpId,
+            truckBrand: newDriver.truck,
+            avatar: newDriver.avatar,
+            role: newDriver.role,
+            roles: newDriver.roles,
+            licenseNumber: permanentLicense,
+            joinedAt: joinDateStr,
+            isStreamer: newDriver.isStreamer,
+            streamerPlatform: newDriver.streamerPlatform,
+            streamerUrl: newDriver.streamerUrl
+          })
+        });
+      } catch (fallbackErr) {}
+    }
 
     return { success: true, driver: newDriver };
   };
@@ -588,7 +643,43 @@ export function AuthProvider({ children }) {
       return { success: false, error: 'Callsign or email is required.' };
     }
 
-    const query = emailOrCallsign.trim().toLowerCase();
+    const cleanInput = emailOrCallsign.trim();
+    const cleanPass = (password || 'gtc2026').trim();
+
+    // 1. Try server login to record last_login and sync with Supabase Auth
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'login',
+          emailOrCallsign: cleanInput,
+          password: cleanPass
+        })
+      });
+
+      const json = await res.json();
+      if (json?.success && json?.driver) {
+        let loggedIn = sanitizeUserRoles(json.driver);
+        if (!loggedIn.licenseNumber) {
+          loggedIn.licenseNumber = getPermanentLicenseNumber(loggedIn);
+        }
+        loggedIn.lastLogin = json.driver.last_login || new Date().toISOString();
+        loggedIn.last_login = loggedIn.lastLogin;
+
+        saveUserSession(loggedIn);
+        showToast(`Welcome back, ${loggedIn.name}! Logged in as ${ROLE_INFO[loggedIn.role]?.label || 'Driver'}.`, 'success');
+        return { success: true, driver: loggedIn };
+      } else if (json && json.success === false && json.status === 401) {
+        showToast(json.error || 'Incorrect password.', 'error');
+        return { success: false, error: json.error || 'Incorrect password.' };
+      }
+    } catch (apiErr) {
+      console.warn('API login error, proceeding to local check:', apiErr);
+    }
+
+    // 2. Fallback local / stored lookup
+    const query = cleanInput.toLowerCase();
     let target = allDrivers.find(
       (d) =>
         d.name?.toLowerCase() === query ||
@@ -617,7 +708,7 @@ export function AuthProvider({ children }) {
               roles: Array.isArray(match.roles) && match.roles.length > 0 ? match.roles : [match.role || 'driver'],
               country: match.country || 'Kenya',
               vtc: match.vtc || match.driver_type || 'Independent Solo Driver',
-              truck: match.truck_brand || 'Scania S730 V8',
+              truck: match.truck_brand || match.truck || 'Scania S730 V8',
               games: match.games || ['ETS 2'],
               tmpId: match.truckers_mp_id || match.tmp || null,
               steamId: match.steam_id || '',
@@ -627,8 +718,9 @@ export function AuthProvider({ children }) {
               deliveries: Number(match.deliveries) || 0,
               licenseNumber: permLic,
               joinedAt: match.joined_at || match.joinedAt || new Date().toISOString(),
+              lastLogin: new Date().toISOString(),
               avatar: match.avatar || '',
-              password: 'gtc2026'
+              password: match.password || 'gtc2026'
             };
           }
         }
@@ -641,7 +733,7 @@ export function AuthProvider({ children }) {
     }
 
     const expectedPassword = target.password || 'gtc2026';
-    if (password.trim() !== expectedPassword && password.trim() !== 'gtc2026' && password.trim() !== 'ADMIN2026') {
+    if (cleanPass !== expectedPassword && cleanPass !== 'gtc2026' && cleanPass !== 'ADMIN2026') {
       showToast('Incorrect password. Please try again.', 'error');
       return { success: false, error: 'Incorrect password. Please check your credentials.' };
     }
@@ -649,6 +741,8 @@ export function AuthProvider({ children }) {
     if (!target.licenseNumber) {
       target.licenseNumber = getPermanentLicenseNumber(target);
     }
+    target.lastLogin = new Date().toISOString();
+    target.last_login = target.lastLogin;
 
     saveUserSession(target);
     showToast(`Welcome back, ${target.name}! Logged in as ${ROLE_INFO[target.role]?.label || 'Driver'}.`, 'success');
@@ -815,29 +909,56 @@ export function AuthProvider({ children }) {
     return updatedUser;
   };
 
-  const assignRole = (driverId, newRole) => {
+  const assignRole = async (driverId, newRole, driverData = null) => {
     if (user?.role !== ROLES.ADMIN && !user?.roles?.includes(ROLES.ADMIN)) {
       showToast('Permission denied: Only Admins can assign roles.', 'error');
       return false;
     }
 
+    const rolesArray = Array.isArray(newRole) ? newRole : [newRole];
+    const primaryRole = rolesArray[0] || 'driver';
+
     setAllDrivers((prev) => {
+      let found = false;
       const updated = prev.map((driver) => {
         if (driver.id === driverId) {
-          const rolesArray = Array.isArray(newRole) ? newRole : [newRole];
-          return { ...driver, role: rolesArray[0] || 'driver', roles: rolesArray };
+          found = true;
+          return { ...driver, role: primaryRole, roles: rolesArray };
         }
         return driver;
       });
+
+      if (!found && driverData) {
+        updated.push({
+          ...driverData,
+          id: driverId,
+          role: primaryRole,
+          roles: rolesArray
+        });
+      }
+
       localStorage.setItem('gtc_registered_drivers', JSON.stringify(updated));
       return updated;
     });
 
     if (user?.id === driverId) {
-      const rolesArray = Array.isArray(newRole) ? newRole : [newRole];
-      const updatedCurrent = { ...user, role: rolesArray[0] || 'driver', roles: rolesArray };
+      const updatedCurrent = { ...user, role: primaryRole, roles: rolesArray };
       saveUserSession(updatedCurrent);
     }
+
+    try {
+      await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_role',
+          userId: driverId,
+          role: primaryRole,
+          roles: rolesArray,
+          driverData
+        })
+      });
+    } catch (e) {}
 
     fetch('/api/publish', {
       method: 'POST',
@@ -845,17 +966,18 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({
         updates: {
           userId: driverId,
-          role: Array.isArray(newRole) ? newRole[0] : newRole,
-          roles: Array.isArray(newRole) ? newRole : [newRole]
+          role: primaryRole,
+          roles: rolesArray,
+          driverData
         }
       })
     }).catch(() => {});
 
-    showToast(`Role updated to ${ROLE_INFO[Array.isArray(newRole) ? newRole[0] : newRole]?.label || newRole}`, 'success');
+    showToast(`Role updated to ${ROLE_INFO[primaryRole]?.label || primaryRole}`, 'success');
     return true;
   };
 
-  const toggleDriverRole = (driverId, roleToToggle) => {
+  const toggleDriverRole = async (driverId, roleToToggle, driverData = null) => {
     if (user?.role !== ROLES.ADMIN && !user?.roles?.includes(ROLES.ADMIN)) {
       showToast('Permission denied: Only Admins can modify roles.', 'error');
       return false;
@@ -863,10 +985,14 @@ export function AuthProvider({ children }) {
 
     let updatedRoles = [];
     let targetDriverName = driverId;
+    let foundDriver = null;
 
     setAllDrivers((prev) => {
+      let isFound = false;
       const updated = prev.map((driver) => {
         if (driver.id === driverId) {
+          isFound = true;
+          foundDriver = driver;
           targetDriverName = driver.name;
           const currentRoles = Array.isArray(driver.roles) && driver.roles.length > 0
             ? [...driver.roles]
@@ -890,6 +1016,29 @@ export function AuthProvider({ children }) {
         return driver;
       });
 
+      if (!isFound) {
+        const source = driverData || {};
+        targetDriverName = source.name || driverId;
+        const currentRoles = Array.isArray(source.roles) && source.roles.length > 0
+          ? [...source.roles]
+          : [source.role || 'driver'];
+
+        if (currentRoles.includes(roleToToggle)) {
+          updatedRoles = currentRoles.filter((r) => r !== roleToToggle);
+          if (updatedRoles.length === 0) updatedRoles = ['driver'];
+        } else {
+          updatedRoles = [...currentRoles, roleToToggle];
+        }
+
+        const newEntry = {
+          ...source,
+          id: driverId,
+          roles: updatedRoles,
+          role: updatedRoles[0] || 'driver'
+        };
+        updated.push(newEntry);
+      }
+
       localStorage.setItem('gtc_registered_drivers', JSON.stringify(updated));
       return updated;
     });
@@ -903,6 +1052,20 @@ export function AuthProvider({ children }) {
       saveUserSession(updatedCurrent);
     }
 
+    try {
+      await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_role',
+          userId: driverId,
+          role: updatedRoles[0] || 'driver',
+          roles: updatedRoles,
+          driverData: foundDriver || driverData
+        })
+      });
+    } catch (e) {}
+
     fetch('/api/publish', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -910,7 +1073,8 @@ export function AuthProvider({ children }) {
         updates: {
           userId: driverId,
           role: updatedRoles[0] || 'driver',
-          roles: updatedRoles
+          roles: updatedRoles,
+          driverData: foundDriver || driverData
         }
       })
     }).catch(() => {});
@@ -918,6 +1082,80 @@ export function AuthProvider({ children }) {
     const roleName = ROLE_INFO[roleToToggle]?.label || roleToToggle;
     showToast(`Toggled ${roleName} for ${targetDriverName}`, 'success');
     return true;
+  };
+
+  const syncAllFleetAccounts = async () => {
+    try {
+      showToast('Syncing all fleet accounts to Supabase Auth...', 'info');
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sync_all',
+          seedDrivers: allDrivers
+        })
+      });
+      const data = await res.json();
+      if (data?.success) {
+        showToast(data.message || 'All fleet accounts synced with Supabase Auth!', 'success');
+        try {
+          const rRes = await fetch('/api/auth', { cache: 'no-store' });
+          const rJson = await rRes.json();
+          if (rJson?.success && Array.isArray(rJson.users)) {
+            setAllDrivers((prev) => {
+              const list = [...prev];
+              const idMap = new Map(list.map((d) => [d.id, d]));
+              rJson.users.forEach((u) => {
+                const permLic = u.license_number || u.licenseNumber || getPermanentLicenseNumber(u.id);
+                const normalized = {
+                  id: u.id,
+                  name: u.name,
+                  email: u.email || '',
+                  role: u.role || 'driver',
+                  roles: Array.isArray(u.roles) && u.roles.length > 0 ? u.roles : [u.role || 'driver'],
+                  country: u.country || 'Kenya',
+                  vtc: u.vtc || 'Independent Solo Driver',
+                  truck: u.truck || u.truck_brand || 'Scania S730 V8',
+                  games: u.games || ['ETS 2'],
+                  tmpId: u.tmpId || u.truckers_mp_id || null,
+                  steamId: u.steamId || u.steam_id || '',
+                  isStreamer: Boolean(u.isStreamer || u.stream_url),
+                  streamerUrl: u.streamerUrl || u.stream_url || '',
+                  kms: Number(u.kms) || 0,
+                  deliveries: Number(u.deliveries) || 0,
+                  licenseNumber: permLic,
+                  joinedAt: u.joined_at || u.joinedAt || new Date().toISOString(),
+                  lastLogin: u.last_login || u.lastLogin || null,
+                  avatar: u.avatar || '',
+                  authUserId: u.authUserId || null,
+                  isAuthRegistered: u.isAuthRegistered
+                };
+                if (!idMap.has(u.id)) {
+                  list.push(normalized);
+                  idMap.set(u.id, normalized);
+                } else {
+                  const existing = idMap.get(u.id);
+                  const merged = { ...existing, ...normalized, licenseNumber: normalized.licenseNumber || existing.licenseNumber || permLic };
+                  const idx = list.findIndex((d) => d.id === u.id);
+                  if (idx > -1) list[idx] = merged;
+                }
+              });
+              try {
+                localStorage.setItem('gtc_registered_drivers', JSON.stringify(list));
+              } catch (e) {}
+              return list;
+            });
+          }
+        } catch (e) {}
+        return { success: true };
+      } else {
+        showToast('Sync error: ' + (data?.error || 'Unknown error'), 'error');
+        return { success: false, error: data?.error };
+      }
+    } catch (err) {
+      showToast('Sync error: ' + err.message, 'error');
+      return { success: false, error: err.message };
+    }
   };
 
   const updateUserProfile = async (updatedFields) => {
@@ -1245,7 +1483,8 @@ export function AuthProvider({ children }) {
         deleteDriverAccount,
         broadcastConvoyReminder,
         showToast,
-        updateUserAvatar
+        updateUserAvatar,
+        syncAllFleetAccounts
       }}
     >
       {children}

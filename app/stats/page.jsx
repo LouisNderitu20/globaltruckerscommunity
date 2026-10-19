@@ -34,6 +34,15 @@ export default function StatsPage() {
       } catch (e) {}
 
       try {
+        const aRes = await fetch('/api/auth', { cache: 'no-store' });
+        const aJson = await aRes.json();
+        if (aJson?.success && Array.isArray(aJson.users)) {
+          setRemoteSignups(aJson.users);
+          return;
+        }
+      } catch (e) {}
+
+      try {
         const sRes = await fetch('/api/signup', { cache: 'no-store' });
         const sJson = await sRes.json();
         if (sJson?.success && Array.isArray(sJson.signups)) {
@@ -53,16 +62,30 @@ export default function StatsPage() {
         list.push({
           id: s.id,
           name: s.name,
+          email: s.email || '',
           role: s.role || (s.driver_type === 'Official Streamer' ? 'streamer' : 'driver'),
           roles: s.roles || (s.role ? [s.role] : [s.driver_type === 'Official Streamer' ? 'streamer' : 'driver']),
           country: s.country || 'International',
           vtc: s.vtc || 'Independent Solo Driver',
-          truck: s.truck_brand || 'Scania',
+          truck: s.truck_brand || s.truck || 'Scania',
           kms: Number(s.kms) || 0,
           deliveries: Number(s.deliveries) || 0,
-          avatar: s.avatar || null
+          avatar: s.avatar || null,
+          lastLogin: s.last_login || s.lastLogin || null
         });
         existingIds.add(s.id);
+      } else {
+        const idx = list.findIndex((d) => d.id === s.id);
+        if (idx > -1) {
+          list[idx] = {
+            ...list[idx],
+            role: s.role || list[idx].role,
+            roles: Array.isArray(s.roles) && s.roles.length > 0 ? s.roles : list[idx].roles,
+            kms: s.kms !== undefined ? Number(s.kms) : list[idx].kms,
+            deliveries: s.deliveries !== undefined ? Number(s.deliveries) : list[idx].deliveries,
+            lastLogin: s.last_login || s.lastLogin || list[idx].lastLogin || null
+          };
+        }
       }
     });
 
