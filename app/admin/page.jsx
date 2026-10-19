@@ -426,6 +426,7 @@ export default function AdminDesk() {
         if (idx > -1) {
           list[idx] = {
             ...list[idx],
+            avatar: s.avatar || list[idx].avatar || null,
             email: s.email || list[idx].email,
             role: s.role || list[idx].role,
             roles: Array.isArray(s.roles) && s.roles.length > 0 ? s.roles : list[idx].roles,
@@ -438,8 +439,16 @@ export default function AdminDesk() {
       }
     });
 
+    if (user && user.avatar) {
+      list.forEach((d) => {
+        if (d.id === user.id || (d.email && d.email.toLowerCase() === user.email?.toLowerCase())) {
+          d.avatar = user.avatar;
+        }
+      });
+    }
+
     return list;
-  }, [allDrivers, remoteSignups]);
+  }, [allDrivers, remoteSignups, user]);
 
   const countryBreakdown = React.useMemo(() => {
     const map = {};

@@ -4,7 +4,7 @@ import React from 'react';
 import { useAuth } from '@/lib/authContext';
 
 export default function StreamersSection({ streamers }) {
-  const { allDrivers } = useAuth();
+  const { allDrivers, user } = useAuth();
 
   const streamerList = React.useMemo(() => {
     const list = [];
@@ -22,6 +22,10 @@ export default function StreamersSection({ streamers }) {
         }
         const platform = d.streamerPlatform || (url.includes('tiktok') ? 'TikTok' : url.includes('twitch') ? 'Twitch' : url.includes('youtube') || url.includes('youtu.be') ? 'YouTube' : 'TikTok');
         const cleanName = (d.name || '').trim().toLowerCase();
+        const activeAvatar = (user && (user.id === d.id || (user.email && user.email.toLowerCase() === d.email?.toLowerCase())) && user.avatar)
+          ? user.avatar
+          : (d.avatar || '');
+
         if (cleanName && !seenNames.has(cleanName)) {
           list.push({
             id: d.id,
@@ -30,7 +34,7 @@ export default function StreamersSection({ streamers }) {
             url,
             games: (Array.isArray(d.games) ? d.games.join(', ') : d.games) || 'ETS 2, ATS',
             status: 'Official Streamer',
-            avatar: d.avatar || '',
+            avatar: activeAvatar,
             live: false
           });
           seenNames.add(cleanName);
@@ -43,15 +47,22 @@ export default function StreamersSection({ streamers }) {
     (streamers || []).forEach((s) => {
       const cleanName = (s.name || '').trim().toLowerCase();
       const cleanUrl = (s.url || '').trim().toLowerCase();
+      const activeAvatar = (user && (user.id === s.id || (user.name && user.name.toLowerCase() === cleanName)) && user.avatar)
+        ? user.avatar
+        : (s.avatar || '');
+
       if (cleanName && !seenNames.has(cleanName) && (!cleanUrl || !seenUrls.has(cleanUrl))) {
-        list.push(s);
+        list.push({
+          ...s,
+          avatar: activeAvatar
+        });
         seenNames.add(cleanName);
         if (cleanUrl) seenUrls.add(cleanUrl);
       }
     });
 
     return list;
-  }, [streamers, allDrivers]);
+  }, [streamers, allDrivers, user]);
 
   return (
     <section id="streamers" className="py-4">

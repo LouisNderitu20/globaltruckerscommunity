@@ -198,7 +198,7 @@ export function AuthProvider({ children }) {
                 licenseNumber: permLic,
                 joinedAt: s.joined_at || s.joinedAt || new Date().toISOString(),
                 lastLogin: s.last_login || s.lastLogin || null,
-                avatar: s.avatar || '',
+                avatar: s.avatar || s.user_metadata?.avatar || s.photo || '',
                 authUserId: s.authUserId || null,
                 isAuthRegistered: s.isAuthRegistered
               };
@@ -231,6 +231,9 @@ export function AuthProvider({ children }) {
           localStorage.setItem('gtc_user_session', JSON.stringify(activeUser));
         } catch (e) {}
         setUser(activeUser);
+        if (activeUser.avatar) {
+          setAllDrivers((prev) => prev.map((d) => (d.id === activeUser.id || (d.email && d.email.toLowerCase() === activeUser.email?.toLowerCase()) ? { ...d, avatar: activeUser.avatar } : d)));
+        }
         loadUserNotifications(activeUser);
         loadUserReminders(activeUser);
       } else {
@@ -480,7 +483,65 @@ export function AuthProvider({ children }) {
     if (!user) return;
     const updated = { ...user, avatar: avatarUrl };
     saveUserSession(updated);
-    showToast('Driver profile photo updated!', 'success');
+
+    // 1. Immediately update allDrivers so directory, streamers, and admin reflect the photo
+    setAllDrivers((prev) => {
+      const list = prev.map((d) => (d.id === user.id || (d.email && d.email.toLowerCase() === user.email?.toLowerCase()) ? { ...d, avatar: avatarUrl } : d));
+      try {
+        localStorage.setItem('gtc_registered_drivers', JSON.stringify(list));
+      } catch (e) {}
+      return list;
+    });
+
+    // 2. Immediately update convoy bookings so attendee slots reflect the photo
+    setConvoyAttendees((prev) => {
+      const updatedAttendees = { ...prev };
+      let changed = false;
+      Object.keys(updatedAttendees).forEach((convoyId) => {
+        if (Array.isArray(updatedAttendees[convoyId])) {
+          updatedAttendees[convoyId] = updatedAttendees[convoyId].map((att) => {
+            if (att.id === user.id || att.name === user.name) {
+              changed = true;
+              return { ...att, avatar: avatarUrl };
+            }
+            return att;
+          });
+        }
+      });
+      if (changed) {
+        try {
+          localStorage.setItem('gtc_convoy_attendance', JSON.stringify(updatedAttendees));
+          fetch('/api/attendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedAttendees)
+          }).catch(() => {});
+        } catch (e) {}
+      }
+      return updatedAttendees;
+    });
+
+    // 3. Persist avatar to Supabase backend (signups, streamers, auth user_metadata)
+    try {
+      fetch('/api/signup', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          avatar: avatarUrl,
+          country: user.country,
+          truckBrand: user.truck,
+          stream: user.streamerUrl,
+          streamerUrl: user.streamerUrl,
+          role: user.role,
+          roles: user.roles
+        })
+      }).catch((err) => console.warn('Avatar API sync warning:', err));
+    } catch (e) {}
+
+    showToast('Driver profile photo updated across the platform!', 'success');
   };
 
   const loginAccount = async (credentials) => {

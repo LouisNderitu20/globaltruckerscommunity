@@ -241,10 +241,23 @@ export async function PUT(request) {
         if (!list.some((s) => s.id === id)) {
           list.unshift(updatedData);
         }
+        let streamersList = row.data.streamers;
+        if (Array.isArray(streamersList)) {
+          streamersList = streamersList.map((st) => {
+            if (st.id === id || (name && st.name?.toLowerCase() === name.toLowerCase()) || (email && st.email?.toLowerCase() === email.toLowerCase())) {
+              return {
+                ...st,
+                avatar: avatar || st.avatar || null
+              };
+            }
+            return st;
+          });
+        }
+
         await db
           .from('site_content')
           .update({
-            data: { ...row.data, signups: list },
+            data: { ...row.data, signups: list, streamers: streamersList },
             updated_at: nowIso
           })
           .eq('id', 1);
@@ -273,7 +286,8 @@ export async function PUT(request) {
               role: finalRole,
               roles: finalRoles,
               country: validatedCountry || authUser.user_metadata?.country,
-              truck: validatedTruck || authUser.user_metadata?.truck
+              truck: validatedTruck || authUser.user_metadata?.truck,
+              avatar: avatar || authUser.user_metadata?.avatar || null
             }
           });
         }

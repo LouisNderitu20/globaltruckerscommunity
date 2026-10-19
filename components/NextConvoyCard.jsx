@@ -493,6 +493,7 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
                   {filteredAttendees.map((att, idx) => {
                     const rolesList = att.roles || (att.role ? [att.role] : ['driver']);
                     const isCurrentUser = user && (user.id === att.id || user.name === att.name);
+                    const displayAvatar = (isCurrentUser && user.avatar) ? user.avatar : att.avatar;
 
                     return (
                       <div
@@ -501,9 +502,9 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
                         style={{ borderColor: isCurrentUser ? '#0284c7' : '#e2e8f0' }}
                       >
                         <div className="d-flex align-items-center gap-3">
-                          {att.avatar ? (
+                          {displayAvatar ? (
                             <img
-                              src={att.avatar}
+                              src={displayAvatar}
                               alt={att.name}
                               className="rounded-circle object-fit-cover border shadow-sm"
                               style={{ width: '40px', height: '40px', borderColor: '#e2e8f0' }}

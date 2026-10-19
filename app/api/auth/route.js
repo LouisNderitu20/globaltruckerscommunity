@@ -60,6 +60,7 @@ export async function GET() {
 
       return {
         ...s,
+        avatar: s.avatar || authUser?.user_metadata?.avatar || s.photo || '',
         role,
         roles,
         last_login: lastLogin,
@@ -194,8 +195,7 @@ export async function POST(request) {
       // Record login timestamp
       const nowIso = new Date().toISOString();
       targetDriver.last_login = nowIso;
-      targetDriver.lastLogin = nowIso;
-      targetDriver.updated_at = nowIso;
+      targetDriver.avatar = targetDriver.avatar || matchingAuthUser?.user_metadata?.avatar || targetDriver.photo || '';
 
       if (targetIndex > -1) {
         signups[targetIndex] = targetDriver;
@@ -222,6 +222,7 @@ export async function POST(request) {
           await client.auth.admin.updateUserById(matchingAuthUser.id, {
             user_metadata: {
               ...(matchingAuthUser.user_metadata || {}),
+              avatar: targetDriver.avatar || matchingAuthUser.user_metadata?.avatar || null,
               last_login: nowIso,
               role: targetDriver.role,
               roles: targetDriver.roles

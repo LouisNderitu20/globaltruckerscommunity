@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth, ROLE_INFO } from '@/lib/authContext';
 
 export default function MembersDirectory() {
-  const { allDrivers } = useAuth();
+  const { allDrivers, user } = useAuth();
   const [remoteSignups, setRemoteSignups] = useState([]);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
@@ -68,11 +68,23 @@ export default function MembersDirectory() {
         list.push(item);
         if (emailKey) keyMap.set(emailKey, item);
         keyMap.set(s.id, item);
+      } else {
+        if (s.avatar && !existing.avatar) {
+          existing.avatar = s.avatar;
+        }
       }
     });
 
+    if (user && user.avatar) {
+      list.forEach((d) => {
+        if (d.id === user.id || (d.email && d.email.toLowerCase() === user.email?.toLowerCase())) {
+          d.avatar = user.avatar;
+        }
+      });
+    }
+
     return list;
-  }, [allDrivers, remoteSignups]);
+  }, [allDrivers, remoteSignups, user]);
 
   const filtered = mergedDrivers
     .filter((d) => {
