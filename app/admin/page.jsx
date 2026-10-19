@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth, ROLE_INFO, ROLES } from '@/lib/authContext';
 import { DEFAULT_CONFIG, TIMETABLE_CONVOYS, buildConvoyFromSlot } from '@/lib/defaultConfig';
 import DriverAccountModal from '@/components/DriverAccountModal';
+import RoleSelector from '@/components/RoleSelector';
 
 export default function AdminDesk() {
   const {
@@ -327,10 +328,11 @@ export default function AdminDesk() {
     setSaveSuccess(false);
 
     try {
+      const { signups: _ignore, ...siteContentData } = config || {};
       const res = await fetch('/api/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: config })
+        body: JSON.stringify({ data: siteContentData })
       });
 
       const json = await res.json();
@@ -1889,46 +1891,29 @@ export default function AdminDesk() {
                         </div>
                       </div>
 
-                      {/* Role Permission Toggles */}
+                      {/* NEETEL-Style Role Selector & Quick Actions */}
                       <div className="d-flex flex-column gap-2 align-items-start align-items-md-end">
-                        <div className="d-flex align-items-center gap-1 flex-wrap">
-                          <span className="small text-secondary fw-semibold me-1" style={{ fontSize: '0.75rem' }}>
-                            Roles:
-                          </span>
-                          {[
-                            { key: 'driver', label: 'Driver', color: '#10b981' },
-                            { key: 'streamer', label: 'Streamer', color: '#ec4899' },
-                            { key: 'dev_modder', label: 'Dev | Modder', color: '#0284c7' },
-                            { key: 'dispatcher', label: 'Dispatcher', color: '#0ea5e9' },
-                            { key: 'convoy_lead', label: 'Convoy Lead', color: '#f59e0b' },
-                            { key: 'staff', label: 'Staff', color: '#a855f7' },
-                            { key: 'admin', label: 'Admin', color: '#ef4444' }
-                          ].map(({ key: rKey, label: rLabel, color: rColor }) => {
-                            const driverRoles = driver.roles && driver.roles.length > 0 ? driver.roles : [driver.role || 'driver'];
-                            const isActive = driverRoles.includes(rKey);
-
-                            return (
-                              <button
-                                key={rKey}
-                                type="button"
-                                onClick={() => toggleDriverRole(driver.id, rKey, driver)}
-                                className={`btn btn-sm py-1 px-2 fw-bold transition ${isActive ? 'text-white shadow-sm' : 'btn-outline-secondary'}`}
-                                style={{
-                                  fontSize: '0.72rem',
-                                  backgroundColor: isActive ? rColor : 'transparent',
-                                  borderColor: isActive ? rColor : '#cbd5e1',
-                                  color: isActive ? (rKey === 'convoy_lead' ? '#0f172a' : '#ffffff') : '#64748b'
-                                }}
-                                title={`Toggle ${rLabel} role for ${driver.name}`}
-                              >
-                                {isActive ? `✓ ${rLabel}` : `+ ${rLabel}`}
-                              </button>
-                            );
-                          })}
+                        <div className="d-flex align-items-center gap-2 flex-wrap">
+                          <RoleSelector
+                            driver={driver}
+                            currentRole={driver.role || (driver.roles && driver.roles[0]) || 'driver'}
+                            isCurrentUser={isCurrentAuthUser}
+                            isAdminUser={isAdmin || user?.role === 'admin' || user?.roles?.includes('admin')}
+                            onRoleChange={async (driverId, newRole, driverObj) => {
+                              await assignRole(driverId, newRole, driverObj);
+                              try {
+                                const res = await fetch('/api/auth', { cache: 'no-store' });
+                                const json = await res.json();
+                                if (json?.success && Array.isArray(json.users)) {
+                                  setRemoteSignups(json.users);
+                                }
+                              } catch (e) {}
+                            }}
+                          />
 
                           <button
                             type="button"
-                            className="btn btn-sm btn-outline-danger fw-bold ms-2 py-1 px-2"
+                            className="btn btn-sm btn-outline-danger fw-bold py-1 px-2"
                             style={{ fontSize: '0.72rem' }}
                             onClick={() => {
                               if (confirm(`Remove driver ${driver.name} (${driver.id}) from the system and Supabase Auth?`)) {
@@ -1940,6 +1925,27 @@ export default function AdminDesk() {
                             <i className="bi bi-trash"></i>
                           </button>
                         </div>
+
+                        {/* Secondary Roles Badges (if any) */}
+                        {driver.roles && driver.roles.length > 1 && (
+                          <div className="d-flex align-items-center gap-1 flex-wrap">
+                            <span className="text-secondary small" style={{ fontSize: '0.68rem' }}>Additional Roles:</span>
+                            {driver.roles
+                              .filter((r) => r !== (driver.role || driver.roles[0]))
+                              .map((secRole) => {
+                                const secInfo = ROLE_INFO[secRole] || { label: secRole };
+                                return (
+                                  <span
+                                    key={secRole}
+                                    className="badge bg-light text-secondary border"
+                                    style={{ fontSize: '0.66rem' }}
+                                  >
+                                    {secInfo.label}
+                                  </span>
+                                );
+                              })}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

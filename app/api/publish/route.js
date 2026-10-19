@@ -137,22 +137,10 @@ export async function POST(request) {
         console.warn('Publish: reading existing signups warning:', readErr.message);
       }
 
-      const payloadSignups = Array.isArray(rawPayload.signups) ? rawPayload.signups : [];
-      const signupMap = new Map();
-      existingSignups.forEach((s) => {
-        if (s?.id) signupMap.set(s.id, s);
-      });
-      payloadSignups.forEach((s) => {
-        if (s?.id) {
-          const current = signupMap.get(s.id) || {};
-          signupMap.set(s.id, { ...current, ...s });
-        }
-      });
-      const finalSignups = Array.from(signupMap.values());
-
+      // Live member accounts must NEVER be overwritten by site content updates
       const finalData = {
         ...rawPayload,
-        signups: finalSignups.length > 0 ? finalSignups : existingSignups
+        signups: existingSignups
       };
 
       const { data: written, error } = await client

@@ -915,65 +915,88 @@ export function AuthProvider({ children }) {
       return false;
     }
 
-    const rolesArray = Array.isArray(newRole) ? newRole : [newRole];
-    const primaryRole = rolesArray[0] || 'driver';
+    const primaryRole = typeof newRole === 'string' ? newRole : (Array.isArray(newRole) ? newRole[0] : 'driver');
+    let targetDriverName = driverId;
+    let targetDriverObj = null;
 
     setAllDrivers((prev) => {
       let found = false;
       const updated = prev.map((driver) => {
         if (driver.id === driverId) {
           found = true;
-          return { ...driver, role: primaryRole, roles: rolesArray };
+          targetDriverName = driver.name || driver.email || driverId;
+          const oldRoles = Array.isArray(driver.roles) && driver.roles.length > 0 ? driver.roles : [driver.role || 'driver'];
+          let filteredOld = oldRoles.filter((r) => r !== primaryRole);
+          if (primaryRole !== 'admin') {
+            filteredOld = filteredOld.filter((r) => r !== 'admin');
+          }
+          const rolesArray = [primaryRole, ...filteredOld];
+          targetDriverObj = {
+            ...driver,
+            role: primaryRole,
+            roles: rolesArray
+          };
+          return targetDriverObj;
         }
         return driver;
       });
 
-      if (!found && driverData) {
-        updated.push({
-          ...driverData,
+      if (!found) {
+        const base = driverData || {};
+        targetDriverName = base.name || base.email || driverId;
+        const oldRoles = Array.isArray(base.roles) && base.roles.length > 0 ? base.roles : [base.role || 'driver'];
+        let filteredOld = oldRoles.filter((r) => r !== primaryRole);
+        if (primaryRole !== 'admin') {
+          filteredOld = filteredOld.filter((r) => r !== 'admin');
+        }
+        const rolesArray = [primaryRole, ...filteredOld];
+        targetDriverObj = {
+          ...base,
           id: driverId,
           role: primaryRole,
           roles: rolesArray
-        });
+        };
+        updated.push(targetDriverObj);
       }
 
       localStorage.setItem('gtc_registered_drivers', JSON.stringify(updated));
       return updated;
     });
 
-    if (user?.id === driverId) {
-      const updatedCurrent = { ...user, role: primaryRole, roles: rolesArray };
-      saveUserSession(updatedCurrent);
+    if (user?.id === driverId && targetDriverObj) {
+      saveUserSession(targetDriverObj);
     }
 
+    // Direct update to Supabase via dedicated role endpoint (NEETEL Pattern)
     try {
-      await fetch('/api/auth', {
-        method: 'POST',
+      const res = await fetch(`/api/drivers/${encodeURIComponent(driverId)}/role`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'update_role',
-          userId: driverId,
           role: primaryRole,
-          roles: rolesArray,
-          driverData
+          roles: targetDriverObj?.roles || [primaryRole],
+          driverData: targetDriverObj || driverData
         })
       });
-    } catch (e) {}
 
-    fetch('/api/publish', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        updates: {
-          userId: driverId,
-          role: primaryRole,
-          roles: rolesArray,
-          driverData
-        }
-      })
-    }).catch(() => {});
+      if (!res.ok) {
+        await fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_role',
+            userId: driverId,
+            role: primaryRole,
+            roles: targetDriverObj?.roles || [primaryRole],
+            driverData: targetDriverObj || driverData
+          })
+        });
+      }
+    } catch (e) {
+      console.warn('Role update sync warning:', e);
+    }
 
-    showToast(`Role updated to ${ROLE_INFO[primaryRole]?.label || primaryRole}`, 'success');
+    showToast(`Role updated to ${ROLE_INFO[primaryRole]?.label || primaryRole} for ${targetDriverName}`, 'success');
     return true;
   };
 
@@ -983,7 +1006,9 @@ export function AuthProvider({ children }) {
       return false;
     }
 
+    const ROLE_PRIORITY = ['admin', 'staff', 'dev_modder', 'convoy_lead', 'dispatcher', 'streamer', 'driver'];
     let updatedRoles = [];
+    let primaryRole = 'driver';
     let targetDriverName = driverId;
     let foundDriver = null;
 
@@ -993,7 +1018,7 @@ export function AuthProvider({ children }) {
         if (driver.id === driverId) {
           isFound = true;
           foundDriver = driver;
-          targetDriverName = driver.name;
+          targetDriverName = driver.name || driver.id;
           const currentRoles = Array.isArray(driver.roles) && driver.roles.length > 0
             ? [...driver.roles]
             : [driver.role || 'driver'];
@@ -1007,10 +1032,12 @@ export function AuthProvider({ children }) {
             updatedRoles = [...currentRoles, roleToToggle];
           }
 
+          primaryRole = ROLE_PRIORITY.find((r) => updatedRoles.includes(r)) || updatedRoles[0] || 'driver';
+
           return {
             ...driver,
             roles: updatedRoles,
-            role: updatedRoles[0] || 'driver'
+            role: primaryRole
           };
         }
         return driver;
@@ -1030,11 +1057,13 @@ export function AuthProvider({ children }) {
           updatedRoles = [...currentRoles, roleToToggle];
         }
 
+        primaryRole = ROLE_PRIORITY.find((r) => updatedRoles.includes(r)) || updatedRoles[0] || 'driver';
+
         const newEntry = {
           ...source,
           id: driverId,
           roles: updatedRoles,
-          role: updatedRoles[0] || 'driver'
+          role: primaryRole
         };
         updated.push(newEntry);
       }
@@ -1047,37 +1076,22 @@ export function AuthProvider({ children }) {
       const updatedCurrent = {
         ...user,
         roles: updatedRoles,
-        role: updatedRoles[0] || 'driver'
+        role: primaryRole
       };
       saveUserSession(updatedCurrent);
     }
 
     try {
-      await fetch('/api/auth', {
-        method: 'POST',
+      await fetch(`/api/drivers/${encodeURIComponent(driverId)}/role`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'update_role',
-          userId: driverId,
-          role: updatedRoles[0] || 'driver',
+          role: primaryRole,
           roles: updatedRoles,
           driverData: foundDriver || driverData
         })
       });
     } catch (e) {}
-
-    fetch('/api/publish', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        updates: {
-          userId: driverId,
-          role: updatedRoles[0] || 'driver',
-          roles: updatedRoles,
-          driverData: foundDriver || driverData
-        }
-      })
-    }).catch(() => {});
 
     const roleName = ROLE_INFO[roleToToggle]?.label || roleToToggle;
     showToast(`Toggled ${roleName} for ${targetDriverName}`, 'success');
