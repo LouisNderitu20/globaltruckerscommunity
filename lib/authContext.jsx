@@ -92,30 +92,6 @@ export function sanitizeUserRoles(u) {
   return { ...u, roles, role, isStreamer };
 }
 
-const DEFAULT_DEMO_USER = {
-  id: 'GTC-1001',
-  name: 'Bryan Gaming',
-  email: 'bryangamingofficial@outlook.com',
-  password: 'gtc2026',
-  role: 'admin',
-  roles: ['admin', 'streamer', 'convoy_lead'],
-  country: 'Kenya',
-  vtc: 'GTC Management',
-  truck: 'Scania S730 V8',
-  games: ['ETS 2', 'ATS'],
-  tmpId: '883921',
-  steamId: 'bryan_gaming_live',
-  isStreamer: false,
-  streamerPlatform: '',
-  streamerUrl: '',
-  kms: 145200,
-  deliveries: 1520,
-  licenseNumber: 'GTC-DL-2026-001',
-  joinedAt: new Date().toISOString(),
-  emailRemindersEnabled: true,
-  avatar: '/apple-touch-icon.png'
-};
-
 const DEFAULT_CONVOY_ATTENDEES = {};
 
 export function AuthProvider({ children }) {
@@ -167,130 +143,20 @@ export function AuthProvider({ children }) {
     loadAttendanceFromServer();
 
     try {
-      const seedDrivers = [
-        DEFAULT_DEMO_USER,
-        {
-          id: 'GTC-1021',
-          name: 'Krusherz_21',
-          email: 'krusherz@gtc.com',
-          password: 'gtc2026',
-          role: 'admin',
-          roles: ['admin', 'dev_modder'],
-          country: 'Kenya',
-          vtc: 'GTC Management & Tech',
-          truck: 'Scania 770S V8',
-          games: ['ETS 2', 'ATS'],
-          tmpId: 'TMP-772109',
-          steamId: 'krusherz_21',
-          isDevModder: true,
-          devSpecialty: 'GTC Core Tools & Modding Architecture',
-          kms: 132400,
-          deliveries: 1380,
-          licenseNumber: 'GTC-DL-2026-021',
-          joinedAt: new Date().toISOString(),
-          bio: 'Dev by day, Trucker by night',
-          avatar: 'https://bissmepkqhackzaezvax.supabase.co/storage/v1/object/sign/site-images/2026/1790592206178-discord-mod-role.png?token=eyJraWQiOiJiYTc3OWJlMC1jYTg2LTRjZTUtOThkMC05MTAwMDhmNTg3ZjQiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJzaXRlLWltYWdlcy8yMDI2LzE3OTA1OTIyMDYxNzgtZGlzY29yZC1tb2Qtcm9sZS5wbmciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzkwNTkyMjA5LCJleHAiOjIxMDU5NTIyMDl9.UBBOvVCdZICrFQRSkwMY-x7bOgeDnIFgxSDeEIDQ1Sot013OEvh_AtwPlabNUmzgDcLpGp3x0qxbKYeTilbaMA'
-        },
-        {
-          id: 'GTC-1002',
-          name: 'Alex_Trans',
-          email: 'alex@eurohaulers.uk',
-          password: 'gtc2026',
-          role: 'dispatcher',
-          roles: ['dispatcher'],
-          country: 'United Kingdom',
-          vtc: 'Euro Haulers',
-          truck: 'Volvo FH16 750',
-          games: ['ETS 2'],
-          tmpId: 'TMP-549102',
-          kms: 118400,
-          deliveries: 1240,
-          licenseNumber: 'GTC-DL-2026-002',
-          joinedAt: 'March 2026'
-        },
-        {
-          id: 'GTC-1003',
-          name: 'Klaus_Trucker',
-          email: 'klaus@nordic.de',
-          password: 'gtc2026',
-          role: 'staff',
-          roles: ['staff', 'dev_modder'],
-          country: 'Germany',
-          vtc: 'Nordic Express',
-          truck: 'MAN TGX Individual',
-          games: ['ETS 2'],
-          tmpId: 'TMP-691238',
-          kms: 98600,
-          deliveries: 1080,
-          licenseNumber: 'GTC-DL-2026-003',
-          joinedAt: 'April 2026'
-        },
-        {
-          id: 'GTC-1004',
-          name: 'HighwayKing_99',
-          email: 'king@outlawlogistics.us',
-          password: 'gtc2026',
-          role: 'convoy_lead',
-          roles: ['convoy_lead'],
-          country: 'United States',
-          vtc: 'Outlaw Logistics',
-          truck: 'Peterbilt 389',
-          games: ['ATS'],
-          tmpId: 'TMP-110294',
-          kms: 87300,
-          deliveries: 940,
-          licenseNumber: 'GTC-DL-2026-004',
-          joinedAt: 'May 2026'
-        },
-        {
-          id: 'GTC-1005',
-          name: 'VikingDriver',
-          email: 'viking@scaniamasters.se',
-          password: 'gtc2026',
-          role: 'driver',
-          roles: ['driver'],
-          country: 'Sweden',
-          vtc: 'Scania Masters',
-          truck: 'Scania R580',
-          games: ['ETS 2'],
-          tmpId: 'TMP-994012',
-          kms: 79100,
-          deliveries: 860,
-          licenseNumber: 'GTC-DL-2026-005',
-          joinedAt: 'June 2026'
-        }
-      ];
-
+      // 1. Initial cached drivers from localStorage for instantaneous first render
       const storedDrivers = localStorage.getItem('gtc_registered_drivers');
       if (storedDrivers) {
-        const parsed = JSON.parse(storedDrivers);
-        seedDrivers.forEach((seed) => {
-          if (!parsed.some((p) => p.name?.toLowerCase() === seed.name.toLowerCase() || p.id === seed.id)) {
-            parsed.push(seed);
+        try {
+          const parsed = JSON.parse(storedDrivers);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const FAKE_NAMES = ['Alex_Trans', 'Klaus_Trucker', 'HighwayKing_99', 'VikingDriver'];
+            const cleaned = parsed.filter((d) => !FAKE_NAMES.includes(d.name) && d.email !== 'bryangaming@gtc.com');
+            setAllDrivers(cleaned);
           }
-        });
-        const withLicenses = parsed.map((d) => {
-          let jAt = d.joinedAt;
-          if (jAt === 'January 2026' || jAt === 'Jan 2026' || !jAt) {
-            jAt = new Date().toISOString();
-          }
-          return {
-            ...d,
-            joinedAt: jAt,
-            licenseNumber: d.licenseNumber || getPermanentLicenseNumber(d)
-          };
-        });
-        setAllDrivers(withLicenses);
-        localStorage.setItem('gtc_registered_drivers', JSON.stringify(withLicenses));
-      } else {
-        const seededWithLicenses = seedDrivers.map((d) => ({
-          ...d,
-          licenseNumber: d.licenseNumber || getPermanentLicenseNumber(d)
-        }));
-        setAllDrivers(seededWithLicenses);
-        localStorage.setItem('gtc_registered_drivers', JSON.stringify(seededWithLicenses));
+        } catch (e) {}
       }
 
+      // 2. Fetch all real registered drivers dynamically via API routes (handles 10, 100, 1000+ users)
       async function loadRemoteDrivers() {
         try {
           let listToProcess = null;
@@ -311,60 +177,41 @@ export function AuthProvider({ children }) {
           }
 
           if (listToProcess && Array.isArray(listToProcess)) {
-            setAllDrivers((current) => {
-              const currentList = [...current];
-              const keyMap = new Map();
-              currentList.forEach((d) => {
-                if (d.email) keyMap.set(d.email.toLowerCase(), d);
-                if (d.id) keyMap.set(d.id, d);
-              });
-
-              listToProcess.forEach((s) => {
-                const permLic = s.license_number || s.licenseNumber || getPermanentLicenseNumber(s.id);
-                const normalized = {
-                  id: s.id,
-                  name: s.name,
-                  email: s.email || '',
-                  role: s.role || (s.driver_type === 'Official Streamer' ? 'streamer' : 'driver'),
-                  roles: Array.isArray(s.roles) && s.roles.length > 0 ? s.roles : [s.role || (s.driver_type === 'Official Streamer' ? 'streamer' : 'driver')],
-                  country: s.country || 'Kenya',
-                  vtc: s.vtc || s.driver_type || 'Independent Solo Driver',
-                  truck: s.truck_brand || s.truck || 'Scania S730 V8',
-                  games: s.games || ['ETS 2'],
-                  tmpId: s.truckers_mp_id || s.tmp || s.tmpId || null,
-                  steamId: s.steam_id || s.steamId || '',
-                  isStreamer: Boolean(s.stream_url || s.isStreamer),
-                  streamerUrl: s.stream_url || s.streamerUrl || '',
-                  kms: Number(s.kms) || 0,
-                  deliveries: Number(s.deliveries) || 0,
-                  licenseNumber: permLic,
-                  joinedAt: s.joined_at || s.joinedAt || new Date().toISOString(),
-                  lastLogin: s.last_login || s.lastLogin || null,
-                  avatar: s.avatar || '',
-                  authUserId: s.authUserId || null,
-                  isAuthRegistered: s.isAuthRegistered
-                };
-
-                const emailKey = s.email?.toLowerCase();
-                const existing = (emailKey && keyMap.get(emailKey)) || keyMap.get(s.id);
-
-                if (!existing) {
-                  currentList.push(normalized);
-                  if (emailKey) keyMap.set(emailKey, normalized);
-                  keyMap.set(s.id, normalized);
-                } else {
-                  const merged = { ...existing, ...normalized, licenseNumber: normalized.licenseNumber || existing.licenseNumber || permLic };
-                  const idx = currentList.findIndex((d) => (emailKey && d.email?.toLowerCase() === emailKey) || d.id === s.id);
-                  if (idx > -1) currentList[idx] = merged;
-                }
-              });
-              try {
-                localStorage.setItem('gtc_registered_drivers', JSON.stringify(currentList));
-              } catch (e) {}
-              return currentList;
+            const normalizedList = listToProcess.map((s) => {
+              const permLic = s.license_number || s.licenseNumber || getPermanentLicenseNumber(s.id);
+              return {
+                id: s.id,
+                name: s.name,
+                email: s.email || '',
+                role: s.role || (s.driver_type === 'Official Streamer' ? 'streamer' : 'driver'),
+                roles: Array.isArray(s.roles) && s.roles.length > 0 ? s.roles : [s.role || (s.driver_type === 'Official Streamer' ? 'streamer' : 'driver')],
+                country: s.country || 'Kenya',
+                vtc: s.vtc || s.driver_type || 'Independent Solo Driver',
+                truck: s.truck_brand || s.truck || 'Scania S730 V8',
+                games: s.games || ['ETS 2'],
+                tmpId: s.truckers_mp_id || s.tmp || s.tmpId || null,
+                steamId: s.steam_id || s.steamId || '',
+                isStreamer: Boolean(s.stream_url || s.isStreamer),
+                streamerUrl: s.stream_url || s.streamerUrl || '',
+                kms: Number(s.kms) || 0,
+                deliveries: Number(s.deliveries) || 0,
+                licenseNumber: permLic,
+                joinedAt: s.joined_at || s.joinedAt || new Date().toISOString(),
+                lastLogin: s.last_login || s.lastLogin || null,
+                avatar: s.avatar || '',
+                authUserId: s.authUserId || null,
+                isAuthRegistered: s.isAuthRegistered
+              };
             });
+
+            setAllDrivers(normalizedList);
+            try {
+              localStorage.setItem('gtc_registered_drivers', JSON.stringify(normalizedList));
+            } catch (e) {}
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn('API driver load error:', e);
+        }
       }
 
       loadRemoteDrivers();

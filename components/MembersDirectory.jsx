@@ -15,6 +15,15 @@ export default function MembersDirectory() {
   useEffect(() => {
     async function loadSignups() {
       try {
+        const res = await fetch('/api/auth', { cache: 'no-store' });
+        const json = await res.json();
+        if (json?.success && Array.isArray(json.users)) {
+          setRemoteSignups(json.users);
+          return;
+        }
+      } catch (e) {}
+
+      try {
         const res = await fetch('/api/signup', { cache: 'no-store' });
         const json = await res.json();
         if (json?.success && Array.isArray(json.signups)) {
@@ -27,13 +36,21 @@ export default function MembersDirectory() {
 
   const mergedDrivers = React.useMemo(() => {
     const list = [...(allDrivers || [])];
-    const existingIds = new Set(list.map((d) => d.id));
+    const keyMap = new Map();
+    list.forEach((d) => {
+      if (d.email) keyMap.set(d.email.toLowerCase(), d);
+      if (d.id) keyMap.set(d.id, d);
+    });
 
     remoteSignups.forEach((s) => {
-      if (!existingIds.has(s.id)) {
-        list.push({
+      const emailKey = s.email?.toLowerCase();
+      const existing = (emailKey && keyMap.get(emailKey)) || keyMap.get(s.id);
+
+      if (!existing) {
+        const item = {
           id: s.id,
           name: s.name,
+          email: s.email || '',
           role: s.role || (s.driver_type === 'Official Streamer' ? 'streamer' : 'driver'),
           roles: Array.isArray(s.roles) && s.roles.length > 0 ? s.roles : [s.role || (s.driver_type === 'Official Streamer' ? 'streamer' : 'driver')],
           country: s.country || 'Kenya',
@@ -47,8 +64,10 @@ export default function MembersDirectory() {
           stream: s.stream_url || s.stream,
           tmp: s.truckers_mp_id || s.tmp,
           isStreamer: Boolean(s.stream_url) || s.role === 'streamer' || (Array.isArray(s.roles) && s.roles.includes('streamer'))
-        });
-        existingIds.add(s.id);
+        };
+        list.push(item);
+        if (emailKey) keyMap.set(emailKey, item);
+        keyMap.set(s.id, item);
       }
     });
 
