@@ -1,13 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://atmoshbogjqifmnurdni.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF0bW9zaGJvZ2pxaWZtbnVyZG5pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjU4NjkxMCwiZXhwIjoyMDg4MTYyOTEwfQ.N1T3yG1eYf9bS86h44h78Q9Q2-3z39WlB39C-n5F9pQ';
+import { supabaseAdmin, supabaseContent } from '@/lib/supabase';
 
 function getAdminClient() {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false }
-  });
+  return supabaseAdmin || supabaseContent;
 }
 
 const VALID_ROLES = ['admin', 'staff', 'dev_modder', 'convoy_lead', 'dispatcher', 'streamer', 'driver'];
