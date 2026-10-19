@@ -1926,26 +1926,50 @@ export default function AdminDesk() {
                           </button>
                         </div>
 
-                        {/* Secondary Roles Badges (if any) */}
-                        {driver.roles && driver.roles.length > 1 && (
-                          <div className="d-flex align-items-center gap-1 flex-wrap">
-                            <span className="text-secondary small" style={{ fontSize: '0.68rem' }}>Additional Roles:</span>
-                            {driver.roles
-                              .filter((r) => r !== (driver.role || driver.roles[0]))
-                              .map((secRole) => {
-                                const secInfo = ROLE_INFO[secRole] || { label: secRole };
-                                return (
-                                  <span
-                                    key={secRole}
-                                    className="badge bg-light text-secondary border"
-                                    style={{ fontSize: '0.66rem' }}
-                                  >
-                                    {secInfo.label}
-                                  </span>
-                                );
-                              })}
-                          </div>
-                        )}
+                        {/* Secondary Role Add-ons (e.g. Streamer, Convoy Lead, Dev Modder) */}
+                        <div className="d-flex align-items-center gap-1 flex-wrap mt-1">
+                          <span className="text-secondary small fw-semibold me-1" style={{ fontSize: '0.68rem' }}>
+                            Add-ons:
+                          </span>
+                          {[
+                            { key: 'streamer', label: 'Streamer', color: '#ec4899' },
+                            { key: 'convoy_lead', label: 'Convoy Lead', color: '#f59e0b' },
+                            { key: 'dev_modder', label: 'Dev | Modder', color: '#0284c7' }
+                          ]
+                            .filter((item) => item.key !== (driver.role || 'driver'))
+                            .map(({ key: addKey, label: addLabel, color: addColor }) => {
+                              const driverRoles = Array.isArray(driver.roles) && driver.roles.length > 0 ? driver.roles : [driver.role || 'driver'];
+                              const hasAddon = driverRoles.includes(addKey);
+
+                              return (
+                                <button
+                                  key={addKey}
+                                  type="button"
+                                  onClick={async () => {
+                                    await toggleDriverRole(driver.id, addKey, driver);
+                                    try {
+                                      const res = await fetch('/api/auth', { cache: 'no-store' });
+                                      const json = await res.json();
+                                      if (json?.success && Array.isArray(json.users)) {
+                                        setRemoteSignups(json.users);
+                                      }
+                                    } catch (e) {}
+                                  }}
+                                  className={`btn py-0 px-2 rounded-pill fw-bold border transition ${hasAddon ? 'text-white shadow-xs' : 'bg-white text-secondary'}`}
+                                  style={{
+                                    fontSize: '0.66rem',
+                                    lineHeight: '1.4',
+                                    backgroundColor: hasAddon ? addColor : '#ffffff',
+                                    borderColor: hasAddon ? addColor : '#cbd5e1',
+                                    color: hasAddon ? (addKey === 'convoy_lead' ? '#0f172a' : '#ffffff') : '#64748b'
+                                  }}
+                                  title={`${hasAddon ? 'Remove' : 'Grant'} ${addLabel} role for ${driver.name}`}
+                                >
+                                  {hasAddon ? `✓ ${addLabel}` : `+ ${addLabel}`}
+                                </button>
+                              );
+                            })}
+                        </div>
                       </div>
                     </div>
                   );
