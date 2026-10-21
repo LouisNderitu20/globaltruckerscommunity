@@ -59,60 +59,90 @@ export default function HeroCountdown({ nextConvoy, onOpenAccountModal }) {
         <div className="row align-items-center g-4 g-lg-5">
           
           <div className="col-12 col-lg-7">
-            <div className="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-1 bg-white border shadow-sm mb-3" style={{ borderColor: '#e2e8f0' }}>
-              <span className="small fw-bold text-uppercase" style={{ color: '#0284c7' }}>
-                Next Timetable Convoy: {nextConvoy?.day} @ {nextConvoy?.eatTime || '21:00 EAT'} Kenyan Time ({nextConvoy?.time || '18:00 UTC'})
+            <div className="d-inline-flex flex-wrap align-items-center gap-2 px-3 py-1.5 rounded-2 bg-white border shadow-sm mb-3" style={{ borderColor: '#e2e8f0', maxWidth: '100%' }}>
+              <span className="badge bg-primary text-white text-uppercase fw-bold px-2 py-1" style={{ fontSize: '0.72rem' }}>
+                <i className="bi bi-calendar-check-fill me-1"></i> Timetable
+              </span>
+              <span className="small fw-bold text-truncate" style={{ color: '#0284c7' }}>
+                {nextConvoy?.day || 'Scheduled'} @ {nextConvoy?.eatTime || '18:00 EAT'} <span className="text-secondary fw-normal">({nextConvoy?.time || '15:00 UTC'})</span>
               </span>
             </div>
 
-            <h1 className="display-4 fw-extrabold text-dark lh-sm mb-3">
-              {nextConvoy?.title ? nextConvoy.title : 'Haul Together.'}<br />
-              <span style={{ color: '#0284c7' }}>
-                {(nextConvoy?.departureLocation || nextConvoy?.departureCity) && (nextConvoy?.destinationLocation || nextConvoy?.destinationCity)
-                  ? `${nextConvoy.departureLocation || nextConvoy.departureCity} ➔ ${nextConvoy.destinationLocation || nextConvoy.destinationCity}`
-                  : (nextConvoy?.subTitle || 'Every Route. Every Map.')}
-              </span>
+            <h1
+              className="fw-extrabold text-dark tracking-tight mb-2"
+              style={{
+                fontSize: 'clamp(1.75rem, 3.8vw, 2.75rem)',
+                lineHeight: 1.15,
+                letterSpacing: '-0.02em'
+              }}
+            >
+              {nextConvoy?.title || 'Global Truckers Community'}
             </h1>
 
-            <p className="lead text-secondary mb-4" style={{ maxWidth: '620px', fontSize: '1.05rem' }}>
+            {(nextConvoy?.departureLocation || nextConvoy?.departureCity) && (nextConvoy?.destinationLocation || nextConvoy?.destinationCity) ? (
+              <div className="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-2 mb-3 bg-light border shadow-sm" style={{ borderColor: '#e2e8f0' }}>
+                <i className="bi bi-geo-alt-fill text-success"></i>
+                <span className="fw-bold text-dark" style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)' }}>
+                  {nextConvoy.departureLocation || nextConvoy.departureCity}
+                </span>
+                <span className="text-primary fw-bold px-1">➔</span>
+                <i className="bi bi-flag-fill text-danger"></i>
+                <span className="fw-bold text-dark" style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)' }}>
+                  {nextConvoy.destinationLocation || nextConvoy.destinationCity}
+                </span>
+              </div>
+            ) : (
+              <p
+                className="fw-semibold mb-3"
+                style={{
+                  color: '#0284c7',
+                  fontSize: 'clamp(0.95rem, 1.6vw, 1.15rem)',
+                  lineHeight: 1.4
+                }}
+              >
+                {nextConvoy?.subTitle || 'Synchronized Virtual Trucking Across All Major Simulators'}
+              </p>
+            )}
+
+            <p className="text-secondary mb-4" style={{ maxWidth: '620px', fontSize: 'clamp(0.92rem, 1.4vw, 1.05rem)', lineHeight: 1.6 }}>
               Global Truckers Community (GTC) unites virtual ETS 2 and ATS truckers, VTC companies, streamers, and independent solo haulers from around the world into organized, synchronized convoys.
             </p>
 
-            <div className="d-flex flex-wrap align-items-center gap-3 mb-4">
+            <div className="d-flex flex-column flex-sm-row flex-wrap align-items-stretch align-items-sm-center gap-2 gap-sm-3 mb-4">
               <a
                 href="#next-convoy"
-                className="btn btn-primary btn-lg shadow-sm"
+                className="btn btn-primary shadow-sm px-3 py-2 text-center"
                 style={{ backgroundColor: '#0284c7', borderColor: '#0284c7', color: '#ffffff' }}
               >
-                <i className="bi bi-truck me-2"></i> Next Convoy Card
+                <i className="bi bi-truck me-2"></i> Next Convoy Briefing
               </a>
               <a
                 href={nextConvoy?.pdfUrl || '/GTC-Convoys-Planner.pdf'}
                 download="GTC-Convoys-Planner.pdf"
-                className="btn btn-outline-primary btn-lg shadow-sm"
+                className="btn btn-outline-primary shadow-sm px-3 py-2 text-center"
                 style={{ borderColor: '#0284c7', color: '#0284c7' }}
               >
                 <i className="bi bi-file-earmark-pdf-fill me-2"></i> Download Planner
               </a>
               <button
                 onClick={() => onOpenAccountModal(user ? 'profile' : 'login')}
-                className="btn btn-outline-secondary btn-lg"
+                className="btn btn-outline-secondary px-3 py-2 text-center"
               >
                 <i className="bi bi-person-badge me-2"></i> {user ? 'Driver Portal' : 'Driver Portal (Sign In)'}
               </button>
             </div>
 
-            <div className="d-flex flex-wrap align-items-center gap-3 text-secondary small pt-1">
+            <div className="d-flex flex-wrap align-items-center gap-2 gap-sm-3 text-secondary small pt-1" style={{ fontSize: '0.82rem' }}>
               <span className="d-flex align-items-center gap-1">
-                <i className="bi bi-check-circle-fill" style={{ color: '#0284c7' }}></i> ETS 2 &bull; ATS Supported
+                <i className="bi bi-check-circle-fill" style={{ color: '#0284c7' }}></i> ETS 2 &bull; ATS
               </span>
               <span>&bull;</span>
               <span className="d-flex align-items-center gap-1">
-                <i className="bi bi-clock-history text-primary"></i> Kenyan Time: EAT (UTC+3)
+                <i className="bi bi-clock-history text-primary"></i> Kenyan Time (EAT, UTC+3)
               </span>
               <span>&bull;</span>
               <span className="d-flex align-items-center gap-1">
-                <i className="bi bi-hdd-network text-success"></i> TruckersMP &bull; SCS Dedicated
+                <i className="bi bi-hdd-network text-success"></i> TruckersMP &bull; SCS
               </span>
             </div>
           </div>

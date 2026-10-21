@@ -51,6 +51,16 @@ const SCHEDULE_DATA = {
 export default function ConvoySchedule({ planner, activeSlot, onSelectSlot }) {
   const { toggleConvoyReminder, reminders } = useAuth();
   const pdfUrl = planner?.pdfUrl || '/GTC-Convoys-Planner.pdf';
+  
+  const todayShort = React.useMemo(() => {
+    const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    return days[new Date().getDay()];
+  }, []);
+
+  const [selectedMobileDay, setSelectedMobileDay] = useState(activeSlot?.day || todayShort || 'WED');
+  const [mobileViewMode, setMobileViewMode] = useState('cards'); // 'cards' | 'table'
+
+  const activeSchedule = planner?.grid || planner?.scheduleData || SCHEDULE_DATA;
 
   return (
     <section id="schedule" className="py-4">
@@ -58,22 +68,137 @@ export default function ConvoySchedule({ planner, activeSlot, onSelectSlot }) {
         
         <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
           <div>
-            <h2 className="h4 fw-extrabold text-dark mb-0">Official Convoy Timetable</h2>
+            <h2 className="h4 fw-extrabold text-dark mb-0" style={{ fontSize: 'clamp(1.2rem, 2.5vw, 1.5rem)' }}>
+              Official Convoy Timetable
+            </h2>
             <span className="small text-secondary">
-              Official weekly schedule reproduced directly from the GTC Convoys Planner in Kenyan Time (EAT, UTC+3) and UTC.
+              Official 21-run weekly schedule in Kenyan Time (EAT, UTC+3) and UTC.
             </span>
           </div>
 
-          <a
-            href={pdfUrl}
-            download="GTC-Convoys-Planner.pdf"
-            className="btn btn-sm btn-outline-secondary fw-bold"
-          >
-            <i className="bi bi-download me-1"></i> Download PDF
-          </a>
+          <div className="d-flex align-items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMobileViewMode(mobileViewMode === 'cards' ? 'table' : 'cards')}
+              className="btn btn-sm btn-outline-primary d-md-none fw-bold"
+              style={{ fontSize: '0.78rem' }}
+            >
+              <i className={`bi ${mobileViewMode === 'cards' ? 'bi-table' : 'bi-grid-fill'} me-1`}></i>
+              {mobileViewMode === 'cards' ? 'Full Table Grid' : 'Mobile Cards'}
+            </button>
+            <a
+              href={pdfUrl}
+              download="GTC-Convoys-Planner.pdf"
+              className="btn btn-sm btn-outline-secondary fw-bold"
+              style={{ fontSize: '0.78rem' }}
+            >
+              <i className="bi bi-download me-1"></i> PDF
+            </a>
+          </div>
         </div>
 
-        <div className="card shadow-sm overflow-hidden mb-4" style={{ border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+        {/* Mobile-Adaptive Day Selector & Cards (Active on screens < 768px in 'cards' mode) */}
+        {mobileViewMode === 'cards' && (
+          <div className="d-md-none mb-4">
+            <div className="d-flex align-items-center gap-1 overflow-x-auto pb-2 mb-3" style={{ scrollbarWidth: 'none' }}>
+              {DAYS.map((day) => {
+                const isSelected = selectedMobileDay === day;
+                const isToday = todayShort === day;
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => setSelectedMobileDay(day)}
+                    className={`btn btn-sm text-nowrap flex-shrink-0 fw-bold px-3 py-1.5 rounded-2 ${isSelected ? 'btn-primary shadow-sm' : 'btn-light border'}`}
+                    style={isSelected ? { backgroundColor: '#0284c7', borderColor: '#0284c7', fontSize: '0.8rem' } : { fontSize: '0.8rem', borderColor: '#e2e8f0' }}
+                  >
+                    {day} {isToday && <span className="badge bg-warning text-dark ms-1" style={{ fontSize: '0.6rem' }}>TODAY</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="d-flex flex-column gap-2">
+              {['18:00', '20:00', '22:00'].map((time) => {
+                const cell = activeSchedule?.[time]?.[selectedMobileDay];
+                if (!cell) return null;
+                const eatHour = parseInt(time.split(':')[0], 10);
+                const utcHour = (eatHour - 3 + 24) % 24;
+                const eatTime = `${time} EAT`;
+                const utcTime = `${String(utcHour).padStart(2, '0')}:00 UTC`;
+                const reminderKey = `${selectedMobileDay}-${time}-${cell.game}`;
+                const isReminded = reminders?.includes(reminderKey);
+                const isCurrentSlot = activeSlot?.day === selectedMobileDay && activeSlot?.time === time;
+
+                return (
+                  <div
+                    key={time}
+                    className="card p-3 shadow-sm border"
+                    style={{
+                      borderRadius: '10px',
+                      borderColor: isCurrentSlot ? '#0284c7' : '#e2e8f0',
+                      backgroundColor: isCurrentSlot ? '#f0f9ff' : '#ffffff'
+                    }}
+                  >
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="badge bg-primary text-white fw-bold px-2 py-1" style={{ fontSize: '0.75rem' }}>
+                          {eatTime}
+                        </span>
+                        <span className="text-secondary small fw-medium">
+                          ({utcTime})
+                        </span>
+                      </div>
+                      {isCurrentSlot && (
+                        <span className="badge bg-warning text-dark fw-bold" style={{ fontSize: '0.65rem' }}>
+                          ★ ACTIVE NEXT
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <div>
+                        <h5 className="fw-extrabold text-dark mb-0 fs-6">
+                          {cell.game}
+                        </h5>
+                        <span className="badge px-2 py-0.5 mt-1" style={{ backgroundColor: '#e2e8f0', color: '#334155', fontSize: '0.72rem' }}>
+                          {cell.detail}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-2 pt-2 border-top" style={{ borderColor: '#e2e8f0' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onSelectSlot) {
+                            onSelectSlot({ day: selectedMobileDay, time, ...cell });
+                          }
+                        }}
+                        className="btn btn-sm btn-outline-primary flex-grow-1 fw-bold py-1.5"
+                        style={{ fontSize: '0.78rem' }}
+                      >
+                        <i className="bi bi-eye-fill me-1"></i> View Briefing
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleConvoyReminder(reminderKey, `${cell.game}: ${cell.detail}`, time)}
+                        className={`btn btn-sm ${isReminded ? 'btn-success' : 'btn-light border'} fw-bold px-3 py-1.5`}
+                        style={{ fontSize: '0.78rem' }}
+                        title="Toggle reminder"
+                      >
+                        <i className={`bi ${isReminded ? 'bi-check-circle-fill' : 'bi-bell'} me-1`}></i>
+                        {isReminded ? 'Set' : 'Remind'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className={`card shadow-sm overflow-hidden mb-4 ${mobileViewMode === 'cards' ? 'd-none d-md-block' : 'd-block'}`} style={{ border: '1px solid #e2e8f0', borderRadius: '10px' }}>
           
           <div
             className="px-4 py-3 d-flex flex-wrap align-items-center justify-content-between gap-2"

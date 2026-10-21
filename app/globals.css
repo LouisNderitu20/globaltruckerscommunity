@@ -211,11 +211,12 @@ body {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  padding: 14px 6px;
+  padding: clamp(10px, 2vw, 16px) clamp(2px, 1vw, 8px);
   text-align: center;
   position: relative;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  min-width: 0;
 }
 
 .countdown-box::before {
@@ -223,20 +224,21 @@ body {
 }
 
 .countdown-num {
-  font-size: 2.1rem;
+  font-size: clamp(1.35rem, 3.4vw, 2.1rem);
   font-weight: 800;
-  line-height: 1;
+  line-height: 1.1;
   color: #0284c7;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .countdown-lbl {
-  font-size: 0.68rem;
+  font-size: clamp(0.62rem, 1.2vw, 0.72rem);
   font-weight: 700;
   color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .driver-license-card {
@@ -420,4 +422,52 @@ textarea::placeholder {
 :-ms-input-placeholder {
   color: #94a3b8 !important;
   opacity: 0.65 !important;
+}
+
+/* Fluid, Responsive Typography for all devices (Mobile to 4K) */
+.display-4 {
+  font-size: clamp(1.75rem, 3.8vw, 2.75rem) !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.02em;
+}
+
+.display-5 {
+  font-size: clamp(1.5rem, 3vw, 2.25rem) !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.015em;
+}
+
+.display-6 {
+  font-size: clamp(1.35rem, 2.5vw, 1.85rem) !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.01em;
+}
+
+/* Ensure seamless wrapping & responsiveness across phones, tablets, and desktops */
+@media (max-width: 575.98px) {
+  .container {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .card-body {
+    padding: 1rem !important;
+  }
+
+  .btn-lg {
+    padding: 0.55rem 1rem !important;
+    font-size: 0.92rem !important;
+  }
+
+  .badge {
+    white-space: normal;
+    text-align: left;
+    max-width: 100%;
+    word-break: break-word;
+  }
+
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+  }
 }

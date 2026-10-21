@@ -260,31 +260,31 @@ export default function ConvoyMapDisplay({ convoy, height = '460px' }) {
     <div className="card glass overflow-hidden shadow-lg border position-relative" style={{ borderColor: '#e2e8f0', borderRadius: '12px' }}>
       
       {/* Map Header Toolbar with GEOINSIGHTS-style telemetry badges & Layer Switcher */}
-      <div className="p-3 bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style={{ borderColor: '#e2e8f0' }}>
+      <div className="p-2.5 p-sm-3 bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style={{ borderColor: '#e2e8f0' }}>
         <div className="d-flex align-items-center gap-2">
           <span className="badge badge-gold px-2 py-1 small">
-            <i className="bi bi-geo-alt-fill me-1"></i> GEOSPATIAL ROUTE RADAR
+            <i className="bi bi-geo-alt-fill me-1"></i> GEOSPATIAL RADAR
           </span>
-          <span className="fw-bold text-dark small">
+          <span className="fw-bold text-dark small text-truncate" style={{ maxWidth: '200px' }}>
             {depLocation} &rarr; {destLocation}
           </span>
         </div>
 
         {/* Satellite / Dark / Street Layer Controls (GEOINSIGHTS pattern) */}
-        <div className="btn-group btn-group-sm" role="group">
+        <div className="btn-group btn-group-sm w-100 w-sm-auto d-flex d-sm-inline-flex mt-1 mt-sm-0" role="group">
           <button
             type="button"
             onClick={() => setActiveLayer('dark')}
-            className={`btn fw-bold ${activeLayer === 'dark' ? 'btn-primary' : 'btn-outline-secondary'}`}
+            className={`btn fw-bold flex-fill ${activeLayer === 'dark' ? 'btn-primary' : 'btn-outline-secondary'}`}
             style={activeLayer === 'dark' ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : {}}
             title="Night Trucking Radar"
           >
-            <i className="bi bi-moon-stars-fill me-1"></i> Dark Radar
+            <i className="bi bi-moon-stars-fill me-1"></i> Dark
           </button>
           <button
             type="button"
             onClick={() => setActiveLayer('satellite')}
-            className={`btn fw-bold ${activeLayer === 'satellite' ? 'btn-primary' : 'btn-outline-secondary'}`}
+            className={`btn fw-bold flex-fill ${activeLayer === 'satellite' ? 'btn-primary' : 'btn-outline-secondary'}`}
             style={activeLayer === 'satellite' ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : {}}
             title="Esri Satellite Imagery"
           >
@@ -293,11 +293,11 @@ export default function ConvoyMapDisplay({ convoy, height = '460px' }) {
           <button
             type="button"
             onClick={() => setActiveLayer('street')}
-            className={`btn fw-bold ${activeLayer === 'street' ? 'btn-primary' : 'btn-outline-secondary'}`}
+            className={`btn fw-bold flex-fill ${activeLayer === 'street' ? 'btn-primary' : 'btn-outline-secondary'}`}
             style={activeLayer === 'street' ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : {}}
             title="OpenStreetMap Highway Network"
           >
-            <i className="bi bi-map-fill me-1"></i> Street Map
+            <i className="bi bi-map-fill me-1"></i> Street
           </button>
         </div>
       </div>
@@ -305,7 +305,7 @@ export default function ConvoyMapDisplay({ convoy, height = '460px' }) {
       {/* Leaflet Map Canvas */}
       <div
         ref={mapContainerRef}
-        style={{ width: '100%', height, minHeight: '340px', backgroundColor: '#0a0e17' }}
+        style={{ width: '100%', height: 'clamp(280px, 45vh, 440px)', minHeight: '280px', backgroundColor: '#0a0e17' }}
       ></div>
 
       {/* Bottom Telemetry HUD Bar */}

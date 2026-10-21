@@ -73,7 +73,7 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
           <span className="badge badge-gold text-uppercase fw-bold px-3 py-2 mb-2">
             <i className="bi bi-calendar-check-fill me-1"></i> Official Timetable Run
           </span>
-          <h2 className="display-6 fw-extrabold text-dark mb-2">
+          <h2 className="fw-extrabold text-dark mb-2" style={{ fontSize: 'clamp(1.4rem, 3.2vw, 2.1rem)', lineHeight: 1.25 }}>
             {convoy.title ? convoy.title : `Next Public Convoy: ${convoy.day} @ ${convoy.eatTime || '21:00 EAT'}`}
           </h2>
           <div className="d-flex align-items-center justify-content-center gap-2 flex-wrap mb-2">
@@ -91,14 +91,14 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
               </span>
             )}
           </div>
-          <p className="text-secondary mx-auto mb-0" style={{ maxWidth: '650px' }}>
+          <p className="text-secondary mx-auto mb-0" style={{ maxWidth: '650px', fontSize: 'clamp(0.88rem, 1.4vw, 0.98rem)' }}>
             {convoy.subTitle || 'Full convoy briefing, server room coordinates, departure timetable in Kenyan Time (EAT, UTC+3), and equipment regulations directly matching the GTC Convoys Planner.'}
           </p>
         </div>
 
         <div className="card glass shadow-lg overflow-hidden">
 
-          <div className="card-header bg-light py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
+          <div className="card-header bg-light py-2.5 px-3 px-sm-4 d-flex flex-wrap align-items-center justify-content-between gap-2 border-bottom" style={{ borderColor: '#e2e8f0' }}>
             <div className="d-flex flex-wrap align-items-center gap-2">
               <span className="badge badge-gold text-uppercase px-3 py-2 fw-bold">
                 <i className="bi bi-controller me-1"></i> {convoy.game}
