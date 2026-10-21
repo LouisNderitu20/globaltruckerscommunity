@@ -7,15 +7,18 @@ export default function DiscordSection({ config }) {
   const whatsappUrl = config?.whatsappUrl || 'https://chat.whatsapp.com/DA0RGVlaPJM2hsbi7tGH1m';
   const telegramUrl = config?.telegramUrl || 'https://t.me/+dPd9rDHL0jlhMzc0';
 
+  const defaultChannels = [
+    { name: 'Convoy Radio #1 (CB 19)', info: '28 Drivers in Voice', icon: 'bi-volume-up-fill text-warning', isSuccess: true },
+    { name: 'Dispatch & Pace Car Lead', info: 'Convoy Control', icon: 'bi-soundwave text-warning' },
+    { name: 'ATS Interstate Frequency', info: '12 Drivers in Voice', icon: 'bi-volume-up-fill text-success', isSuccess: true },
+    { name: '#convoy-announcements', info: 'Room ID Active', icon: 'bi-chat-square-text-fill text-primary', isBadge: true }
+  ];
+
   const channels = (Array.isArray(config?.discordChannels) && config.discordChannels.length > 0)
     ? config.discordChannels
-    : [
-        { name: 'Convoy Radio #1 (CB 19)', info: '28 Drivers in Voice', icon: 'bi-volume-up-fill text-warning', isSuccess: true },
-        { name: 'Dispatch & Pace Car Lead', info: 'Convoy Control', icon: 'bi-soundwave text-warning' },
-        { name: 'ATS Interstate Frequency', info: '12 Drivers in Voice', icon: 'bi-volume-up-fill text-success', isSuccess: true },
-        { name: '#convoy-announcements', info: 'Room ID Active', icon: 'bi-chat-square-text-fill text-primary', isBadge: true }
-      ];
+    : defaultChannels;
 
+  const serverTitle = config?.discordTitle || 'Global Truckers Radio';
   const activeCount = config?.discordActiveCount || '142 Active';
   const cbFrequency = config?.cbRadioFrequency || 'Channel 19';
 
@@ -71,7 +74,7 @@ export default function DiscordSection({ config }) {
                 <div className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2" style={{ borderColor: '#e2e8f0' }}>
                   <div className="d-flex align-items-center gap-2">
                     <i className="bi bi-discord text-primary fs-5"></i>
-                    <strong className="text-dark small">Global Truckers Radio</strong>
+                    <strong className="text-dark small">{serverTitle}</strong>
                   </div>
                   <span className="badge bg-success-subtle text-success small rounded-1">
                     {activeCount}

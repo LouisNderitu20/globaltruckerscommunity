@@ -66,6 +66,52 @@ export default function AdminDesk() {
   });
   const [editingGalleryId, setEditingGalleryId] = useState(null);
 
+  const handleAddDiscordChannel = () => {
+    const currentChannels = Array.isArray(config?.discordChannels) ? [...config.discordChannels] : [...DEFAULT_CONFIG.discordChannels];
+    currentChannels.push({
+      name: 'New Voice Channel',
+      info: 'Online',
+      icon: 'bi-volume-up-fill text-warning',
+      isSuccess: false,
+      isBadge: false
+    });
+    setConfig({ ...config, discordChannels: currentChannels });
+  };
+
+  const handleUpdateDiscordChannel = (index, field, value) => {
+    const currentChannels = Array.isArray(config?.discordChannels) ? [...config.discordChannels] : [...DEFAULT_CONFIG.discordChannels];
+    currentChannels[index] = { ...currentChannels[index], [field]: value };
+    setConfig({ ...config, discordChannels: currentChannels });
+  };
+
+  const handleDeleteDiscordChannel = (index) => {
+    const currentChannels = (Array.isArray(config?.discordChannels) ? [...config.discordChannels] : [...DEFAULT_CONFIG.discordChannels]).filter((_, i) => i !== index);
+    setConfig({ ...config, discordChannels: currentChannels });
+  };
+
+  const handleMoveDiscordChannel = (index, direction) => {
+    const currentChannels = Array.isArray(config?.discordChannels) ? [...config.discordChannels] : [...DEFAULT_CONFIG.discordChannels];
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= currentChannels.length) return;
+    const temp = currentChannels[index];
+    currentChannels[index] = currentChannels[targetIndex];
+    currentChannels[targetIndex] = temp;
+    setConfig({ ...config, discordChannels: currentChannels });
+  };
+
+  const handleResetDiscordChannels = () => {
+    if (confirm('Reset Discord & Radio channels to default values?')) {
+      setConfig({
+        ...config,
+        discordTitle: DEFAULT_CONFIG.discordTitle || 'Global Truckers Radio',
+        discordChannels: [...DEFAULT_CONFIG.discordChannels],
+        discordActiveCount: DEFAULT_CONFIG.discordActiveCount,
+        cbRadioFrequency: DEFAULT_CONFIG.cbRadioFrequency
+      });
+      showToast('Discord radio channels reset to defaults.', 'info');
+    }
+  };
+
   useEffect(() => {
     async function loadSiteConfig() {
       try {
@@ -82,6 +128,10 @@ export default function AdminDesk() {
             timetableConvoys: json.data.timetableConvoys || DEFAULT_CONFIG.timetableConvoys,
             news: json.data.news || DEFAULT_CONFIG.news,
             gallery: json.data.gallery || DEFAULT_CONFIG.gallery,
+            discordTitle: json.data.discordTitle || DEFAULT_CONFIG.discordTitle || 'Global Truckers Radio',
+            discordActiveCount: json.data.discordActiveCount || DEFAULT_CONFIG.discordActiveCount || '142 Active',
+            cbRadioFrequency: json.data.cbRadioFrequency || DEFAULT_CONFIG.cbRadioFrequency || 'Channel 19',
+            discordChannels: Array.isArray(json.data.discordChannels) && json.data.discordChannels.length > 0 ? json.data.discordChannels : DEFAULT_CONFIG.discordChannels,
           });
         }
       } catch (e) {
@@ -780,6 +830,13 @@ export default function AdminDesk() {
           >
             <i className="bi bi-speedometer2 me-1"></i> Fleet Stats
           </button>
+          <button
+            onClick={() => setActiveTab('discord')}
+            className={`btn btn-sm fw-bold ${activeTab === 'discord' ? 'btn-primary' : 'btn-outline-secondary'}`}
+            style={activeTab === 'discord' ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : {}}
+          >
+            <i className="bi bi-discord me-1"></i> Discord Radio Hub
+          </button>
         </div>
 
         {activeTab === 'next-convoy' && (
@@ -884,7 +941,7 @@ export default function AdminDesk() {
             </div>
 
             <div className="row g-3 mb-3">
-              <div className="col-12 col-md-4">
+              <div className="col-12 col-md-3">
                 <label className="form-label small text-secondary fw-bold">Meetup &amp; Staging Time</label>
                 <input
                   type="text"
@@ -895,7 +952,7 @@ export default function AdminDesk() {
                 />
               </div>
 
-              <div className="col-12 col-md-4">
+              <div className="col-12 col-md-3">
                 <label className="form-label small text-secondary fw-bold">Departure ISO Timestamp</label>
                 <input
                   type="text"
@@ -906,14 +963,32 @@ export default function AdminDesk() {
                 />
               </div>
 
-              <div className="col-12 col-md-4">
-                <label className="form-label small text-secondary fw-bold">Lead Driver &amp; Radio</label>
+              <div className="col-12 col-md-3">
+                <label className="form-label small text-secondary fw-bold">
+                  <i className="bi bi-broadcast text-warning me-1"></i> In-game CB Radio
+                </label>
                 <input
                   type="text"
                   className="form-control"
-                  value={config.nextConvoy?.leadDriver || ''}
-                  onChange={(e) => updateNextConvoyField('leadDriver', e.target.value)}
-                  placeholder="e.g. Official Convoy Lead"
+                  value={config.nextConvoy?.radioChannel || config.nextConvoy?.voiceChannel || ''}
+                  onChange={(e) => {
+                    updateNextConvoyField('radioChannel', e.target.value);
+                    updateNextConvoyField('voiceChannel', e.target.value);
+                  }}
+                  placeholder="e.g. CB Channel 19"
+                />
+              </div>
+
+              <div className="col-12 col-md-3">
+                <label className="form-label small text-secondary fw-bold">
+                  <i className="bi bi-speedometer2 text-primary me-1"></i> Target Pace (Pacing)
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={config.nextConvoy?.speedLimit || ''}
+                  onChange={(e) => updateNextConvoyField('speedLimit', e.target.value)}
+                  placeholder="e.g. 65 mph or 80 - 90 km/h"
                 />
               </div>
             </div>
@@ -2256,6 +2331,299 @@ export default function AdminDesk() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'discord' && (
+          <div className="card glass p-4 p-md-5 shadow-sm">
+            <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom">
+              <div>
+                <h3 className="h5 fw-bold text-dark mb-1">
+                  <i className="bi bi-discord me-2 text-primary"></i> Discord Radio &amp; Voice Comms Editor
+                </h3>
+                <p className="text-secondary small mb-0">
+                  Manually customize the Global Truckers Radio card on the homepage: active counts, voice channels, and CB radio frequencies.
+                </p>
+              </div>
+              <div className="d-flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetDiscordChannels}
+                  className="btn btn-outline-secondary btn-sm fw-bold"
+                  disabled={saving}
+                >
+                  <i className="bi bi-arrow-counterclockwise me-1"></i> Reset Defaults
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePublishPayload(config)}
+                  className="btn btn-primary btn-sm fw-bold shadow-sm"
+                  style={{ backgroundColor: '#0284c7', borderColor: '#0284c7' }}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2"></span>
+                      Publishing Live...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-cloud-arrow-up-fill me-1"></i> Save &amp; Publish Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="row g-4 mb-4">
+              {/* Left Column: Manual Form Fields */}
+              <div className="col-12 col-lg-7">
+                <div className="p-4 bg-white rounded-3 border shadow-sm h-100">
+                  <h6 className="fw-bold text-dark mb-3 pb-2 border-bottom">
+                    <i className="bi bi-sliders me-2 text-primary"></i> Radio Card Header &amp; Frequencies
+                  </h6>
+
+                  <div className="row g-3">
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small fw-bold text-dark">Card Title</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="e.g. Global Truckers Radio"
+                        value={config?.discordTitle || ''}
+                        onChange={(e) => setConfig({ ...config, discordTitle: e.target.value })}
+                      />
+                      <div className="form-text small">Title displayed at the top of the card.</div>
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small fw-bold text-dark">Active Drivers Badge</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="e.g. 142 Active"
+                        value={config?.discordActiveCount || ''}
+                        onChange={(e) => setConfig({ ...config, discordActiveCount: e.target.value })}
+                      />
+                      <div className="form-text small">Badge in top-right corner of card.</div>
+                    </div>
+
+                    <div className="col-12">
+                      <label className="form-label small fw-bold text-dark">In-Game CB Radio Frequency</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="e.g. Channel 19"
+                        value={config?.cbRadioFrequency || ''}
+                        onChange={(e) => setConfig({ ...config, cbRadioFrequency: e.target.value })}
+                      />
+                      <div className="form-text small">
+                        Note displayed at the bottom: <em>In-game CB radio frequency: <strong>{config?.cbRadioFrequency || 'Channel 19'}</strong> on standard ETS 2 / ATS multiplayer.</em>
+                      </div>
+                    </div>
+
+                    <div className="col-12">
+                      <hr className="my-2" />
+                      <label className="form-label small fw-bold text-dark">
+                        <i className="bi bi-discord text-primary me-1"></i> Discord Server Invite Link
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="https://discord.gg/..."
+                        value={config?.discordUrl || ''}
+                        onChange={(e) => setConfig({ ...config, discordUrl: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small fw-bold text-dark">
+                        <i className="bi bi-whatsapp text-success me-1"></i> WhatsApp Group Link
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="https://chat.whatsapp.com/..."
+                        value={config?.whatsappUrl || ''}
+                        onChange={(e) => setConfig({ ...config, whatsappUrl: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label small fw-bold text-dark">
+                        <i className="bi bi-telegram text-info me-1"></i> Telegram Channel Link
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="https://t.me/..."
+                        value={config?.telegramUrl || ''}
+                        onChange={(e) => setConfig({ ...config, telegramUrl: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Live Card Preview */}
+              <div className="col-12 col-lg-5">
+                <div className="p-3 bg-white rounded-3 border shadow-sm h-100">
+                  <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                    <strong className="text-dark small">
+                      <i className="bi bi-eye me-1 text-primary"></i> Live Homepage Card Preview
+                    </strong>
+                    <span className="badge bg-light text-secondary border">Real-Time</span>
+                  </div>
+
+                  {/* Card rendering exact replica of homepage */}
+                  <div className="p-4 rounded-3 bg-light border" style={{ borderColor: '#e2e8f0' }}>
+                    <div className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2" style={{ borderColor: '#e2e8f0' }}>
+                      <div className="d-flex align-items-center gap-2">
+                        <i className="bi bi-discord text-primary fs-5"></i>
+                        <strong className="text-dark small">{config?.discordTitle || 'Global Truckers Radio'}</strong>
+                      </div>
+                      <span className="badge bg-success-subtle text-success small rounded-1">
+                        {config?.discordActiveCount || '142 Active'}
+                      </span>
+                    </div>
+
+                    <div className="d-flex flex-column gap-2 small">
+                      {(Array.isArray(config?.discordChannels) && config.discordChannels.length > 0 ? config.discordChannels : DEFAULT_CONFIG.discordChannels).map((ch, idx) => (
+                        <div key={idx} className="d-flex justify-content-between align-items-center p-2 rounded-2 bg-white border">
+                          <span className="text-dark fw-semibold text-truncate me-2">
+                            <i className={`bi ${ch.icon || 'bi-volume-up-fill text-warning'} me-2`}></i> {ch.name}
+                          </span>
+                          {ch.isBadge ? (
+                            <span className="badge badge-gold small flex-shrink-0">{ch.info}</span>
+                          ) : (
+                            <span className={`flex-shrink-0 ${ch.isSuccess ? 'text-success fw-bold' : 'text-secondary'}`}>
+                              {ch.info}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-3 p-2 rounded-2 bg-white border text-secondary small">
+                      <i className="bi bi-info-circle-fill me-1 text-warning"></i> In-game CB radio frequency: <strong>{config?.cbRadioFrequency || 'Channel 19'}</strong> on standard ETS 2 / ATS multiplayer.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom: Voice / Comms Channels Editor Table */}
+            <div className="p-4 bg-white rounded-3 border shadow-sm">
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
+                <div>
+                  <h6 className="fw-bold text-dark mb-0">
+                    <i className="bi bi-list-nested me-2 text-primary"></i> Channels &amp; Room List Editor ({((config?.discordChannels || DEFAULT_CONFIG.discordChannels).length)})
+                  </h6>
+                  <span className="text-secondary small">Edit channel names, driver counts, badges, and icon classes.</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm fw-bold"
+                  onClick={handleAddDiscordChannel}
+                >
+                  <i className="bi bi-plus-circle me-1"></i> Add Channel Row
+                </button>
+              </div>
+
+              <div className="table-responsive">
+                <table className="table table-hover align-middle mb-0">
+                  <thead className="table-light small">
+                    <tr>
+                      <th style={{ width: '40px' }}>#</th>
+                      <th style={{ minWidth: '220px' }}>Channel Name</th>
+                      <th style={{ minWidth: '180px' }}>Status / Driver Info</th>
+                      <th style={{ minWidth: '180px' }}>Icon Class</th>
+                      <th style={{ width: '150px' }}>Display Style</th>
+                      <th style={{ width: '110px' }} className="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(Array.isArray(config?.discordChannels) && config.discordChannels.length > 0 ? config.discordChannels : DEFAULT_CONFIG.discordChannels).map((ch, idx, arr) => (
+                      <tr key={idx}>
+                        <td className="text-secondary small fw-bold">{idx + 1}</td>
+                        <td>
+                          <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            value={ch.name || ''}
+                            onChange={(e) => handleUpdateDiscordChannel(idx, 'name', e.target.value)}
+                            placeholder="e.g. Convoy Radio #1 (CB 19)"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            value={ch.info || ''}
+                            onChange={(e) => handleUpdateDiscordChannel(idx, 'info', e.target.value)}
+                            placeholder="e.g. 28 Drivers in Voice"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="form-control form-control-sm font-monospace small"
+                            value={ch.icon || ''}
+                            onChange={(e) => handleUpdateDiscordChannel(idx, 'icon', e.target.value)}
+                            placeholder="bi-volume-up-fill text-warning"
+                          />
+                        </td>
+                        <td>
+                          <select
+                            className="form-select form-select-sm"
+                            value={ch.isBadge ? 'badge' : (ch.isSuccess ? 'success' : 'normal')}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              handleUpdateDiscordChannel(idx, 'isBadge', val === 'badge');
+                              handleUpdateDiscordChannel(idx, 'isSuccess', val === 'success');
+                            }}
+                          >
+                            <option value="success">Active (Green Text)</option>
+                            <option value="badge">Gold Badge</option>
+                            <option value="normal">Normal (Gray Text)</option>
+                          </select>
+                        </td>
+                        <td className="text-end">
+                          <div className="btn-group btn-group-sm">
+                            <button
+                              type="button"
+                              className="btn btn-outline-secondary p-1 px-2"
+                              onClick={() => handleMoveDiscordChannel(idx, -1)}
+                              disabled={idx === 0}
+                              title="Move Up"
+                            >
+                              <i className="bi bi-chevron-up"></i>
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-outline-secondary p-1 px-2"
+                              onClick={() => handleMoveDiscordChannel(idx, 1)}
+                              disabled={idx === arr.length - 1}
+                              title="Move Down"
+                            >
+                              <i className="bi bi-chevron-down"></i>
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-outline-danger p-1 px-2"
+                              onClick={() => handleDeleteDiscordChannel(idx)}
+                              title="Delete Channel"
+                            >
+                              <i className="bi bi-trash"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
