@@ -14,9 +14,11 @@ import StreamersSection from '@/components/StreamersSection';
 import MembersDirectory from '@/components/MembersDirectory';
 import Footer from '@/components/Footer';
 import DriverAccountModal from '@/components/DriverAccountModal';
+import { useAuth } from '@/lib/authContext';
 import { DEFAULT_CONFIG, getNextUpcomingConvoy, getNextUpcomingConvoys, getConvoyBySlot } from '@/lib/defaultConfig';
 
 export default function HomePage() {
+  const { user } = useAuth();
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [liveNextConvoy, setLiveNextConvoy] = useState(DEFAULT_CONFIG.nextConvoy);
   const [upcomingConvoys, setUpcomingConvoys] = useState([]);
@@ -24,46 +26,82 @@ export default function HomePage() {
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [accountModalTab, setAccountModalTab] = useState('profile');
 
-  useEffect(() => {
-    const updateConvoys = () => {
-      const now = new Date();
-      const slotList = config.timetableConvoys || null;
-      const currentNext = getNextUpcomingConvoy(now, slotList);
-      const list = getNextUpcomingConvoys(4, now, slotList);
-      setLiveNextConvoy(currentNext);
-      setUpcomingConvoys(list);
-    };
+  const updateConvoys = (customSlots = null) => {
+    const now = new Date();
+    const slotList = customSlots || config.timetableConvoys || null;
+    const currentNext = getNextUpcomingConvoy(now, slotList);
+    const list = getNextUpcomingConvoys(4, now, slotList);
+    setLiveNextConvoy(currentNext);
+    setUpcomingConvoys(list);
+  };
 
+  useEffect(() => {
     updateConvoys();
-    const interval = setInterval(updateConvoys, 60000); 
+    const interval = setInterval(() => updateConvoys(), 60000); 
     return () => clearInterval(interval);
   }, [config.timetableConvoys]);
 
   useEffect(() => {
     async function loadSiteContent() {
       try {
-        const res = await fetch('/api/content', { cache: 'no-store' });
+        const res = await fetch(`/api/content?t=${Date.now()}`, { cache: 'no-store' });
         const json = await res.json();
         if (json?.success && json?.data) {
-          
-          const remoteConvoy = json.data.nextConvoy;
-          const isLegacyMunich = remoteConvoy?.departureLocation?.includes('Munich') || remoteConvoy?.title?.includes('Alpine');
-          const cleanNextConvoy = isLegacyMunich ? DEFAULT_CONFIG.nextConvoy : { ...DEFAULT_CONFIG.nextConvoy, ...(remoteConvoy || {}) };
-
-          setConfig({
-            ...DEFAULT_CONFIG,
-            ...json.data,
-            nextConvoy: cleanNextConvoy,
-            stats: { ...DEFAULT_CONFIG.stats, ...(json.data.stats || {}) },
-            planner: { ...DEFAULT_CONFIG.planner, ...(json.data.planner || {}) }
-          });
+          setConfig(json.data);
+          updateConvoys(json.data.timetableConvoys);
         }
       } catch (err) {
         console.warn('Failed to load content from Supabase API, using default config:', err);
       }
     }
 
+    // Instant local cache hydration for 0ms visual update
+    try {
+      const cached = localStorage.getItem('gtc_site_content_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === 'object') {
+          setConfig((prev) => ({ ...prev, ...parsed }));
+          if (parsed.timetableConvoys) {
+            updateConvoys(parsed.timetableConvoys);
+          }
+        }
+      }
+    } catch (e) {}
+
     loadSiteContent();
+
+    const handleStorage = (e) => {
+      if (e.key === 'gtc_site_content_timestamp' || e.key === 'gtc_site_content_cache') {
+        loadSiteContent();
+      }
+    };
+
+    const handleContentEvent = (e) => {
+      if (e?.detail) {
+        setConfig((prev) => ({ ...prev, ...e.detail }));
+        if (e.detail.timetableConvoys) {
+          updateConvoys(e.detail.timetableConvoys);
+        }
+      }
+      loadSiteContent();
+    };
+
+    window.addEventListener('focus', loadSiteContent);
+    window.addEventListener('pageshow', loadSiteContent);
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('gtc:content-updated', handleContentEvent);
+
+    // Guaranteed real-time sync heartbeat
+    const syncInterval = setInterval(loadSiteContent, 3500);
+
+    return () => {
+      window.removeEventListener('focus', loadSiteContent);
+      window.removeEventListener('pageshow', loadSiteContent);
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('gtc:content-updated', handleContentEvent);
+      clearInterval(syncInterval);
+    };
   }, []);
 
   const openAccountModal = (tab = 'profile') => {
@@ -71,16 +109,9 @@ export default function HomePage() {
     setIsAccountModalOpen(true);
   };
 
-  const adminOverride = config.nextConvoyOverride ? config.nextConvoy : null;
-  const overriddenLive = (liveNextConvoy && adminOverride && adminOverride.id === liveNextConvoy.id)
-    ? {
-        ...liveNextConvoy,
-        ...adminOverride,
-        departureTime: liveNextConvoy.departureTime,
-        truck: { ...liveNextConvoy.truck, ...(adminOverride.truck || {}) }
-      }
-    : liveNextConvoy;
-  const activeConvoy = selectedConvoy || overriddenLive || config.nextConvoy;
+  const isOverridden = config.nextConvoyOverride !== false && config.nextConvoy?.title;
+  const configuredConvoy = isOverridden ? config.nextConvoy : (liveNextConvoy || config.nextConvoy);
+  const activeConvoy = selectedConvoy || configuredConvoy;
   const activeSlot = activeConvoy ? {
     day: activeConvoy.dayShort || activeConvoy.day?.slice(0, 3)?.toUpperCase(),
     time: activeConvoy.eatTime?.slice(0, 5) || activeConvoy.time?.slice(0, 5)
@@ -114,7 +145,7 @@ export default function HomePage() {
         planner={config.planner}
         activeSlot={activeSlot}
         onSelectSlot={(slot) => {
-          const matched = getConvoyBySlot(slot.day, slot.time);
+          const matched = getConvoyBySlot(slot.day, slot.time, new Date(), config.timetableConvoys);
           if (matched) {
             setSelectedConvoy(matched);
             const cardEl = document.getElementById('next-convoy');
@@ -129,9 +160,11 @@ export default function HomePage() {
         config={config}
       />
 
-      <DriverSignup
-        onSignupSuccess={() => openAccountModal('profile')}
-      />
+      {!user && (
+        <DriverSignup
+          onSignupSuccess={() => openAccountModal('profile')}
+        />
+      )}
 
       <GallerySection
         gallery={config.gallery}

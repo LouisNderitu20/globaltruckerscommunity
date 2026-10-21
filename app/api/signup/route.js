@@ -1,13 +1,30 @@
 import { NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import { supabaseAdmin, supabaseContent } from '@/lib/supabase';
 import { DEFAULT_CONFIG, isValidGtcCountry, isValidGtcTruck, isValidStreamerUrl, normalizeStreamerUrl, getPermanentLicenseNumber } from '@/lib/defaultConfig';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { validateStrongPassword } from '@/lib/password-validator';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const db = supabaseAdmin || supabaseContent;
 
 export async function POST(request) {
   try {
+    const clientIp = getClientIp(request);
+    const rateLimit = await checkRateLimit(`signup:${clientIp}`, {
+      limit: 10,
+      windowMs: 60 * 60 * 1000 // 10 signups per hour per IP
+    });
+
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { success: false, error: 'Too many registration attempts. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { id, name, email, password, country, games, type, vtc, tmp, steamId, truckBrand, stream, avatar, role, roles, isStreamer, streamerPlatform, licenseNumber, joinedAt } = body;
 
@@ -17,6 +34,21 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+
+    const cleanEmail = email?.trim() || `${name.trim().toLowerCase().replace(/[^a-z0-9]/g, '')}@gtc-drivers.com`;
+    const cleanPassword = (password || 'gtc2026').trim();
+
+    // Password validation (NEETEL-AUTOSPARES standard)
+    const passCheck = validateStrongPassword(cleanPassword, cleanEmail);
+    if (!passCheck.isValid && cleanPassword !== 'gtc2026') {
+      return NextResponse.json(
+        { success: false, error: passCheck.error },
+        { status: 400 }
+      );
+    }
+
+    // Bcrypt password hashing
+    const hashedPassword = await bcrypt.hash(cleanPassword, 10);
 
     const validatedCountry = isValidGtcCountry(country) ? country.trim() : 'Kenya';
     const validatedTruck = isValidGtcTruck(truckBrand) ? truckBrand.trim() : 'Scania S730 V8';
@@ -39,15 +71,14 @@ export async function POST(request) {
     const permanentLicense = licenseNumber || getPermanentLicenseNumber(assignedId);
     const joinDate = joinedAt || new Date().toISOString();
     const finalRoles = Array.isArray(roles) && roles.length > 0 ? roles : [finalRole];
-    const cleanEmail = email?.trim() || `${name.trim().toLowerCase().replace(/[^a-z0-9]/g, '')}@gtc-drivers.com`;
-    const cleanPassword = (password || 'gtc2026').trim();
     const nowIso = new Date().toISOString();
 
     const newSignup = {
       id: assignedId,
       name: name.trim(),
       email: cleanEmail,
-      password: cleanPassword,
+      password: hashedPassword,
+      password_hash: hashedPassword,
       country: validatedCountry,
       games: games || ['ETS 2'],
       driver_type: type || 'Independent driver',
@@ -172,7 +203,14 @@ export async function GET() {
       }
     } catch (e) {}
 
-    return NextResponse.json({ success: true, signups: signupsList });
+    return NextResponse.json(
+      { success: true, signups: signupsList },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
+        }
+      }
+    );
   } catch (err) {
     return NextResponse.json({ success: true, signups: [], error: err.message });
   }
@@ -207,11 +245,16 @@ export async function PUT(request) {
     }
 
     const nowIso = new Date().toISOString();
+    let hashedUpdatedPassword = undefined;
+    if (password && password.trim()) {
+      hashedUpdatedPassword = await bcrypt.hash(password.trim(), 10);
+    }
+
     const updatedData = {
       id,
       name: name?.trim(),
       email: email?.trim() || null,
-      ...(password ? { password: password.trim() } : {}),
+      ...(hashedUpdatedPassword ? { password: hashedUpdatedPassword, password_hash: hashedUpdatedPassword } : {}),
       country: validatedCountry,
       games: games || ['ETS 2'],
       driver_type: type || 'Independent driver',

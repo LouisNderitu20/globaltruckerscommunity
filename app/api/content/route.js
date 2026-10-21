@@ -2,11 +2,15 @@ import { NextResponse } from 'next/server';
 import { supabaseContent, supabaseAdmin } from '@/lib/supabase';
 import { DEFAULT_CONFIG } from '@/lib/defaultConfig';
 
+import { revalidatePath } from 'next/cache';
+
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
-    const { data: row, error } = await supabaseContent
+    const client = supabaseAdmin || supabaseContent;
+    const { data: row, error } = await client
       .from('site_content')
       .select('data, updated_at')
       .eq('id', 1)
@@ -14,30 +18,54 @@ export async function GET() {
 
     if (error || !row || !row.data) {
       console.warn('GTC API: Falling back to default config:', error?.message);
-      return NextResponse.json({ success: true, data: DEFAULT_CONFIG, isDefault: true });
+      return NextResponse.json(
+        { success: true, data: DEFAULT_CONFIG, isDefault: true },
+        {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
+        }
+      );
     }
 
     const mergedData = {
       ...DEFAULT_CONFIG,
       ...row.data,
-      nextConvoy: { ...DEFAULT_CONFIG.nextConvoy, ...(row.data.nextConvoy || {}) },
-      stats: { ...DEFAULT_CONFIG.stats, ...(row.data.stats || {}) },
-      planner: { ...DEFAULT_CONFIG.planner, ...(row.data.planner || {}) },
-      timetableConvoys: row.data.timetableConvoys || DEFAULT_CONFIG.timetableConvoys,
-      news: row.data.news || DEFAULT_CONFIG.news,
-      gallery: row.data.gallery || DEFAULT_CONFIG.gallery,
+      nextConvoy: { ...DEFAULT_CONFIG.nextConvoy, ...(row.data?.nextConvoy || {}) },
+      stats: { ...DEFAULT_CONFIG.stats, ...(row.data?.stats || {}) },
+      planner: { ...DEFAULT_CONFIG.planner, ...(row.data?.planner || {}) },
+      timetableConvoys: Array.isArray(row.data?.timetableConvoys) && row.data.timetableConvoys.length > 0 ? row.data.timetableConvoys : DEFAULT_CONFIG.timetableConvoys,
+      news: Array.isArray(row.data?.news) ? row.data.news : DEFAULT_CONFIG.news,
+      gallery: Array.isArray(row.data?.gallery) ? row.data.gallery : DEFAULT_CONFIG.gallery,
+      nextConvoyOverride: row.data?.nextConvoyOverride !== undefined ? row.data.nextConvoyOverride : true,
     };
 
-    return NextResponse.json({
-      success: true,
-      data: mergedData,
-      updated_at: row.updated_at,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: mergedData,
+        updated_at: row.updated_at,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
+    );
   } catch (err) {
     console.error('GTC API Content GET error:', err);
     return NextResponse.json(
       { success: true, data: DEFAULT_CONFIG, isDefault: true, error: err.message },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        },
+      }
     );
   }
 }
@@ -93,7 +121,19 @@ export async function PUT(request) {
       );
     }
 
-    return NextResponse.json({ success: true, message: 'Content published successfully' });
+    try {
+      revalidatePath('/', 'layout');
+      revalidatePath('/api/content');
+    } catch (e) {}
+
+    return NextResponse.json(
+      { success: true, message: 'Content published successfully' },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        },
+      }
+    );
   } catch (err) {
     console.error('GTC API Content PUT error:', err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

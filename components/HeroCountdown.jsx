@@ -66,8 +66,12 @@ export default function HeroCountdown({ nextConvoy, onOpenAccountModal }) {
             </div>
 
             <h1 className="display-4 fw-extrabold text-dark lh-sm mb-3">
-              Haul Together.<br />
-              <span style={{ color: '#0284c7' }}>Every Route. Every Map.</span>
+              {nextConvoy?.title ? nextConvoy.title : 'Haul Together.'}<br />
+              <span style={{ color: '#0284c7' }}>
+                {(nextConvoy?.departureLocation || nextConvoy?.departureCity) && (nextConvoy?.destinationLocation || nextConvoy?.destinationCity)
+                  ? `${nextConvoy.departureLocation || nextConvoy.departureCity} ➔ ${nextConvoy.destinationLocation || nextConvoy.destinationCity}`
+                  : (nextConvoy?.subTitle || 'Every Route. Every Map.')}
+              </span>
             </h1>
 
             <p className="lead text-secondary mb-4" style={{ maxWidth: '620px', fontSize: '1.05rem' }}>

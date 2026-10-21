@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
-import { supabaseContent } from '@/lib/supabase';
+import { supabaseAdmin, supabaseContent } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
+
+function getClient() {
+  return supabaseAdmin || supabaseContent;
+}
 
 export async function GET(request) {
   try {
@@ -11,7 +15,8 @@ export async function GET(request) {
     let allAttendees = {};
 
     try {
-      const { data: row } = await supabaseContent
+      const client = getClient();
+      const { data: row } = await client
         .from('site_content')
         .select('data')
         .eq('id', 1)
@@ -52,7 +57,8 @@ export async function POST(request) {
     let contentData = {};
 
     try {
-      const { data: row } = await supabaseContent
+      const client = getClient();
+      const { data: row } = await client
         .from('site_content')
         .select('data')
         .eq('id', 1)
@@ -96,7 +102,8 @@ export async function POST(request) {
     contentData.convoyAttendees = allAttendees;
 
     try {
-      await supabaseContent
+      const client = getClient();
+      await client
         .from('site_content')
         .update({
           data: contentData,
@@ -134,7 +141,8 @@ export async function DELETE(request) {
     let contentData = {};
 
     try {
-      const { data: row } = await supabaseContent
+      const client = getClient();
+      const { data: row } = await client
         .from('site_content')
         .select('data')
         .eq('id', 1)
@@ -157,7 +165,8 @@ export async function DELETE(request) {
     contentData.convoyAttendees = allAttendees;
 
     try {
-      await supabaseContent
+      const client = getClient();
+      await client
         .from('site_content')
         .update({
           data: contentData,

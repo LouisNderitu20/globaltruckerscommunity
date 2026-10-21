@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import { supabaseAdmin, supabaseContent } from '@/lib/supabase';
 import { getPermanentLicenseNumber } from '@/lib/defaultConfig';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 function getAdminClient() {
   return supabaseAdmin || supabaseContent;
@@ -70,12 +73,19 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({
-      success: true,
-      users: enrichedSignups,
-      totalCount: enrichedSignups.length,
-      supabaseAuthCount: authUsers.length
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        users: enrichedSignups,
+        totalCount: enrichedSignups.length,
+        supabaseAuthCount: authUsers.length
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
+        }
+      }
+    );
   } catch (err) {
     console.error('API Auth GET error:', err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
@@ -99,6 +109,20 @@ export async function POST(request) {
 
       const query = emailOrCallsign.trim().toLowerCase();
       const inputPass = (password || 'gtc2026').trim();
+
+      // Security Rate Limiting (NEETEL-AUTOSPARES pattern)
+      const clientIp = getClientIp(request);
+      const rateLimitResult = await checkRateLimit(`login:${query}:${clientIp}`, {
+        limit: 10,
+        windowMs: 60 * 1000,
+      });
+
+      if (!rateLimitResult.success) {
+        return NextResponse.json(
+          { success: false, error: 'Too many login attempts. Please wait 1 minute before trying again.' },
+          { status: 429 }
+        );
+      }
 
       // Read current signups from site_content
       const { data: row } = await client
@@ -183,9 +207,16 @@ export async function POST(request) {
         );
       }
 
-      // Check password
+      // Check password using bcrypt or plain text fallback (NEETEL-AUTOSPARES pattern)
       const expectedPassword = targetDriver.password || 'gtc2026';
-      if (inputPass !== expectedPassword && inputPass !== 'gtc2026' && inputPass !== 'ADMIN2026') {
+      let isValidPass = false;
+      if (expectedPassword.startsWith('$2a$') || expectedPassword.startsWith('$2b$')) {
+        isValidPass = await bcrypt.compare(inputPass, expectedPassword);
+      } else {
+        isValidPass = (inputPass === expectedPassword || inputPass === 'gtc2026' || inputPass === 'ADMIN2026');
+      }
+
+      if (!isValidPass) {
         return NextResponse.json(
           { success: false, error: 'Incorrect password. Please try again.' },
           { status: 401 }

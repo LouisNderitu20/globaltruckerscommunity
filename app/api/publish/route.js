@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { supabaseAdmin, supabaseContent } from '@/lib/supabase';
+import { DEFAULT_CONFIG } from '@/lib/defaultConfig';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 function getAdminClient() {
   return supabaseAdmin || supabaseContent;
@@ -122,6 +125,7 @@ export async function POST(request) {
     if (contentToSave && typeof contentToSave === 'object') {
       const rawPayload = contentToSave.data || contentToSave;
 
+      let existingData = {};
       let existingSignups = [];
       try {
         const { data: row } = await client
@@ -130,16 +134,30 @@ export async function POST(request) {
           .eq('id', 1)
           .single();
 
-        if (row?.data && Array.isArray(row.data.signups)) {
-          existingSignups = row.data.signups;
+        if (row?.data) {
+          existingData = row.data;
+          if (Array.isArray(row.data.signups)) {
+            existingSignups = row.data.signups;
+          }
         }
       } catch (readErr) {
         console.warn('Publish: reading existing signups warning:', readErr.message);
       }
 
-      // Live member accounts must NEVER be overwritten by site content updates
+      // Merge base defaults, existing published data, and new published changes
       const finalData = {
+        ...DEFAULT_CONFIG,
+        ...existingData,
         ...rawPayload,
+        nextConvoy: {
+          ...(existingData.nextConvoy || DEFAULT_CONFIG.nextConvoy),
+          ...(rawPayload.nextConvoy || {}),
+          departureLocation: rawPayload.nextConvoy?.departureLocation || rawPayload.nextConvoy?.departureCity || existingData.nextConvoy?.departureLocation || existingData.nextConvoy?.departureCity || DEFAULT_CONFIG.nextConvoy.departureLocation || 'Munich',
+          departureCity: rawPayload.nextConvoy?.departureCity || rawPayload.nextConvoy?.departureLocation || existingData.nextConvoy?.departureCity || existingData.nextConvoy?.departureLocation || DEFAULT_CONFIG.nextConvoy.departureCity || 'Munich',
+          destinationLocation: rawPayload.nextConvoy?.destinationLocation || rawPayload.nextConvoy?.destinationCity || existingData.nextConvoy?.destinationLocation || existingData.nextConvoy?.destinationCity || DEFAULT_CONFIG.nextConvoy.destinationLocation || 'Milan',
+          destinationCity: rawPayload.nextConvoy?.destinationCity || rawPayload.nextConvoy?.destinationLocation || existingData.nextConvoy?.destinationCity || existingData.nextConvoy?.destinationLocation || DEFAULT_CONFIG.nextConvoy.destinationCity || 'Milan',
+          route: rawPayload.nextConvoy?.route || existingData.nextConvoy?.route || DEFAULT_CONFIG.nextConvoy.route || 'Trans-European Freight Corridor'
+        },
         signups: existingSignups
       };
 
@@ -156,10 +174,22 @@ export async function POST(request) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       }
 
-      return NextResponse.json({
-        success: true,
-        message: 'Content published live successfully.'
-      });
+      try {
+        revalidatePath('/', 'layout');
+        revalidatePath('/api/content');
+      } catch (e) {}
+
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'Content published live successfully.'
+        },
+        {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
+          }
+        }
+      );
     }
 
     return NextResponse.json({ success: false, error: 'No valid data or updates provided' }, { status: 400 });

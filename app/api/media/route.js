@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabaseStorage, STORAGE_BUCKET, SIGNED_TTL } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
@@ -60,7 +61,14 @@ export async function GET() {
       console.warn('Local uploads read error:', localErr?.message);
     }
 
-    return NextResponse.json({ success: true, images });
+    return NextResponse.json(
+      { success: true, images },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        },
+      }
+    );
   } catch (err) {
     console.error('GTC API Media error:', err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

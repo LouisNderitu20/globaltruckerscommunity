@@ -78,47 +78,57 @@ export default function StreamersSection({ streamers }) {
           </p>
         </div>
 
-        <div className="row g-3 g-md-4">
-          {streamerList.map((s, idx) => (
-            <div key={s.id || idx} className="col-12 col-md-4">
-              <div className="card glass p-3 d-flex flex-row align-items-center justify-content-between h-100 shadow-sm">
-                <div className="d-flex align-items-center gap-3">
-                  <div
-                    className="rounded-circle d-flex align-items-center justify-content-center overflow-hidden border"
-                    style={{
-                      width: '60px',
-                      height: '50px',
-                      backgroundColor: 'rgba(2, 132, 199, 0.08)',
-                      borderColor: '#e2e8f0',
-                      color: '#0284c7'
-                    }}
-                  >
-                    {s.avatar ? (
-                      <img src={s.avatar} alt={s.name} className="w-100 h-100 object-fit-cover" />
-                    ) : (
-                      <i className="bi bi-mic-fill fs-5"></i>
-                    )}
-                  </div>
-                  <div>
-                    <h5 className="fw-bold text-dark fs-6 mb-0">{s.name}</h5>
-                    <div className="small fw-semibold" style={{ color: '#0284c7' }}>
-                      {s.platform} &bull; <span className="text-secondary fw-normal">{s.games}</span>
+        {streamerList.length === 0 ? (
+          <div className="p-4 text-center bg-white rounded-3 border text-secondary shadow-sm" style={{ borderColor: '#e2e8f0' }}>
+            <i className="bi bi-camera-video fs-3 d-block mb-2" style={{ color: '#0284c7' }}></i>
+            <h6 className="fw-bold text-dark mb-1">Live Creator Network</h6>
+            <p className="small mb-0 text-muted mx-auto" style={{ maxWidth: '520px' }}>
+              Drivers with approved broadcaster credentials can connect their TikTok, Twitch, or YouTube streams via the Driver Portal to appear here live during official convoys.
+            </p>
+          </div>
+        ) : (
+          <div className="row g-3 g-md-4">
+            {streamerList.map((s, idx) => (
+              <div key={s.id || idx} className="col-12 col-md-4">
+                <div className="card glass p-3 d-flex flex-row align-items-center justify-content-between h-100 shadow-sm">
+                  <div className="d-flex align-items-center gap-3">
+                    <div
+                      className="rounded-circle d-flex align-items-center justify-content-center overflow-hidden border"
+                      style={{
+                        width: '60px',
+                        height: '50px',
+                        backgroundColor: 'rgba(2, 132, 199, 0.08)',
+                        borderColor: '#e2e8f0',
+                        color: '#0284c7'
+                      }}
+                    >
+                      {s.avatar ? (
+                        <img src={s.avatar} alt={s.name} className="w-100 h-100 object-fit-cover" />
+                      ) : (
+                        <i className="bi bi-mic-fill fs-5"></i>
+                      )}
+                    </div>
+                    <div>
+                      <h5 className="fw-bold text-dark fs-6 mb-0">{s.name}</h5>
+                      <div className="small fw-semibold" style={{ color: '#0284c7' }}>
+                        {s.platform} &bull; <span className="text-secondary fw-normal">{s.games}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <a
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-sm btn-outline-warning"
-                >
-                  <i className="bi bi-box-arrow-up-right me-1"></i> Watch
-                </a>
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-sm btn-outline-warning"
+                  >
+                    <i className="bi bi-box-arrow-up-right me-1"></i> Watch
+                  </a>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

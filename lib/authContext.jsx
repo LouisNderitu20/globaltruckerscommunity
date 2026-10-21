@@ -3,6 +3,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabaseContent } from '@/lib/supabase';
 import { isValidGtcCountry, isValidGtcTruck, isValidStreamerUrl, normalizeStreamerUrl, getPermanentLicenseNumber, validatePasswordSecurity } from '@/lib/defaultConfig';
+import { hasPermission as rbacHasPermission } from '@/lib/permissions';
+
+export { rbacHasPermission as hasPermission };
 
 const AuthContext = createContext();
 
@@ -149,9 +152,7 @@ export function AuthProvider({ children }) {
         try {
           const parsed = JSON.parse(storedDrivers);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const FAKE_NAMES = ['Alex_Trans', 'Klaus_Trucker', 'HighwayKing_99', 'VikingDriver'];
-            const cleaned = parsed.filter((d) => !FAKE_NAMES.includes(d.name) && d.email !== 'bryangaming@gtc.com');
-            setAllDrivers(cleaned);
+            setAllDrivers(parsed);
           }
         } catch (e) {}
       }
@@ -161,7 +162,7 @@ export function AuthProvider({ children }) {
         try {
           let listToProcess = null;
           try {
-            const authRes = await fetch('/api/auth', { cache: 'no-store' });
+            const authRes = await fetch(`/api/auth?t=${Date.now()}`, { cache: 'no-store' });
             const authJson = await authRes.json();
             if (authJson?.success && Array.isArray(authJson.users)) {
               listToProcess = authJson.users;
@@ -169,7 +170,7 @@ export function AuthProvider({ children }) {
           } catch (e) {}
 
           if (!listToProcess) {
-            const res = await fetch('/api/signup', { cache: 'no-store' });
+            const res = await fetch(`/api/signup?t=${Date.now()}`, { cache: 'no-store' });
             const json = await res.json();
             if (json?.success && Array.isArray(json.signups)) {
               listToProcess = json.signups;
@@ -208,6 +209,31 @@ export function AuthProvider({ children }) {
             try {
               localStorage.setItem('gtc_registered_drivers', JSON.stringify(normalizedList));
             } catch (e) {}
+
+            // Keep current user session roles synchronized with latest DB state
+            setUser((currentUser) => {
+              if (!currentUser) return null;
+              const match = normalizedList.find(
+                (d) =>
+                  d.id === currentUser.id ||
+                  (d.email && currentUser.email && d.email.toLowerCase() === currentUser.email.toLowerCase())
+              );
+              if (match) {
+                const updated = {
+                  ...currentUser,
+                  role: match.role,
+                  roles: match.roles,
+                  avatar: match.avatar || currentUser.avatar,
+                  kms: match.kms,
+                  deliveries: match.deliveries
+                };
+                try {
+                  localStorage.setItem('gtc_user_session', JSON.stringify(updated));
+                } catch (e) {}
+                return updated;
+              }
+              return currentUser;
+            });
           }
         } catch (e) {
           console.warn('API driver load error:', e);
@@ -575,6 +601,14 @@ export function AuthProvider({ children }) {
       });
 
       const json = await res.json();
+      if (res.status === 429) {
+        showToast(json?.error || 'Rate limit exceeded. Please wait 1 minute before trying again.', 'error');
+        return { success: false, error: json?.error || 'Rate limit exceeded.' };
+      }
+      if (res.status === 401) {
+        showToast(json?.error || 'Incorrect password.', 'error');
+        return { success: false, error: json?.error || 'Incorrect password.' };
+      }
       if (json?.success && json?.driver) {
         let loggedIn = sanitizeUserRoles(json.driver);
         if (!loggedIn.licenseNumber) {
@@ -586,9 +620,6 @@ export function AuthProvider({ children }) {
         saveUserSession(loggedIn);
         showToast(`Welcome back, ${loggedIn.name}! Logged in as ${ROLE_INFO[loggedIn.role]?.label || 'Driver'}.`, 'success');
         return { success: true, driver: loggedIn };
-      } else if (json && json.success === false && json.status === 401) {
-        showToast(json.error || 'Incorrect password.', 'error');
-        return { success: false, error: json.error || 'Incorrect password.' };
       }
     } catch (apiErr) {
       console.warn('API login error, proceeding to local check:', apiErr);
@@ -842,11 +873,18 @@ export function AuthProvider({ children }) {
           found = true;
           targetDriverName = driver.name || driver.email || driverId;
           const oldRoles = Array.isArray(driver.roles) && driver.roles.length > 0 ? driver.roles : [driver.role || 'driver'];
-          let filteredOld = oldRoles.filter((r) => r !== primaryRole);
-          if (primaryRole !== 'admin') {
-            filteredOld = filteredOld.filter((r) => r !== 'admin');
+          const filteredOld = oldRoles.filter((r) => r !== primaryRole);
+
+          let rolesArray;
+          if (primaryRole === 'driver') {
+            rolesArray = ['driver'];
+          } else {
+            rolesArray = Array.from(new Set([
+              primaryRole,
+              ...filteredOld
+            ]));
           }
-          const rolesArray = [primaryRole, ...filteredOld];
+
           targetDriverObj = {
             ...driver,
             role: primaryRole,
@@ -861,11 +899,17 @@ export function AuthProvider({ children }) {
         const base = driverData || {};
         targetDriverName = base.name || base.email || driverId;
         const oldRoles = Array.isArray(base.roles) && base.roles.length > 0 ? base.roles : [base.role || 'driver'];
-        let filteredOld = oldRoles.filter((r) => r !== primaryRole);
-        if (primaryRole !== 'admin') {
-          filteredOld = filteredOld.filter((r) => r !== 'admin');
+        const filteredOld = oldRoles.filter((r) => r !== primaryRole);
+
+        let rolesArray;
+        if (primaryRole === 'driver') {
+          rolesArray = ['driver'];
+        } else {
+          rolesArray = Array.from(new Set([
+            primaryRole,
+            ...filteredOld
+          ]));
         }
-        const rolesArray = [primaryRole, ...filteredOld];
         targetDriverObj = {
           ...base,
           id: driverId,
@@ -1387,6 +1431,8 @@ export function AuthProvider({ children }) {
         roleInfo: ROLE_INFO[user?.role || 'driver'] || ROLE_INFO.driver,
         isAdmin: hasRole(user, ROLES.ADMIN),
         isStaff: hasRole(user, ROLES.ADMIN) || hasRole(user, ROLES.STAFF) || hasRole(user, ROLES.DEV_MODDER) || hasRole(user, ROLES.CONVOY_LEAD),
+        can: (permission) => rbacHasPermission(user, permission),
+        hasPermission: (permission) => rbacHasPermission(user, permission),
         allDrivers,
         notifications,
         unreadCount,

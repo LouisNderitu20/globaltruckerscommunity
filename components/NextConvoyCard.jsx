@@ -3,10 +3,12 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/authContext';
+import ConvoyMapDisplay from '@/components/ConvoyMapDisplay';
 
 export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectConvoy, onOpenAccountModal }) {
   const {
     user,
+    allDrivers,
     toggleConvoyReminder,
     reminders,
     isAdmin,
@@ -19,6 +21,22 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
   const [copiedRoomId, setCopiedRoomId] = useState(false);
   const [isAttendeesModalOpen, setIsAttendeesModalOpen] = useState(false);
   const [searchAttendee, setSearchAttendee] = useState('');
+  const [mediaView, setMediaView] = useState('radar');
+
+  const realConvoyLead = React.useMemo(() => {
+    const foundLead = (allDrivers || []).find((d) => {
+      const roles = Array.isArray(d.roles) && d.roles.length > 0 ? d.roles : [d.role];
+      return roles.includes('convoy_lead');
+    }) || (allDrivers || []).find((d) => {
+      const roles = Array.isArray(d.roles) && d.roles.length > 0 ? d.roles : [d.role];
+      return roles.includes('admin') || roles.includes('staff');
+    });
+
+    if (foundLead) {
+      return `${foundLead.name} (Convoy Lead)`;
+    }
+    return convoy?.leadDriver || 'Official Convoy Lead';
+  }, [convoy?.leadDriver, allDrivers]);
 
   if (!convoy) return null;
 
@@ -55,11 +73,26 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
           <span className="badge badge-gold text-uppercase fw-bold px-3 py-2 mb-2">
             <i className="bi bi-calendar-check-fill me-1"></i> Official Timetable Run
           </span>
-          <h2 className="display-6 fw-extrabold text-dark mb-1">
-            Next Public Convoy: {convoy.day} @ {convoy.eatTime || '21:00 EAT'} <span className="fs-6 text-muted">({convoy.time})</span>
+          <h2 className="display-6 fw-extrabold text-dark mb-2">
+            {convoy.title ? convoy.title : `Next Public Convoy: ${convoy.day} @ ${convoy.eatTime || '21:00 EAT'}`}
           </h2>
+          <div className="d-flex align-items-center justify-content-center gap-2 flex-wrap mb-2">
+            <span className="badge bg-primary text-white text-uppercase fw-bold px-3 py-1">
+              {convoy.day} • {convoy.eatTime || '21:00 EAT'} ({convoy.time})
+            </span>
+            {convoy.roomId && (
+              <span className="badge bg-warning text-dark text-uppercase fw-bold px-3 py-1">
+                <i className="bi bi-key-fill me-1"></i> Room: {convoy.roomId}
+              </span>
+            )}
+            {(convoy.site || convoy.server) && (
+              <span className="badge bg-light text-dark border px-3 py-1">
+                <i className="bi bi-hdd-network me-1"></i> {convoy.site || convoy.server}
+              </span>
+            )}
+          </div>
           <p className="text-secondary mx-auto mb-0" style={{ maxWidth: '650px' }}>
-            Full convoy briefing, server room coordinates, departure timetable in Kenyan Time (EAT, UTC+3), and equipment regulations directly matching the GTC Convoys Planner.
+            {convoy.subTitle || 'Full convoy briefing, server room coordinates, departure timetable in Kenyan Time (EAT, UTC+3), and equipment regulations directly matching the GTC Convoys Planner.'}
           </p>
         </div>
 
@@ -96,7 +129,7 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
 
             <div className="d-flex align-items-center gap-3">
               <span className="small text-secondary">
-                <i className="bi bi-person-fill me-1"></i> Lead: <strong className="text-dark">{convoy.leadDriver}</strong>
+                <i className="bi bi-person-fill me-1"></i> Lead: <strong className="text-dark">{realConvoyLead}</strong>
               </span>
               {isAdmin && (
                 <Link href="/admin" className="btn btn-sm btn-outline-warning">
@@ -119,6 +152,52 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
                   </span>
                 </div>
                 <p className="text-secondary mb-3">{convoy.subTitle}</p>
+
+                {/* Official Route Corridor & Mission Itinerary HUD */}
+                <div className="p-3 rounded-3 mb-3 border shadow-sm" style={{ backgroundColor: '#0f172a', color: '#f8fafc', borderColor: '#334155' }}>
+                  <div className="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                    <span className="small text-uppercase fw-bold text-warning d-flex align-items-center gap-1">
+                      <i className="bi bi-signpost-split-fill"></i> Route Corridor &amp; Mission Briefing
+                    </span>
+                    <span className="badge bg-primary text-white" style={{ fontSize: '0.72rem' }}>
+                      <i className="bi bi-hdd-network me-1"></i> {convoy.site || convoy.server || 'TruckersMP Sim 1'}
+                    </span>
+                  </div>
+
+                  <div className="row g-2 align-items-center text-center text-sm-start">
+                    <div className="col-12 col-sm-5">
+                      <span className="text-secondary small d-block text-uppercase" style={{ fontSize: '0.7rem' }}>Departure / Staging</span>
+                      <strong className="text-white fs-6 d-block text-truncate">
+                        <i className="bi bi-geo-alt-fill text-success me-1"></i>
+                        {convoy.departureLocation || convoy.departureCity || (convoy.game?.includes('ATS') ? 'Las Vegas' : 'Munich')}
+                      </strong>
+                    </div>
+
+                    <div className="col-12 col-sm-2 text-center">
+                      <div className="text-warning fw-bold fs-5">➔</div>
+                      <span className="small text-muted d-none d-sm-block" style={{ fontSize: '0.65rem' }}>CONVOY RUN</span>
+                    </div>
+
+                    <div className="col-12 col-sm-5 text-sm-end">
+                      <span className="text-secondary small d-block text-uppercase" style={{ fontSize: '0.7rem' }}>Destination / Cargo Drop</span>
+                      <strong className="text-white fs-6 d-block text-truncate">
+                        <i className="bi bi-flag-fill text-danger me-1"></i>
+                        {convoy.destinationLocation || convoy.destinationCity || (convoy.game?.includes('ATS') ? 'Los Angeles' : 'Milan')}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {(convoy.route || convoy.detail) && (
+                    <div className="mt-2 pt-2 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between flex-wrap gap-2 small">
+                      <span className="text-muted">
+                        Highway Corridor: <strong className="text-light">{convoy.route || convoy.detail}</strong>
+                      </span>
+                      <span className="text-warning fw-semibold">
+                        <i className="bi bi-broadcast me-1"></i> Radio CB CH 19
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 {upcomingConvoys && upcomingConvoys.length > 1 && (
                   <div className="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 rounded-2 bg-light border" style={{ borderColor: '#e2e8f0' }}>
@@ -371,29 +450,57 @@ export default function NextConvoyCard({ convoy, upcomingConvoys = [], onSelectC
                   </div>
                 </div>
 
-                <div className="card border overflow-hidden position-relative shadow-sm" style={{ height: '220px', borderColor: '#e2e8f0' }}>
-                  <img
-                    src={convoy.mapImage || (convoy.game?.includes('ATS') ? '/images/ats-art.jpg' : '/images/about-trucks.jpg')}
-                    alt="Convoy Operation Visualizer"
-                    className="w-100 h-100 object-fit-cover"
-                  />
-                  <div
-                    className="position-absolute bottom-0 start-0 end-0 p-3 d-flex align-items-center justify-content-between"
-                    style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.96) 80%)' }}
-                  >
-                    <div>
-                      <span className="text-uppercase small fw-bold d-block" style={{ fontSize: '0.72rem', color: '#0284c7' }}>
-                        Operation Visualizer
-                      </span>
-                      <span className="text-dark fw-bold small">
-                        {convoy.game} &bull; {convoy.detail}
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <div className="btn-group btn-group-sm" role="group">
+                    <button
+                      type="button"
+                      onClick={() => setMediaView('radar')}
+                      className={`btn fw-bold ${mediaView === 'radar' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      style={mediaView === 'radar' ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : {}}
+                    >
+                      <i className="bi bi-geo-alt-fill me-1"></i> Geospatial Radar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMediaView('image')}
+                      className={`btn fw-bold ${mediaView === 'image' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      style={mediaView === 'image' ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : {}}
+                    >
+                      <i className="bi bi-image me-1"></i> Visualizer Photo
+                    </button>
+                  </div>
+                  <span className="small text-secondary fw-semibold">
+                    <i className="bi bi-shield-check text-success me-1"></i> Telemetry Live
+                  </span>
+                </div>
+
+                {mediaView === 'radar' ? (
+                  <ConvoyMapDisplay convoy={convoy} height="290px" />
+                ) : (
+                  <div className="card border overflow-hidden position-relative shadow-sm" style={{ height: '290px', borderColor: '#e2e8f0' }}>
+                    <img
+                      src={convoy.mapImage || (convoy.game?.includes('ATS') ? '/images/ats-art.jpg' : '/images/about-trucks.jpg')}
+                      alt="Convoy Operation Visualizer"
+                      className="w-100 h-100 object-fit-cover"
+                    />
+                    <div
+                      className="position-absolute bottom-0 start-0 end-0 p-3 d-flex align-items-center justify-content-between"
+                      style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.96) 80%)' }}
+                    >
+                      <div>
+                        <span className="text-uppercase small fw-bold d-block" style={{ fontSize: '0.72rem', color: '#0284c7' }}>
+                          Operation Visualizer
+                        </span>
+                        <span className="text-dark fw-bold small">
+                          {convoy.game} &bull; {convoy.detail}
+                        </span>
+                      </div>
+                      <span className="badge badge-gold">
+                        <i className="bi bi-broadcast me-1"></i> CB CH 19
                       </span>
                     </div>
-                    <span className="badge badge-gold">
-                      <i className="bi bi-broadcast me-1"></i> CB CH 19
-                    </span>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

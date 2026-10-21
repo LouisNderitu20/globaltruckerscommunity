@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/authContext';
 
 export default function Footer({ config }) {
-  const { isAdmin } = useAuth();
+  const { user, isAdmin, isStaff, can } = useAuth();
   const whatsappUrl = config?.whatsappUrl || 'https://chat.whatsapp.com/DA0RGVlaPJM2hsbi7tGH1m';
   const facebookUrl = config?.facebookUrl || 'https://www.facebook.com/globaltruckerscommunity';
   const telegramUrl = config?.telegramUrl || 'https://t.me/+dPd9rDHL0jlhMzc0';
@@ -47,7 +47,9 @@ export default function Footer({ config }) {
               <li><a href="/#schedule" className="text-secondary text-decoration-none hover-gold">Weekly Timetable</a></li>
               <li><a href="/GTC-Convoys-Planner.pdf" download="GTC-Convoys-Planner.pdf" className="fw-bold text-decoration-none" style={{ color: '#0284c7' }}><i className="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF Planner</a></li>
               <li><a href="/#stats" className="text-secondary text-decoration-none hover-gold">Fleet Telemetry</a></li>
-              <li><a href="/#signup" className="text-secondary text-decoration-none hover-gold">Driver Recruitment</a></li>
+              {!user && (
+                <li><a href="/#signup" className="text-secondary text-decoration-none hover-gold">Driver Recruitment</a></li>
+              )}
             </ul>
           </div>
 
@@ -65,8 +67,8 @@ export default function Footer({ config }) {
           <div className="col-12 col-md-6 col-lg-3">
             <h5 className="text-dark small fw-bold text-uppercase mb-3" style={{ letterSpacing: '0.05em' }}>Management</h5>
             <ul className="list-unstyled d-flex flex-column gap-2 small text-secondary">
-              {isAdmin && (
-                <li><Link href="/admin" className="fw-bold text-decoration-none" style={{ color: '#0284c7' }}><i className="bi bi-gear-fill me-1"></i> Admin Content Desk</Link></li>
+              {(isAdmin || isStaff || (can && can('cms:view'))) && (
+                <li><Link href="/admin" className="fw-bold text-decoration-none" style={{ color: '#0284c7' }}><i className="bi bi-gear-fill me-1"></i> Operations &amp; CMS Desk</Link></li>
               )}
               <li><Link href="/stats" className="text-secondary text-decoration-none hover-gold"><i className="bi bi-speedometer2 me-1"></i> Distance Leaderboard</Link></li>
               <li><a href="/#gallery" className="text-secondary text-decoration-none hover-gold"><i className="bi bi-images me-1"></i> Screenshot Gallery</a></li>
@@ -81,8 +83,8 @@ export default function Footer({ config }) {
           </div>
           <div className="d-flex gap-3">
             <span>ETS 2 &bull; ATS &bull; TruckersMP</span>
-            {isAdmin && (
-              <Link href="/admin" className="text-secondary text-decoration-none hover-gold">Admin CMS</Link>
+            {(isAdmin || isStaff || (can && can('cms:view'))) && (
+              <Link href="/admin" className="text-secondary text-decoration-none hover-gold">CMS Desk</Link>
             )}
           </div>
         </div>

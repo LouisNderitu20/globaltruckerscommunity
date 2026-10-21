@@ -12,6 +12,8 @@ export default function AdminDesk() {
     user,
     role,
     isAdmin,
+    isStaff,
+    can,
     allDrivers,
     assignRole,
     toggleDriverRole,
@@ -59,7 +61,7 @@ export default function AdminDesk() {
     id: '',
     title: '',
     game: 'ETS 2',
-    author: 'Bryan Gaming',
+    author: user?.name || '',
     src: '/images/about-trucks.jpg'
   });
   const [editingGalleryId, setEditingGalleryId] = useState(null);
@@ -67,12 +69,13 @@ export default function AdminDesk() {
   useEffect(() => {
     async function loadSiteConfig() {
       try {
-        const res = await fetch('/api/content', { cache: 'no-store' });
+        const res = await fetch(`/api/content?t=${Date.now()}`, { cache: 'no-store' });
         const json = await res.json();
         if (json?.success && json?.data) {
           setConfig({
             ...DEFAULT_CONFIG,
             ...json.data,
+            nextConvoyOverride: json.data.nextConvoyOverride !== undefined ? json.data.nextConvoyOverride : true,
             nextConvoy: { ...DEFAULT_CONFIG.nextConvoy, ...(json.data.nextConvoy || {}) },
             stats: { ...DEFAULT_CONFIG.stats, ...(json.data.stats || {}) },
             planner: { ...DEFAULT_CONFIG.planner, ...(json.data.planner || {}) },
@@ -179,27 +182,68 @@ export default function AdminDesk() {
     });
   };
 
-  const featureSlotInCard = (slot) => {
-    const convoyObj = buildConvoyFromSlot(slot);
-    setConfig((prev) => ({
-      ...prev,
-      nextConvoyOverride: true,
-      nextConvoy: {
-        ...prev.nextConvoy,
-        ...convoyObj
+  const handlePublishPayload = async (customConfig = null) => {
+    setSaving(true);
+    setSaveSuccess(false);
+
+    try {
+      const targetConfig = customConfig || config;
+      const { signups: _ignore, ...siteContentData } = targetConfig || {};
+      const payload = {
+        ...siteContentData,
+        nextConvoyOverride: targetConfig.nextConvoyOverride !== false
+      };
+      const res = await fetch('/api/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: payload })
+      });
+
+      const json = await res.json();
+      if (json?.success) {
+        setSaveSuccess(true);
+        try {
+          localStorage.setItem('gtc_site_content_timestamp', Date.now().toString());
+          localStorage.setItem('gtc_site_content_cache', JSON.stringify(payload));
+          window.dispatchEvent(new CustomEvent('gtc:content-updated', { detail: payload }));
+        } catch (e) {}
+        showToast('Published live to Supabase successfully!', 'success');
+        setTimeout(() => setSaveSuccess(false), 4000);
+      } else {
+        showToast('Publish failed: ' + (json?.error || 'Unknown error'), 'error');
       }
-    }));
-    showToast(`Featured ${slot.day} ${slot.eatTime} in Next Convoy card!`, 'success');
+    } catch (err) {
+      showToast('Connection error during publish: ' + err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleResetNextConvoy = () => {
+  const featureSlotInCard = async (slot) => {
+    const convoyObj = buildConvoyFromSlot(slot);
+    const updatedConfig = {
+      ...config,
+      nextConvoyOverride: true,
+      nextConvoy: {
+        ...config.nextConvoy,
+        ...convoyObj
+      }
+    };
+    setConfig(updatedConfig);
+    showToast(`Featured ${slot.day} ${slot.eatTime} in Next Convoy card! Publishing live...`, 'info');
+    await handlePublishPayload(updatedConfig);
+  };
+
+  const handleResetNextConvoy = async () => {
     if (confirm('Reset Next Convoy card to standard timetable schedule?')) {
-      setConfig((prev) => ({
-        ...prev,
+      const updatedConfig = {
+        ...config,
         nextConvoyOverride: false,
         nextConvoy: { ...DEFAULT_CONFIG.nextConvoy }
-      }));
-      showToast('Next Convoy card reset to timetable defaults.', 'info');
+      };
+      setConfig(updatedConfig);
+      showToast('Next Convoy card reset to timetable defaults. Publishing live...', 'info');
+      await handlePublishPayload(updatedConfig);
     }
   };
 
@@ -220,33 +264,27 @@ export default function AdminDesk() {
     }
   };
 
-  const handleSaveNews = (e) => {
+  const handleSaveNews = async (e) => {
     e.preventDefault();
     if (!newsForm.title.trim()) {
       showToast('Article title is required', 'error');
       return;
     }
 
-    setConfig((prev) => {
-      const currentList = prev.news || [];
-      if (editingNewsId) {
-        return {
-          ...prev,
-          news: currentList.map((item) => (item.id === editingNewsId ? { ...newsForm, id: editingNewsId } : item))
-        };
-      } else {
-        const newArticle = {
-          ...newsForm,
-          id: 'news-' + Date.now()
-        };
-        return {
-          ...prev,
-          news: [newArticle, ...currentList]
-        };
-      }
-    });
+    const currentList = config.news || [];
+    let updatedNews;
+    if (editingNewsId) {
+      updatedNews = currentList.map((item) => (item.id === editingNewsId ? { ...newsForm, id: editingNewsId } : item));
+    } else {
+      const newArticle = {
+        ...newsForm,
+        id: 'news-' + Date.now()
+      };
+      updatedNews = [newArticle, ...currentList];
+    }
 
-    showToast(editingNewsId ? 'News article updated!' : 'News article created!', 'success');
+    const updatedConfig = { ...config, news: updatedNews };
+    setConfig(updatedConfig);
     setNewsForm({
       id: '',
       title: '',
@@ -258,6 +296,8 @@ export default function AdminDesk() {
       image: '/images/about-trucks.jpg'
     });
     setEditingNewsId(null);
+    showToast(editingNewsId ? 'News article updated! Publishing live...' : 'News article created! Publishing live...', 'info');
+    await handlePublishPayload(updatedConfig);
   };
 
   const handleEditNews = (item) => {
@@ -266,88 +306,90 @@ export default function AdminDesk() {
     setActiveTab('news');
   };
 
-  const handleDeleteNews = (id) => {
+  const handleDeleteNews = async (id) => {
     if (confirm('Are you sure you want to delete this news article?')) {
-      setConfig((prev) => ({
-        ...prev,
-        news: (prev.news || []).filter((n) => n.id !== id)
-      }));
-      showToast('Article deleted', 'info');
+      const updatedNews = (config.news || []).filter((n) => n.id !== id);
+      const updatedConfig = { ...config, news: updatedNews };
+      setConfig(updatedConfig);
+      showToast('Article deleted. Publishing live...', 'info');
+      await handlePublishPayload(updatedConfig);
     }
   };
 
-  const handleSaveGallery = (e) => {
+  const handleSaveGallery = async (e) => {
     e.preventDefault();
     if (!galleryForm.title.trim() || !galleryForm.src.trim()) {
       showToast('Photo title and image are required', 'error');
       return;
     }
 
-    setConfig((prev) => {
-      const currentList = prev.gallery || [];
-      if (editingGalleryId) {
-        return {
-          ...prev,
-          gallery: currentList.map((item) => (item.id === editingGalleryId ? { ...galleryForm, id: editingGalleryId } : item))
-        };
-      } else {
-        const newPhoto = {
-          ...galleryForm,
-          id: 'g-' + Date.now()
-        };
-        return {
-          ...prev,
-          gallery: [newPhoto, ...currentList]
-        };
-      }
-    });
+    const currentList = config.gallery || [];
+    let updatedGallery;
+    if (editingGalleryId) {
+      updatedGallery = currentList.map((item) => (item.id === editingGalleryId ? { ...galleryForm, id: editingGalleryId } : item));
+    } else {
+      const newPhoto = {
+        ...galleryForm,
+        id: 'g-' + Date.now()
+      };
+      updatedGallery = [newPhoto, ...currentList];
+    }
 
-    showToast(editingGalleryId ? 'Gallery screenshot updated!' : 'Screenshot added to gallery!', 'success');
+    const updatedConfig = { ...config, gallery: updatedGallery };
+    setConfig(updatedConfig);
     setGalleryForm({
       id: '',
       title: '',
       game: 'ETS 2',
-      author: user?.name || 'Bryan Gaming',
+      author: user?.name || '',
       src: '/images/about-trucks.jpg'
     });
     setEditingGalleryId(null);
+    showToast(editingGalleryId ? 'Gallery screenshot updated! Publishing live...' : 'Screenshot added to gallery! Publishing live...', 'info');
+    await handlePublishPayload(updatedConfig);
   };
 
-  const handleDeleteGallery = (id) => {
+  const handleDeleteGallery = async (id) => {
     if (confirm('Are you sure you want to remove this screenshot from the gallery?')) {
-      setConfig((prev) => ({
-        ...prev,
-        gallery: (prev.gallery || []).filter((g) => g.id !== id)
-      }));
-      showToast('Photo removed from gallery', 'info');
+      const updatedGallery = (config.gallery || []).filter((g) => g.id !== id);
+      const updatedConfig = { ...config, gallery: updatedGallery };
+      setConfig(updatedConfig);
+      showToast('Photo removed. Publishing live...', 'info');
+      await handlePublishPayload(updatedConfig);
     }
   };
 
   const handleSaveToSupabase = async () => {
-    setSaving(true);
-    setSaveSuccess(false);
-
-    try {
-      const { signups: _ignore, ...siteContentData } = config || {};
-      const res = await fetch('/api/publish', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: siteContentData })
+    let targetConfig = { ...config };
+    if (newsForm.title.trim() && !editingNewsId) {
+      const newArticle = { ...newsForm, id: 'news-' + Date.now() };
+      targetConfig.news = [newArticle, ...(targetConfig.news || [])];
+      setConfig(targetConfig);
+      setNewsForm({
+        id: '',
+        title: '',
+        badge: 'Community',
+        type: 'Official Announcement',
+        date: 'October 2026',
+        readTime: '3 min read',
+        excerpt: '',
+        image: '/images/about-trucks.jpg'
       });
-
-      const json = await res.json();
-      if (json?.success) {
-        setSaveSuccess(true);
-        showToast('Published live to Supabase successfully!', 'success');
-        setTimeout(() => setSaveSuccess(false), 4000);
-      } else {
-        showToast('Publish failed: ' + (json?.error || 'Unknown error'), 'error');
-      }
-    } catch (err) {
-      showToast('Connection error during publish: ' + err.message, 'error');
-    } finally {
-      setSaving(false);
     }
+    if (galleryForm.title.trim() && !editingGalleryId) {
+      const newPhoto = { ...galleryForm, id: 'g-' + Date.now() };
+      targetConfig.gallery = [newPhoto, ...(targetConfig.gallery || [])];
+      setConfig(targetConfig);
+      setGalleryForm({
+        id: '',
+        title: '',
+        game: 'ETS 2',
+        author: user?.name || '',
+        src: '/images/about-trucks.jpg'
+      });
+    }
+
+    await handlePublishPayload(targetConfig);
   };
 
   const handleBroadcast = async (e) => {
@@ -585,25 +627,27 @@ export default function AdminDesk() {
       return 0;
     });
 
-  if (!isAdmin) {
+  const canAccessDesk = isAdmin || isStaff || (can && can('cms:view'));
+
+  if (!canAccessDesk) {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center p-3" style={{ background: '#f8fafc' }}>
         <div className="card glass p-4 p-md-5 shadow-lg text-center" style={{ maxWidth: '460px', width: '100%', borderColor: '#ef4444' }}>
           <div className="rounded-circle d-inline-flex align-items-center justify-content-center p-3 mb-3 mx-auto" style={{ width: '70px', height: '70px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
             <i className="bi bi-shield-lock-fill fs-1"></i>
           </div>
-          <h2 className="h4 fw-bold text-dark mb-2">Administrator Access Required</h2>
+          <h2 className="h4 fw-bold text-dark mb-2">Operations Access Required</h2>
           <p className="text-secondary small mb-4">
-            The GTC CMS Content Desk is strictly restricted to verified <strong>Administrator</strong> accounts. Passcode bypasses have been disabled for security.
+            The GTC Operations &amp; CMS Desk is restricted to verified <strong>Administrators, Staff, Convoy Leads, and Dispatchers</strong>.
           </p>
 
           {user ? (
             <div className="alert alert-warning small text-start mb-4 py-2 px-3 border-0">
-              <i className="bi bi-person-fill-exclamation me-1"></i> Logged in as: <strong>{user.name}</strong> ({user.role || 'Driver'}). This account does not possess Administrator privileges.
+              <i className="bi bi-person-fill-exclamation me-1"></i> Logged in as: <strong>{user.name}</strong> ({user.role || 'Driver'}). This driver account lacks operational dispatch credentials.
             </div>
           ) : (
             <div className="alert alert-secondary small text-start mb-4 py-2 px-3 border-0">
-              <i className="bi bi-info-circle me-1"></i> You are currently not signed in. Please sign in with an Administrator credential to manage the community.
+              <i className="bi bi-info-circle me-1"></i> You are currently not signed in. Please sign in with an Administrator or Convoy Lead credential to access dispatch controls.
             </div>
           )}
 
@@ -613,7 +657,7 @@ export default function AdminDesk() {
               onClick={() => setIsAuthModalOpen(true)}
               className="btn btn-warning w-100 fw-bold shadow-sm"
             >
-              <i className="bi bi-box-arrow-in-right me-1"></i> Sign In to Administrator Account
+              <i className="bi bi-box-arrow-in-right me-1"></i> Sign In to Authorized Account
             </button>
             <Link
               href="/"
@@ -650,6 +694,15 @@ export default function AdminDesk() {
           </div>
 
           <div className="d-flex align-items-center gap-2">
+            <Link
+              href="/"
+              target="_blank"
+              className="btn btn-outline-light btn-sm fw-bold d-inline-flex align-items-center gap-1"
+              title="Open the live website in a new tab"
+            >
+              <i className="bi bi-box-arrow-up-right"></i>
+              <span>View Live Site</span>
+            </Link>
             <button
               onClick={handleSaveToSupabase}
               disabled={saving}
@@ -860,29 +913,42 @@ export default function AdminDesk() {
                   className="form-control"
                   value={config.nextConvoy?.leadDriver || ''}
                   onChange={(e) => updateNextConvoyField('leadDriver', e.target.value)}
-                  placeholder="Bryan Gaming (Convoy Lead)"
+                  placeholder="e.g. Official Convoy Lead"
                 />
               </div>
             </div>
 
             <div className="row g-3 mb-4">
-              <div className="col-12 col-md-6">
-                <label className="form-label small text-secondary fw-bold">Departure Location</label>
+              <div className="col-12 col-md-4">
+                <label className="form-label small text-secondary fw-bold">Departure Location / Staging City</label>
                 <input
                   type="text"
                   className="form-control"
                   value={config.nextConvoy?.departureLocation || ''}
                   onChange={(e) => updateNextConvoyField('departureLocation', e.target.value)}
+                  placeholder="e.g. Nairobi Hub or Munich Terminal"
                 />
               </div>
 
-              <div className="col-12 col-md-6">
-                <label className="form-label small text-secondary fw-bold">Destination Location</label>
+              <div className="col-12 col-md-4">
+                <label className="form-label small text-secondary fw-bold">Destination Location / Cargo Drop City</label>
                 <input
                   type="text"
                   className="form-control"
                   value={config.nextConvoy?.destinationLocation || ''}
                   onChange={(e) => updateNextConvoyField('destinationLocation', e.target.value)}
+                  placeholder="e.g. Mombasa Port or Milan Depot"
+                />
+              </div>
+
+              <div className="col-12 col-md-4">
+                <label className="form-label small text-secondary fw-bold">Route Corridor / Highway Briefing</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={config.nextConvoy?.route || ''}
+                  onChange={(e) => updateNextConvoyField('route', e.target.value)}
+                  placeholder="e.g. A109 Highway Sprint via Voi"
                 />
               </div>
             </div>
@@ -1442,7 +1508,7 @@ export default function AdminDesk() {
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="e.g. Bryan Gaming"
+                      placeholder="e.g. Driver Callsign"
                       value={galleryForm.author}
                       onChange={(e) => setGalleryForm({ ...galleryForm, author: e.target.value })}
                     />
@@ -1966,9 +2032,10 @@ export default function AdminDesk() {
                             Add-ons:
                           </span>
                           {[
-                            { key: 'streamer', label: 'Streamer', color: '#ec4899' },
+                            { key: 'admin', label: 'Admin', color: '#ef4444' },
                             { key: 'convoy_lead', label: 'Convoy Lead', color: '#f59e0b' },
-                            { key: 'dev_modder', label: 'Dev | Modder', color: '#0284c7' }
+                            { key: 'dev_modder', label: 'Dev | Modder', color: '#0284c7' },
+                            { key: 'streamer', label: 'Streamer', color: '#ec4899' }
                           ]
                             .filter((item) => item.key !== (driver.role || 'driver'))
                             .map(({ key: addKey, label: addLabel, color: addColor }) => {

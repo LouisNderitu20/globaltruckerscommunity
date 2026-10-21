@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth, ROLE_INFO } from '@/lib/authContext';
 
 export default function Navbar({ onOpenAccountModal, onOpenNotifModal }) {
-  const { user, role, isAdmin, unreadCount, logoutAccount } = useAuth();
+  const { user, role, isAdmin, isStaff, can, unreadCount, logoutAccount } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [communityOpen, setCommunityOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -177,30 +177,32 @@ export default function Navbar({ onOpenAccountModal, onOpenNotifModal }) {
                 )}
               </li>
 
-              <li className="nav-item ms-xl-1">
-                <a
-                  className="nav-link px-3 py-1 rounded-2 fw-bold text-nowrap d-inline-block"
-                  style={{
-                    backgroundColor: 'rgba(2, 132, 199, 0.08)',
-                    color: '#0284c7',
-                    fontSize: '0.86rem'
-                  }}
-                  href="/#signup"
-                  onClick={closeMenus}
-                >
-                  <i className="bi bi-truck me-1"></i> Recruitment
-                </a>
-              </li>
+              {!user && (
+                <li className="nav-item ms-xl-1">
+                  <a
+                    className="nav-link px-3 py-1 rounded-2 fw-bold text-nowrap d-inline-block"
+                    style={{
+                      backgroundColor: 'rgba(2, 132, 199, 0.08)',
+                      color: '#0284c7',
+                      fontSize: '0.86rem'
+                    }}
+                    href="/#signup"
+                    onClick={closeMenus}
+                  >
+                    <i className="bi bi-truck me-1"></i> Recruitment
+                  </a>
+                </li>
+              )}
             </ul>
 
             <div className="d-flex align-items-center flex-wrap gap-2 pt-2 pt-xl-0">
               
-              {user && isAdmin && (
+              {user && (isAdmin || isStaff || (can && can('cms:view'))) && (
                 <Link
                   href="/admin"
                   className="btn btn-sm btn-outline-primary fw-bold d-flex align-items-center gap-1 shadow-sm"
                   style={{ borderColor: '#0284c7', color: '#0284c7', fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
-                  title="Admin Content Desk"
+                  title="Operations & CMS Desk"
                   onClick={closeMenus}
                 >
                   <i className="bi bi-gear-fill"></i> CMS Desk

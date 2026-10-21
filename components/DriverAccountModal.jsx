@@ -412,7 +412,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Bryan Gaming or GTC-1001"
+                      placeholder="e.g. Callsign or GTC-1001"
                       className="form-control"
                       value={loginForm.emailOrCallsign}
                       onChange={(e) => setLoginForm({ ...loginForm, emailOrCallsign: e.target.value })}
@@ -490,7 +490,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Bryan_Hauler"
+                      placeholder="e.g. RoadKing99 or DesertPilot"
                       className="form-control"
                       value={registerForm.name}
                       onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
@@ -575,7 +575,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                           type="text"
                           required={registerForm.isStreamer}
                           className="form-control form-control-sm"
-                          placeholder="e.g. https://www.tiktok.com/@bryangaming"
+                          placeholder="e.g. https://www.tiktok.com/@yourchannel"
                           value={registerForm.streamerUrl}
                           onChange={(e) => setRegisterForm({ ...registerForm, streamerUrl: e.target.value })}
                         />
@@ -1179,7 +1179,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                       className="form-control"
                       value={profileForm.steamId}
                       onChange={(e) => setProfileForm({ ...profileForm, steamId: e.target.value })}
-                      placeholder="e.g. bryan_gaming_live"
+                      placeholder="e.g. SteamPilotID"
                     />
                   </div>
                 </div>
@@ -1260,7 +1260,7 @@ export default function DriverAccountModal({ isOpen, onClose, initialTab = 'prof
                           type="text"
                           required={profileForm.isStreamer}
                           className="form-control form-control-sm"
-                          placeholder="e.g. https://www.tiktok.com/@bryangaming"
+                          placeholder="e.g. https://www.tiktok.com/@yourchannel"
                           value={profileForm.streamerUrl}
                           onChange={(e) => setProfileForm({ ...profileForm, streamerUrl: e.target.value })}
                         />

@@ -22,7 +22,7 @@ export default function StatsPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const res = await fetch('/api/content', { cache: 'no-store' });
+        const res = await fetch(`/api/content?t=${Date.now()}`, { cache: 'no-store' });
         const json = await res.json();
         if (json?.success && json?.data) {
           setConfig({

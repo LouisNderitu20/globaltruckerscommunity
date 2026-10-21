@@ -6,8 +6,13 @@ import { GTC_COUNTRIES, GTC_TRUCKS, ETS2_TRUCKS, ATS_TRUCKS, isValidStreamerUrl,
 import PhotoCustomizerModal from './PhotoCustomizerModal';
 
 export default function DriverSignup({ onSignupSuccess }) {
-  const { registerAccount } = useAuth();
+  const { user, registerAccount } = useAuth();
   const [isPreviewFlipped, setIsPreviewFlipped] = useState(false);
+
+  // If driver is already authenticated, remove recruitment form & default license preview
+  if (user) {
+    return null;
+  }
 
   const [formData, setFormData] = useState({
     name: '',
@@ -162,7 +167,7 @@ export default function DriverSignup({ onSignupSuccess }) {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Bryan_Hauler or RoadRunner99"
+                      placeholder="e.g. DesertStorm99 or GTC_Pilot"
                       className="form-control"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -423,7 +428,7 @@ export default function DriverSignup({ onSignupSuccess }) {
                             type="text"
                             required={formData.isStreamer}
                             className={`form-control form-control-sm ${streamerError ? 'is-invalid' : ''}`}
-                            placeholder="e.g. https://www.tiktok.com/@bryangaming"
+                            placeholder="e.g. https://www.tiktok.com/@yourchannel"
                             value={formData.streamerUrl}
                             onChange={(e) => {
                               setFormData({ ...formData, streamerUrl: e.target.value });
