@@ -39,7 +39,7 @@ export async function GET() {
       timetableConvoys: Array.isArray(row.data?.timetableConvoys) && row.data.timetableConvoys.length > 0 ? row.data.timetableConvoys : DEFAULT_CONFIG.timetableConvoys,
       news: Array.isArray(row.data?.news) ? row.data.news : DEFAULT_CONFIG.news,
       gallery: Array.isArray(row.data?.gallery) ? row.data.gallery : DEFAULT_CONFIG.gallery,
-      nextConvoyOverride: row.data?.nextConvoyOverride !== undefined ? row.data.nextConvoyOverride : true,
+      nextConvoyOverride: Boolean(row.data?.nextConvoyOverride),
     };
 
     return NextResponse.json(

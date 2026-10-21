@@ -109,7 +109,7 @@ export default function HomePage() {
     setIsAccountModalOpen(true);
   };
 
-  const isOverridden = config.nextConvoyOverride !== false && config.nextConvoy?.title;
+  const isOverridden = config.nextConvoyOverride === true && Boolean(config.nextConvoy?.title);
   const configuredConvoy = isOverridden ? config.nextConvoy : (liveNextConvoy || config.nextConvoy);
   const activeConvoy = selectedConvoy || configuredConvoy;
   const activeSlot = activeConvoy ? {
