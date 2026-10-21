@@ -313,7 +313,7 @@ export default function ConvoyMapDisplay({ convoy, height = '460px' }) {
         <div className="d-flex align-items-center gap-3 flex-wrap">
           <span>
             <i className="bi bi-broadcast text-warning me-1"></i>
-            In-game CB Radio: <strong className="text-dark">Channel 19</strong>
+            In-game CB Radio: <strong className="text-dark">{convoy?.radioChannel || (convoy?.voiceChannel ? convoy.voiceChannel.replace(/Discord Radio /i, '') : 'Channel 19')}</strong>
           </span>
           <span>&bull;</span>
           <span>

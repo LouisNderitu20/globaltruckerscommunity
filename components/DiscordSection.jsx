@@ -7,6 +7,18 @@ export default function DiscordSection({ config }) {
   const whatsappUrl = config?.whatsappUrl || 'https://chat.whatsapp.com/DA0RGVlaPJM2hsbi7tGH1m';
   const telegramUrl = config?.telegramUrl || 'https://t.me/+dPd9rDHL0jlhMzc0';
 
+  const channels = (Array.isArray(config?.discordChannels) && config.discordChannels.length > 0)
+    ? config.discordChannels
+    : [
+        { name: 'Convoy Radio #1 (CB 19)', info: '28 Drivers in Voice', icon: 'bi-volume-up-fill text-warning', isSuccess: true },
+        { name: 'Dispatch & Pace Car Lead', info: 'Convoy Control', icon: 'bi-soundwave text-warning' },
+        { name: 'ATS Interstate Frequency', info: '12 Drivers in Voice', icon: 'bi-volume-up-fill text-success', isSuccess: true },
+        { name: '#convoy-announcements', info: 'Room ID Active', icon: 'bi-chat-square-text-fill text-primary', isBadge: true }
+      ];
+
+  const activeCount = config?.discordActiveCount || '142 Active';
+  const cbFrequency = config?.cbRadioFrequency || 'Channel 19';
+
   return (
     <section id="discord" className="py-4">
       <div className="container">
@@ -62,42 +74,29 @@ export default function DiscordSection({ config }) {
                     <strong className="text-dark small">Global Truckers Radio</strong>
                   </div>
                   <span className="badge bg-success-subtle text-success small rounded-1">
-                    142 Active
+                    {activeCount}
                   </span>
                 </div>
 
                 <div className="d-flex flex-column gap-2 small">
-                  <div className="d-flex justify-content-between align-items-center p-2 rounded-2 bg-white border">
-                    <span className="text-dark fw-semibold">
-                      <i className="bi bi-volume-up-fill text-warning me-2"></i> Convoy Radio #1 (CB 19)
-                    </span>
-                    <span className="text-success fw-bold">28 Drivers in Voice</span>
-                  </div>
-
-                  <div className="d-flex justify-content-between align-items-center p-2 rounded-2 bg-white border">
-                    <span className="text-dark fw-semibold">
-                      <i className="bi bi-soundwave text-warning me-2"></i> Dispatch &amp; Pace Car Lead
-                    </span>
-                    <span className="text-secondary">Convoy Control</span>
-                  </div>
-
-                  <div className="d-flex justify-content-between align-items-center p-2 rounded-2 bg-white border">
-                    <span className="text-dark fw-semibold">
-                      <i className="bi bi-volume-up-fill text-success me-2"></i> ATS Interstate Frequency
-                    </span>
-                    <span className="text-success fw-bold">12 Drivers in Voice</span>
-                  </div>
-
-                  <div className="d-flex justify-content-between align-items-center p-2 rounded-2 bg-white border">
-                    <span className="text-dark fw-semibold">
-                      <i className="bi bi-chat-square-text-fill text-primary me-2"></i> #convoy-announcements
-                    </span>
-                    <span className="badge badge-gold small">Room ID Active</span>
-                  </div>
+                  {channels.map((ch, idx) => (
+                    <div key={idx} className="d-flex justify-content-between align-items-center p-2 rounded-2 bg-white border">
+                      <span className="text-dark fw-semibold">
+                        <i className={`bi ${ch.icon || 'bi-volume-up-fill text-warning'} me-2`}></i> {ch.name}
+                      </span>
+                      {ch.isBadge ? (
+                        <span className="badge badge-gold small">{ch.info}</span>
+                      ) : (
+                        <span className={ch.isSuccess ? 'text-success fw-bold' : 'text-secondary'}>
+                          {ch.info}
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
 
                 <div className="mt-3 p-2 rounded-2 bg-white border text-secondary small">
-                  <i className="bi bi-info-circle-fill me-1 text-warning"></i> In-game CB radio frequency: <strong>Channel 19</strong> on standard ETS 2 / ATS multiplayer.
+                  <i className="bi bi-info-circle-fill me-1 text-warning"></i> In-game CB radio frequency: <strong>{cbFrequency}</strong> on standard ETS 2 / ATS multiplayer.
                 </div>
               </div>
             </div>
